@@ -509,14 +509,13 @@ ${cssText}
 </html>`;
 
   const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
   printWindow.document.write(html);
   printWindow.document.close();
-  // Wait for fonts/images to load, then print
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.print();
-    }, 400);
-  };
+  // Trigger print dialog after fonts/images load
+  setTimeout(() => {
+    printWindow.print();
+  }, 800);
 }
 
 function handleShare(platform, trade, analysis) {

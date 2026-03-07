@@ -100,9 +100,10 @@ ${reportHtml}
 </html>`;
 
   const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
   printWindow.document.write(html);
   printWindow.document.close();
-  printWindow.onload = () => { setTimeout(() => { printWindow.print(); }, 400); };
+  setTimeout(() => { printWindow.print(); }, 800);
 }
 
 function buildLendingStandaloneHtml(reportRef) {
