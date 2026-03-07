@@ -343,6 +343,8 @@ function computeLeap(f) {
 }
 
 // --- THE WHEEL ---
+// Cycles between selling cash-secured puts and covered calls.
+// Chart shows per-unit P&L for the current phase, including cumulative premium.
 function computeWheel(f) {
   const price = n(f.current_price);
   const costBasis = n(f.cost_basis);
@@ -352,26 +354,49 @@ function computeWheel(f) {
   const cycles = n(f.cycles_completed);
   const annReturn = n(f.annualized_return);
 
-  const breakeven = costBasis - totalPremium;
-  const minP = breakeven * 0.8;
-  const maxP = currentStrike * 1.2;
-
   const isSellingPuts = f.current_phase === "Selling Puts";
   const isSellingCalls = f.current_phase === "Selling Covered Calls";
 
+  // Effective breakeven after all collected premium
+  const effectiveBasis = costBasis - totalPremium;
+
+  let minP, maxP;
+
+  if (isSellingPuts) {
+    // Selling puts: profit = premium if price stays above strike
+    // Loss starts below strike (assigned at strike, minus premium cushion)
+    const putBreakeven = currentStrike - currentPremium;
+    minP = putBreakeven * 0.8;
+    maxP = currentStrike * 1.3;
+  } else {
+    // Holding + selling calls: profit from asset appreciation + premium, capped at call strike
+    minP = effectiveBasis * 0.8;
+    maxP = currentStrike * 1.2;
+  }
+
   const curve = buildCurve(minP, maxP, (p) => {
     if (isSellingPuts) {
-      if (p >= currentStrike) return currentPremium * 100;
-      return (p - currentStrike + currentPremium) * 100;
+      // Short put payoff (per unit)
+      if (p >= currentStrike) return currentPremium;
+      return p - currentStrike + currentPremium;
     }
-    // Holding position or selling calls
-    const positionPnl = (p - costBasis) * 100;
-    const premiumPnl = totalPremium * 100;
+    // Holding position + selling covered calls
+    // Per-unit P&L: asset gain from cost basis + all premium collected
+    const assetPnl = p - costBasis;
+    const allPremium = totalPremium + (isSellingCalls ? currentPremium : 0);
     if (isSellingCalls && p > currentStrike) {
-      return (currentStrike - costBasis + totalPremium + currentPremium) * 100;
+      // Called away: capped gain
+      return (currentStrike - costBasis) + allPremium;
     }
-    return positionPnl + premiumPnl;
+    return assetPnl + allPremium;
   });
+
+  const breakeven = isSellingPuts
+    ? currentStrike - currentPremium
+    : costBasis - totalPremium - (isSellingCalls ? currentPremium : 0);
+  const maxProfit = isSellingCalls
+    ? (currentStrike - costBasis) + totalPremium + currentPremium
+    : null;
 
   return {
     curve, spot: price, breakevens: [breakeven],
@@ -379,8 +404,9 @@ function computeWheel(f) {
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Phase", value: f.current_phase || "—", sub: `Cycle ${cycles}` },
       { label: "Total Premium", value: fmtFull(totalPremium), sub: `${cycles} cycles`, positive: true },
-      { label: "Adj. Basis", value: fmtFull(costBasis), sub: `BE: ${fmtFull(breakeven.toFixed(2))}` },
+      { label: "Adj. Basis", value: fmtFull(costBasis), sub: `BE: ${fmtFull(breakeven)}` },
       { label: "Ann. Return", value: `${annReturn}%`, sub: `${fmtFull(currentPremium)} current`, positive: true },
+      ...(maxProfit ? [{ label: "Max Profit", value: fmtFull(maxProfit), sub: "if called away", positive: true }] : []),
     ],
     legs: isSellingPuts
       ? [{ action: "SELL", type: "Put", strike: currentStrike, label: `${fmtFull(currentStrike)} Put @ ${fmtFull(currentPremium)}`, color: "#34D399" }]
