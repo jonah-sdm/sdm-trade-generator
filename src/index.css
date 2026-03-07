@@ -3017,9 +3017,9 @@ button.crumb:disabled {
 ================================ */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
-  max-width: 1100px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -3721,6 +3721,414 @@ html {
 /* ================================
    Sales Library — Amber Accents
 ================================ */
+/* ================================
+   AI Trade Advisor
+================================ */
+
+/* ── Ask AI Banner on SELECT page ── */
+.ai-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(255,195,44,0.06) 0%, rgba(168,85,247,0.04) 100%);
+  border: 1px solid rgba(255,195,44,0.15);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+  font-family: var(--font-body);
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-banner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), #a855f7, var(--gold));
+  background-size: 200% 100%;
+  animation: aiGradientShift 4s ease infinite;
+}
+
+@keyframes aiGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.ai-banner:hover {
+  border-color: rgba(255,195,44,0.30);
+  box-shadow: 0 4px 24px rgba(255,195,44,0.08), 0 0 40px rgba(168,85,247,0.04);
+  transform: translateY(-2px);
+}
+
+.ai-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ai-banner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255,195,44,0.12), rgba(168,85,247,0.08));
+  border: 1px solid rgba(255,195,44,0.20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  flex-shrink: 0;
+  animation: aiIconPulse 3s ease-in-out infinite;
+}
+
+@keyframes aiIconPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,195,44,0); }
+  50% { box-shadow: 0 0 16px rgba(255,195,44,0.12); }
+}
+
+.ai-banner-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-beta-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #a855f7;
+  background: rgba(168,85,247,0.12);
+  border: 1px solid rgba(168,85,247,0.25);
+  border-radius: 4px;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.ai-banner-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ai-banner-arrow {
+  font-size: 20px;
+  color: var(--gold);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.ai-banner:hover .ai-banner-arrow {
+  transform: translateX(4px);
+}
+
+/* ── AI Configure Page ── */
+.phase-ai {
+  max-width: 800px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease;
+}
+
+.ai-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+.ai-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.ai-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── AI Preset Templates ── */
+.ai-presets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-presets-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a78bfa;
+}
+
+.ai-presets-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-preset-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--fg2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.ai-preset-chip:hover {
+  border-color: rgba(139, 92, 246, 0.35);
+  color: var(--fg);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.ai-preset-chip.active {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.1);
+}
+
+.ai-presets-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.ai-presets-toggle:hover {
+  color: var(--fg2);
+}
+
+.ai-presets-chevron {
+  transition: transform 0.25s ease;
+}
+
+.ai-presets-chevron.open {
+  transform: rotate(180deg);
+}
+
+.ai-prompt-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-prompt-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.ai-prompt-divider-text {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ── AI Prompt Box — distinct from exec summary ── */
+.ai-prompt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-prompt-box {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid rgba(168,85,247,0.25);
+  background: var(--bg);
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.ai-prompt-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), #a855f7);
+  opacity: 0.6;
+}
+
+.ai-prompt-box:focus-within {
+  border-color: rgba(168,85,247,0.5);
+  box-shadow: 0 0 0 4px rgba(168,85,247,0.08);
+}
+
+.ai-prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(255,195,44,0.06), rgba(168,85,247,0.06));
+  border-bottom: 1px solid rgba(168,85,247,0.12);
+  font-size: 11px;
+  font-weight: 700;
+  color: #a855f7;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ai-prompt-header svg {
+  color: var(--gold);
+}
+
+.ai-prompt-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 16px 18px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.7;
+  resize: vertical;
+  min-height: 140px;
+  outline: none;
+}
+
+.ai-prompt-textarea::placeholder {
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.ai-prompt-editor {
+  min-height: 140px;
+  padding: 16px 18px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  outline: none;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.ai-prompt-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.ai-prompt-box .rt-toolbar-field {
+  border-bottom: none;
+  padding: 6px 12px;
+  background: rgba(139, 92, 246, 0.03);
+}
+
+/* ── AI Generate Button — purple accent ── */
+.ai-generate-btn {
+  background: linear-gradient(135deg, #FFC32C, #e6af1e) !important;
+  position: relative;
+}
+
+.ai-generate-btn svg {
+  color: #0a0a0f;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .ai-fields-grid {
+    grid-template-columns: 1fr;
+  }
+  .ai-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ai-banner-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* ── AI Generating Phase ── */
+.phase-ai-generating .generating-glyph {
+  animation: aiSparkle 2s ease-in-out infinite;
+}
+
+@keyframes aiSparkle {
+  0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.05) rotate(5deg); }
+  50% { opacity: 0.6; transform: scale(0.95) rotate(-5deg); }
+  75% { transform: scale(1.05) rotate(3deg); }
+}
+
+/* ── AI Review Card (sidebar) ── */
+.ai-review-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(168,85,247,0.20);
+  background: var(--bg3);
+}
+
+.ai-review-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(255,195,44,0.08), rgba(168,85,247,0.06));
+  border-bottom: 1px solid rgba(168,85,247,0.12);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ai-review-card-body {
+  padding: 22px 18px;
+}
+
+/* ── AI Review Header (form area) ── */
+.ai-review-header {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-review-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-review-header .form-title {
+  margin-bottom: 8px;
+}
+
+.ai-review-header .form-sub strong {
+  color: var(--gold);
+}
+
 .product-ring-amber {
   background: rgba(255,195,44,0.08);
   border-color: rgba(255,195,44,0.15);
@@ -3729,6 +4137,81 @@ html {
 .badge-amber { color: var(--gold); }
 .product-card-sales:hover::before { background: var(--gold); }
 .product-card-sales .product-card-cta { color: var(--gold); }
+
+/* ── Ask AI — Special Branded Card ── */
+.product-card-ai-wrap {
+  position: relative;
+  border-radius: 16px;
+}
+
+.ai-card-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed, #6366f1, #a78bfa);
+  background-size: 300% 300%;
+  animation: aiGlowShift 4s ease infinite;
+  opacity: 0.5;
+  z-index: 0;
+  transition: opacity 0.3s;
+}
+
+.product-card-ai-wrap:hover .ai-card-glow {
+  opacity: 0.85;
+}
+
+@keyframes aiGlowShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.product-card-ai {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(160deg, rgba(139,92,246,0.08), var(--bg2) 40%) !important;
+  border-color: rgba(139,92,246,0.25) !important;
+}
+
+.product-card-ai::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.06), transparent 60%);
+  pointer-events: none;
+}
+
+.product-card-ai:hover {
+  border-color: rgba(139,92,246,0.45) !important;
+  box-shadow: 0 0 30px rgba(139,92,246,0.12), 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.product-ring-violet {
+  background: rgba(139,92,246,0.12);
+  border-color: rgba(139,92,246,0.25);
+  color: #a78bfa;
+  animation: aiRingPulse 3s ease-in-out infinite;
+}
+
+@keyframes aiRingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
+  50% { box-shadow: 0 0 16px rgba(139,92,246,0.2); }
+}
+
+.badge-violet { color: #a78bfa; }
+.badge-beta {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.product-card-ai:hover::before { background: #a78bfa; }
+.product-card-ai .product-card-cta { color: #a78bfa; }
 
 /* ── Sales Library Page ── */
 .phase-sales-library {
@@ -3944,7 +4427,12 @@ html {
 }
 
 /* ── Responsive ── */
-@media (max-width: 1000px) {
+@media (max-width: 1200px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 900px) {
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
   }

@@ -17,13 +17,17 @@ export function generateExecutiveSummary(tradeId, fields) {
     const num = parseNum(v);
     if (!num && num !== 0) return v;
     if (Math.abs(num) >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-    return `$${num.toLocaleString()}`;
+    if (Math.abs(num) < 1 && num !== 0) return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+    if (Math.abs(num) < 100) return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
-  // Format any value as $X,XXX with commas
+  // Format any value as $X,XXX.XX with commas
   const $ = (v) => {
     const num = parseNum(v);
     if (!num && num !== 0) return `$${v}`;
-    return `$${num.toLocaleString()}`;
+    if (Math.abs(num) < 1 && num !== 0) return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+    if (Math.abs(num) < 100) return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   switch (tradeId) {
@@ -86,13 +90,16 @@ function n(v) {
 function fmt(v, decimals = 0) {
   if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
   if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(decimals > 0 ? decimals : 0)}K`;
+  if (Math.abs(v) < 1 && v !== 0) return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  if (Math.abs(v) < 100 && v !== 0) return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `$${v.toLocaleString(undefined, { maximumFractionDigits: decimals })}`;
 }
 // Full comma-formatted dollar amount (no abbreviation)
 function fmtFull(v) {
   const num = typeof v === "number" ? v : parseFloat(String(v).replace(/[$,%\s,]/g, ""));
   if (isNaN(num)) return `$${v}`;
-  return `$${num.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  if (Math.abs(num) < 1 && num !== 0) return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function buildCurve(minPrice, maxPrice, pnlFn, steps = 200) {

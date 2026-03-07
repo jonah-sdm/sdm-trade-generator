@@ -7,6 +7,19 @@ import TradeReport from "./TradeReport";
 import LendingReport from "./LendingReport";
 import "./index.css";
 
+const ASK_AI_PRESETS = [
+  { id: "strategy-selector", label: "Help me pick the right strategy", prompt: "Client is ready to act but unsure which strategy fits current market conditions. They want the AI to evaluate the setup and recommend the right structure \u2014 whether that\u2019s a cash-secured put, a LEAP, a combination of both, or no trade at all. Walk through the decision in order: IV environment first, then conviction level, then available capital. Do not force a strategy that doesn\u2019t fit the setup. If conditions don\u2019t justify a trade, say so." },
+  { id: "put-strike-optimizer", label: "I want to sell a put — where should I set the strike?", prompt: "Client is considering selling a cash-secured put and wants to find the right strike. Identify key support levels on both the daily and weekly chart based on historical price action. Recommend a strike at or below those levels that still offers meaningful premium, targeting roughly 80% probability of the premium being kept. Calculate the effective cost basis if assigned (strike minus premium). If no available strike offers a risk/reward worth taking, recommend skipping the trade entirely." },
+  { id: "covered-call-timing", label: "Should I sell a covered call right now?", prompt: "Client owns shares and wants to know if now is the right time to sell a covered call. Check RSI on both daily and weekly timeframes for overbought signals. Identify the nearest resistance levels where price has historically stalled. Recommend a strike above the client\u2019s cost basis that sits near a resistance level, targeting approximately 0.20 delta at 30 DTE. Calculate total profit including capital gains and all premium collected if shares are called away at that strike. If the trend is still strong and capping upside would be a mistake, recommend waiting rather than selling for the sake of activity." },
+  { id: "leap-entry-check", label: "Is it a good time to buy a long-dated option?", prompt: "Client wants to buy a LEAP and needs confirmation that all entry conditions are aligned before committing capital. Check: daily and weekly RSI for oversold signals; whether price is at a meaningful support level with historical buyer activity; IV rank relative to its recent range (low IV preferred); and whether the options chain is liquid at the strikes being considered. For a 360+ day contract, recommend a strike that balances leverage with a realistic probability of profit. Return a clear go / no-go verdict. If conditions are not aligned, specify exactly what the client should be waiting for." },
+  { id: "position-sizing", label: "How big should this position be?", prompt: "Client wants to open an options position and needs a position sizing stress test before entering. Calculate what percentage of the total portfolio would be locked into this position if assigned after a 30% adverse move. Flag any sector concentration or overlap with existing holdings. Determine how many contracts or shares at the strike price can be held while keeping sufficient capital available for other opportunities. Recommend a maximum allocation size where a worst-case outcome is painful but not catastrophic. Client has a known tendency to oversize when conviction is high \u2014 factor that in." },
+  { id: "wheel-tracker", label: "Review my wheel strategy and plan the next move", prompt: "Client is running a wheel strategy and wants a full cycle P&L review and next-step recommendation. Using the current position details (whether in the put-selling, assigned, or covered call phase), calculate: adjusted cost basis after all premium collected to date; total cycles completed and cumulative premium; annualized return at the current pace. If currently selling covered calls, identify a strike above cost basis near a resistance level. Assess whether it makes more sense to let shares get called away now or to continue collecting premium for additional cycles." },
+  { id: "early-exit-analysis", label: "Should I take profit now or wait until expiry?", prompt: "Client has sold an option and wants to model the optimal exit strategy. Calculate the buyback price that locks in 50% of premium collected. Estimate how many days it should take to reach that target based on typical theta decay at the current DTE. Compare annualized return for closing at 50% profit in 7\u201310 days vs. holding to expiration. If the position moves against the client before hitting the 50% target, define the specific price point where rolling becomes preferable to waiting \u2014 and model what a roll looks like (expiration, strike, and whether it can be executed for a net credit)." },
+  { id: "earnings-risk", label: "Is it safe to hold this position through an upcoming event?", prompt: "Client has an open options position with an upcoming earnings event and needs a risk assessment before the report. Calculate the expected move currently priced into the options market. Review the last 3\u20134 earnings reactions \u2014 gap up, gap down, or flat. If the client is short a put, assess whether a negative earnings gap could take price below the strike overnight. Determine whether the premium collected is sufficient to cushion a worst-case move. Recommend whether to close before earnings, hold through, or roll to a later expiration. If the risk/reward doesn\u2019t justify holding through a binary event, recommend closing." },
+  { id: "leap-tax-timing", label: "Should I wait to sell for better tax treatment?", prompt: "Client holds a LEAP with unrealized gains and wants to optimize the exit timing around long-term capital gains tax treatment. Calculate the exact date the one-year holding period is reached. Estimate the tax difference between selling today at short-term rates vs. waiting for long-term rates, using the client\u2019s tax bracket. Assess how quickly theta decay is accelerating at the current DTE and how much time value is being lost per week. Check whether price is approaching overbought conditions or a resistance zone before the one-year mark. Given the tax savings vs. the risk of holding longer, recommend whether to hold or take profits now." },
+  { id: "exit-plan-builder", label: "Write me an exit plan before I enter this trade", prompt: "Client is about to open a position and wants a complete exit plan written before entering, so they can reference it objectively if the trade becomes emotional. Build the plan for all three scenarios: (1) Trade works \u2014 at what profit level to close, and whether to scale out or exit all at once; (2) Trade moves against the client \u2014 the specific price at which to roll vs. cut the loss, and what would invalidate the original thesis; (3) Nothing happens \u2014 stock goes sideways and the position approaches expiration. Also flag any earnings dates, ex-dividend dates, or other catalysts between entry and expiration that could affect the position." },
+];
+
 const PHASES = {
   HOME: "home",
   SELECT: "select",
@@ -20,6 +33,10 @@ const PHASES = {
   LENDING_RESULT: "lending_result",
   // Sales Library
   SALES_LIBRARY: "sales_library",
+  // AI Trade Advisor
+  AI_CONFIGURE: "ai_configure",
+  AI_GENERATING: "ai_generating",
+  AI_REVIEW: "ai_review",
 };
 
 const PHASE_TITLES = {
@@ -33,6 +50,9 @@ const PHASE_TITLES = {
   [PHASES.LENDING_GENERATING]: "Generating Proposal — SDM",
   [PHASES.LENDING_RESULT]: "Lending Proposal — SDM",
   [PHASES.SALES_LIBRARY]: "Sales Library — SDM",
+  [PHASES.AI_CONFIGURE]: "Ask AI — Derivatives Studio",
+  [PHASES.AI_GENERATING]: "Analyzing — Ask AI",
+  [PHASES.AI_REVIEW]: "Review AI Trade — Derivatives Studio",
 };
 
 function TradeCard({ trade, selected, onClick }) {
@@ -207,11 +227,19 @@ export default function App() {
   const [salesLoading, setSalesLoading] = useState(false);
   const [salesFilter, setSalesFilter] = useState("");
   const [salesCategory, setSalesCategory] = useState("All");
+  // AI Trade Advisor state
+  const [aiForm, setAiForm] = useState({
+    asset: "BTC", currentPrice: "", portfolioValue: "", expiryDate: "",
+    riskTolerance: "Moderate", objective: "Not Sure — Detect from Notes", prompt: "",
+  });
+  const [activePreset, setActivePreset] = useState(null);
+  const [presetsExpanded, setPresetsExpanded] = useState(false);
+  const aiPromptRef = useRef(null);
 
   const skipPushRef = useRef(false);
 
   const isLendingPhase = phase === PHASES.LENDING_CONFIGURE || phase === PHASES.LENDING_GENERATING || phase === PHASES.LENDING_RESULT;
-  const isTradingPhase = [PHASES.SELECT, PHASES.UPLOAD, PHASES.CONFIGURE, PHASES.GENERATING, PHASES.RESULT].includes(phase);
+  const isTradingPhase = [PHASES.SELECT, PHASES.UPLOAD, PHASES.CONFIGURE, PHASES.GENERATING, PHASES.RESULT, PHASES.AI_CONFIGURE, PHASES.AI_GENERATING, PHASES.AI_REVIEW].includes(phase);
   const isSalesPhase = phase === PHASES.SALES_LIBRARY;
 
   // ─── Fetch Sales Library from Google Sheet ───
@@ -340,6 +368,154 @@ export default function App() {
       }
     }, 500);
   };
+
+  // ─── AI Summary Generator: turns raw notes into polished copy ───
+  const generateAiSummary = ({ tradeId, asset, price, pv, expiry, riskTolerance, objective, userPrompt, autoFields }) => {
+    const $f = (n) => {
+      const v = parseFloat(n || 0);
+      if (v === 0) return "0";
+      if (Math.abs(v) < 1) return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+      if (Math.abs(v) < 100) return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    };
+    const $n = (n) => parseFloat(n || 0).toLocaleString();
+    const riskAdj = riskTolerance === "Conservative" ? "capital preservation and downside protection" : riskTolerance === "Aggressive" ? "maximizing upside participation with defined risk" : "a balanced risk-reward profile with controlled downside";
+
+    const summaries = {
+      collar: `<p>This trade is structured as a <strong>Protective Collar</strong> on ${asset}, designed for a client seeking ${riskAdj}. The client currently holds a position valued at approximately $${$f(pv)} and requires downside protection while maintaining participation in further upside.</p>
+<p>The collar is implemented by purchasing a put at the $${$f(autoFields.put_strike)} strike to establish a hard floor, funded in part by selling a call at $${$f(autoFields.call_strike)}, resulting in a near-zero net premium outlay. This creates a defined range of outcomes: losses are capped below the put strike, while gains are retained up to the call strike.</p>
+<p>With ${asset} currently trading at $${$f(price)}, this structure provides approximately ${Math.round((1 - parseFloat(autoFields.put_strike) / price) * 100)}% downside protection while allowing ${Math.round((parseFloat(autoFields.call_strike) / price - 1) * 100)}% of further upside. The position expires ${expiry}, at which point it can be rolled or allowed to settle. This is well-suited for clients with near-term liquidity concerns, tax events, or macro uncertainty who want to remain invested in ${asset} without bearing unlimited downside risk.</p>`,
+
+      covered_call: `<p>This trade implements a <strong>Covered Call</strong> strategy on the client's existing ${asset} position, targeting systematic income generation. With ${asset} at $${$f(price)}, the client sells calls at the $${$f(autoFields.strike)} strike — approximately ${Math.round((parseFloat(autoFields.strike) / price - 1) * 100)}% above current market — collecting premium of $${$f(autoFields.premium)} per unit.</p>
+<p>The strategy is designed for a client with a ${riskTolerance.toLowerCase()} risk profile who believes ${asset} will trade range-bound to modestly higher over the near term. Premium collected provides immediate yield and reduces the effective cost basis, while the short call caps upside above the strike price.</p>
+<p>This is an institutional-grade income overlay appropriate for holders seeking to monetize volatility without liquidating their core ${asset} position. The trade expires ${expiry} and can be systematically rolled at expiry for continued income generation.</p>`,
+
+      cash_secured_put: `<p>This trade deploys a <strong>Cash-Secured Put</strong> on ${asset}, allowing the client to either generate premium income or acquire ${asset} at a discount to current market price. The put is sold at the $${$f(autoFields.strike)} strike, approximately ${Math.round((1 - parseFloat(autoFields.strike) / price) * 100)}% below the current price of $${$f(price)}.</p>
+<p>If ${asset} remains above $${$f(autoFields.strike)} at expiry, the client retains the full premium of $${$f(autoFields.premium)} as income — representing an attractive annualized yield on committed capital. If assigned, the client acquires ${asset} at an effective cost basis of $${$f(autoFields.effective_basis)}, well below current market levels.</p>
+<p>This structure suits a ${riskTolerance.toLowerCase()} investor who is constructive on ${asset} at lower levels and comfortable with the obligation to purchase if the market corrects. The trade expires ${expiry}.</p>`,
+
+      wheel: `<p>This report outlines an active <strong>Wheel Strategy</strong> on ${asset}, a systematic premium-collection approach that cycles between selling puts and covered calls. The client has completed ${$n(autoFields.cycles_completed)} full cycles to date, collecting $${$f(autoFields.total_premium)} in cumulative premium.</p>
+<p>The strategy has reduced the client's effective cost basis to $${$f(autoFields.cost_basis)}, well below the current market price of $${$f(price)}. The current phase involves selling at the $${$f(autoFields.current_strike)} strike, generating $${$f(autoFields.current_premium)} in premium.</p>
+<p>With a ${riskTolerance.toLowerCase()} risk posture, the wheel is calibrated for consistency over aggressiveness — strike selection balances premium capture against assignment probability. This is a high-conviction strategy for long-term ${asset} holders seeking to compound returns through disciplined options selling.</p>`,
+
+      long_seagull: `<p>This trade is structured as a <strong>Long Seagull</strong> on ${asset} — a premium-neutral options strategy that provides leveraged upside exposure between $${$f(autoFields.lower_call)} and $${$f(autoFields.upper_call)}, with defined downside risk below $${$f(autoFields.lower_put)}.</p>
+<p>With ${asset} trading at $${$f(price)}, the structure is implemented at zero or near-zero net premium by selling a put at $${$f(autoFields.lower_put)} to fund the purchase of a call spread. This is well-suited for a client with a bullish near-term outlook who wants meaningful upside participation without committing significant capital.</p>
+<p>The maximum payoff of $${$f(autoFields.max_pnl)} is realized if ${asset} trades at or above the upper call strike at expiry (${expiry}). The ${riskTolerance.toLowerCase()} risk profile is reflected in the strike selection — the put floor is set at a level the client would be comfortable acquiring ${asset}.</p>`,
+
+      leap: `<p>This trade establishes a <strong>Long-Dated Call Option (LEAP)</strong> on ${asset}, providing leveraged directional exposure with strictly defined risk. The client pays $${$f(autoFields.premium)} per contract in premium for calls struck at $${$f(autoFields.strike)}, expiring ${expiry}.</p>
+<p>The total capital at risk is limited to the premium outlay of $${$f(autoFields.total_outlay)} across ${$n(autoFields.contracts)} contracts — significantly less than the equivalent spot exposure. If ${asset} appreciates materially, the option provides leveraged upside. If the trade moves against the client, losses are capped at the premium paid.</p>
+<p>This structure is appropriate for a client with a ${riskTolerance.toLowerCase()} risk posture who holds a high-conviction bullish view on ${asset} over the medium term and prefers to allocate a defined amount of capital rather than take full spot risk.</p>`,
+
+      reverse_cash_carry: `<p>This trade implements a <strong>Reverse Cash & Carry</strong> on the client's ${asset} holdings, unlocking approximately $${$f(parseFloat(autoFields.portfolio_value) * 0.85)} in immediate liquidity while maintaining full ${asset} price exposure via perpetual futures.</p>
+<p>The client sells their spot ${asset} position and simultaneously opens a long perpetual futures position with ${$n(autoFields.margin_pct)}% margin, releasing ${$n(autoFields.cash_released_pct)}% of the portfolio value as deployable capital. Execution is routed through ${autoFields.exchange}.</p>
+<p>This is an ideal structure for a client who needs near-term liquidity — whether for tax obligations, business operations, real estate purchases, or portfolio diversification — without triggering a taxable disposition or losing ${asset} upside. The estimated funding rate of ${$n(autoFields.funding_rate)}% APR represents the carry cost of maintaining the position.</p>`,
+
+      earnings_play: `<p>This report provides an <strong>Event Risk Analysis</strong> for ${asset} ahead of a significant catalyst on ${autoFields.event_date}. The market is currently pricing an expected move of ${$n(autoFields.expected_move_pct)}%, based on implied volatility levels and historical event reactions of ${autoFields.last_3_reactions}.</p>
+<p>With ${asset} trading at $${$f(price)}, the analysis evaluates the risk-reward of the client's positioning relative to the binary outcome. The recommendation is to <strong>${(autoFields.recommendation || "").toLowerCase()}</strong> based on the probability-weighted expected value and the client's ${riskTolerance.toLowerCase()} risk tolerance.</p>
+<p>Event-driven volatility in ${asset} has historically provided asymmetric opportunities for properly positioned portfolios. This analysis arms the client with the data needed to make an informed decision ahead of the event.</p>`,
+    };
+
+    return summaries[tradeId] || `<p>SDM proposes a derivatives structure on ${asset} based on the client's ${objective.toLowerCase()} objective and ${riskTolerance.toLowerCase()} risk profile. With ${asset} at $${$f(price)}, this trade is calibrated to deliver optimal risk-adjusted outcomes aligned with the client's stated goals.</p>`;
+  };
+
+  // ─── AI Trade Advisor: match client goal to trade type ───
+  const handleAiGenerate = () => {
+    const { asset, currentPrice, portfolioValue, expiryDate, riskTolerance, objective, prompt: userPrompt } = aiForm;
+    if (!currentPrice) { setError("Please enter the current asset price."); return; }
+    if (!userPrompt.trim()) { setError("Please describe what the client is looking for."); return; }
+    setError(null);
+
+    const price = parseFloat(currentPrice.replace(/,/g, ""));
+    const pv = parseFloat((portfolioValue || "0").replace(/,/g, "")) || price * 10;
+    const expiry = expiryDate || "26 Jun 2026";
+    const prompt = userPrompt.toLowerCase();
+    // Smart rounding: preserve decimals for small prices (e.g. DOGE $0.17)
+    const R = (v) => {
+      if (Math.abs(v) < 0.01) return v.toPrecision(2);
+      if (Math.abs(v) < 1) return v.toFixed(4);
+      if (Math.abs(v) < 100) return v.toFixed(2);
+      return String(Math.round(v));
+    };
+
+    // Match objective + prompt keywords to best trade type
+    let tradeId = "covered_call"; // default
+    let autoFields = {};
+    const autoDetect = objective === "Not Sure — Detect from Notes";
+
+    if ((!autoDetect && objective === "Hedge") || /hedge|protect|downside|insurance|collar|floor/i.test(prompt)) {
+      if (/collar|zero.cost|fund/i.test(prompt)) {
+        tradeId = "collar";
+        autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.85), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
+      } else {
+        tradeId = "collar";
+        autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.8), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
+      }
+    } else if ((!autoDetect && objective === "Income") || /income|yield|premium|sell.*call|covered|wheel/i.test(prompt)) {
+      if (/wheel|cycle|systematic/i.test(prompt)) {
+        tradeId = "wheel";
+        autoFields = { asset, current_price: R(price), current_phase: "Selling Puts", original_strike: R(price * 0.92), cost_basis: R(price * 0.88), total_premium: R(price * 0.1), cycles_completed: "2", current_strike: R(price * 0.92), current_premium: R(price * 0.045), annualized_return: "28" };
+      } else if (/put|sell.*put|cash.secured/i.test(prompt)) {
+        tradeId = "cash_secured_put";
+        autoFields = { asset, current_price: R(price), strike: R(price * 0.9), expiry, premium: R(price * 0.035), delta: "-0.22", dte: "30", iv_rank: "65", support_level: R(price * 0.86), effective_basis: R(price * 0.865), capital_required: R(price * 0.9) };
+      } else {
+        tradeId = "covered_call";
+        autoFields = { asset, holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.85), current_price: R(price), strike: R(price * 1.1), expiry, premium: R(price * 0.025), delta: "0.25", dte: "30", iv_rank: "60", resistance_level: R(price * 1.08) };
+      }
+    } else if ((!autoDetect && objective === "Go Long") || /long|bull|upside|call|seagull|leap/i.test(prompt)) {
+      if (/seagull|zero.cost|premium.neutral/i.test(prompt)) {
+        tradeId = "long_seagull";
+        autoFields = { asset, spot: R(price), contracts: String(Math.round(pv / price)), lower_put: R(price * 0.85), lower_call: R(price * 1.05), upper_call: R(price * 1.25), max_pnl: R(pv * 0.2), expiry };
+      } else {
+        tradeId = "leap";
+        autoFields = { asset, current_price: R(price), strike: R(price), expiry, dte: "180", premium: R(price * 0.12), delta: "0.55", iv_rank: "35", contracts: String(Math.max(1, Math.round(pv / price / 10))), total_outlay: R(price * 0.12 * Math.max(1, Math.round(pv / price / 10))) };
+      }
+    } else if ((!autoDetect && objective === "Liquidity") || /liquidity|unlock|cash|carry|basis/i.test(prompt)) {
+      tradeId = "reverse_cash_carry";
+      autoFields = { asset, spot_price: R(price), btc_amount: String(Math.round(pv / price)), portfolio_value: R(pv), margin_pct: "15", cash_released_pct: "85", exchange: "Deribit", funding_rate: "10", client_use_case: "Liquidity Unlock" };
+    } else if ((!autoDetect && objective === "Event") || /event|halving|etf|catalyst|binary|macro/i.test(prompt)) {
+      tradeId = "earnings_play";
+      autoFields = { asset, current_price: R(price), event_date: expiry, expected_move_pct: "8.5", position_type: "No Position", strike: R(price * 0.92), premium_collected: "0", last_3_reactions: "+10%, -5%, +8%", recommendation: "Hold Through Event" };
+    }
+
+    // Add the user prompt as executive summary
+    // Generate polished executive summary from raw notes
+    autoFields.executive_summary = generateAiSummary({ tradeId, asset, price, pv, expiry, riskTolerance, objective, userPrompt, autoFields });
+
+    // Select the trade and populate fields
+    const trade = TRADE_TYPES.find(t => t.id === tradeId);
+    if (!trade) return;
+
+    // Show AI generating animation first
+    setSelectedTrade(trade);
+    const defaults = {};
+    trade.fields.forEach(f => { if (f.default) defaults[f.key] = f.default; });
+    setFieldValues({ ...defaults, ...autoFields });
+
+    navigateTo(PHASES.AI_GENERATING);
+    setGeneratingStep(0);
+    const aiSteps = [
+      "Analyzing client requirements",
+      "Matching optimal trade structure",
+      "Calculating strikes & premiums",
+      "Building executive summary",
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setGeneratingStep(i);
+      if (i >= aiSteps.length) {
+        clearInterval(interval);
+        setTimeout(() => navigateTo(PHASES.AI_REVIEW), 500);
+      }
+    }, 700);
+  };
+
+  const AI_GENERATING_STEPS = [
+    "Analyzing client requirements",
+    "Matching optimal trade structure",
+    "Calculating strikes & premiums",
+    "Building executive summary",
+  ];
 
   const handleExportCanva = async () => {
     if (!canvaConnected) { startCanvaAuth(); return; }
@@ -470,6 +646,25 @@ export default function App() {
             </div>
 
             <div className="product-grid">
+              {/* Ask AI — Special branded */}
+              <div className="product-card-ai-wrap">
+                <div className="ai-card-glow" />
+                <button className="product-card product-card-ai" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>
+                  <div className="product-card-icon-ring product-ring-violet">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
+                    </svg>
+                  </div>
+                  <span className="product-card-badge badge-violet">AI <span className="badge-beta">BETA</span></span>
+                  <h2 className="product-card-title">Ask AI</h2>
+                  <p className="product-card-desc">Paste meeting notes and let AI recommend the optimal trade structure, strikes, and summary.</p>
+                  <div className="product-card-cta">
+                    <span>Start AI analysis</span>
+                    <span className="product-card-arrow">&rarr;</span>
+                  </div>
+                </button>
+              </div>
+
               {/* Sales Library */}
               <button className="product-card product-card-sales" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
                 <div className="product-card-icon-ring product-ring-amber">
@@ -488,21 +683,6 @@ export default function App() {
                   <span className="product-card-arrow">&rarr;</span>
                 </div>
               </button>
-
-              {/* Trading Desk — Coming Soon */}
-              <div className="product-card product-card-disabled">
-                <div className="product-card-icon-ring product-ring-purple">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                  </svg>
-                </div>
-                <span className="product-card-badge badge-purple">TRADING</span>
-                <h2 className="product-card-title">Trading Desk</h2>
-                <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
-                <div className="product-card-coming-soon">Coming Soon</div>
-              </div>
 
               {/* Derivatives */}
               <button className="product-card product-card-blue" onClick={() => navigateTo(PHASES.SELECT)}>
@@ -538,6 +718,21 @@ export default function App() {
                   <span className="product-card-arrow">&rarr;</span>
                 </div>
               </button>
+
+              {/* Trading Desk — Coming Soon */}
+              <div className="product-card product-card-disabled">
+                <div className="product-card-icon-ring product-ring-purple">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                  </svg>
+                </div>
+                <span className="product-card-badge badge-purple">TRADING</span>
+                <h2 className="product-card-title">Trading Desk</h2>
+                <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
+                <div className="product-card-coming-soon">Coming Soon</div>
+              </div>
             </div>
           </div>
         )}
@@ -591,6 +786,24 @@ export default function App() {
               <h1 className="phase-title">Select a Trade Type</h1>
               <p className="phase-sub">Choose the structure you want to build. We'll generate a full trade analysis report with payoff diagrams and risk metrics.</p>
             </div>
+
+            {/* Ask AI Banner */}
+            <button className="ai-banner" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>
+              <div className="ai-banner-left">
+                <div className="ai-banner-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                </div>
+                <div>
+                  <div className="ai-banner-title">
+                    Ask AI
+                    <span className="ai-beta-badge">BETA</span>
+                  </div>
+                  <div className="ai-banner-desc">Describe what your client needs and let AI suggest the best trade structure</div>
+                </div>
+              </div>
+              <span className="ai-banner-arrow">&rarr;</span>
+            </button>
+
             <div className="trade-grid">
               {TRADE_TYPES.map(trade => (
                 <TradeCard
@@ -600,6 +813,218 @@ export default function App() {
                   onClick={() => handleSelectTrade(trade)}
                 />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PHASE: AI CONFIGURE ═══ */}
+        {phase === PHASES.AI_CONFIGURE && (
+          <div className="phase-ai">
+            <div className="ai-header">
+              <div>
+                <h1 className="phase-title">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{verticalAlign: "middle", marginRight: 10}}><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  Ask AI
+                  <span className="ai-beta-badge" style={{marginLeft: 12, verticalAlign: "middle"}}>BETA</span>
+                </h1>
+                <p className="phase-sub">Tell us about your client and what they're looking for. AI will suggest the best derivatives structure and pre-fill the report.</p>
+              </div>
+              <button className="btn-back" onClick={() => navigateTo(PHASES.SELECT)}>&larr; Back to Trade Types</button>
+            </div>
+
+            {error && <div className="error-banner"><span className="error-icon">!</span> {error}</div>}
+
+            <div className="ai-form">
+              <div className="ai-fields-grid">
+                <div className="field-group">
+                  <label className="field-label">Asset / Underlying</label>
+                  <select className="field-select" value={aiForm.asset} onChange={e => setAiForm(p => ({...p, asset: e.target.value}))}>
+                    {["BTC","ETH","SOL","XRP","ADA","AVAX","DOT","MATIC","LINK","UNI","LTC","DOGE","AAVE","ARB","OP"].map(a => <option key={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Current Price ($)</label>
+                  <input className="field-input" type="text" placeholder="e.g. 95000" value={aiForm.currentPrice} onChange={e => setAiForm(p => ({...p, currentPrice: e.target.value}))} />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Portfolio / Position Value ($)</label>
+                  <input className="field-input" type="text" placeholder="e.g. 5000000" value={aiForm.portfolioValue} onChange={e => setAiForm(p => ({...p, portfolioValue: e.target.value}))} />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Target Expiry Date</label>
+                  <input className="field-input" type="text" placeholder="e.g. 26 Jun 2026" value={aiForm.expiryDate} onChange={e => setAiForm(p => ({...p, expiryDate: e.target.value}))} />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Client Objective</label>
+                  <select className="field-select" value={aiForm.objective} onChange={e => setAiForm(p => ({...p, objective: e.target.value}))}>
+                    {["Not Sure — Detect from Notes","Hedge","Income","Go Long","Liquidity","Event"].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Risk Tolerance</label>
+                  <select className="field-select" value={aiForm.riskTolerance} onChange={e => setAiForm(p => ({...p, riskTolerance: e.target.value}))}>
+                    {["Conservative","Moderate","Aggressive"].map(r => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="ai-presets-section">
+                <div className="ai-presets-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  <span>Start from a template</span>
+                </div>
+                <div className="ai-presets-grid">
+                  {(presetsExpanded ? ASK_AI_PRESETS : ASK_AI_PRESETS.slice(0, 3)).map(p => (
+                    <button
+                      key={p.id}
+                      className={`ai-preset-chip${activePreset === p.id ? " active" : ""}`}
+                      onClick={() => {
+                        if (activePreset === p.id) {
+                          setActivePreset(null);
+                          setAiForm(f => ({...f, prompt: ""}));
+                          if (aiPromptRef.current) aiPromptRef.current.innerHTML = "";
+                        } else {
+                          setActivePreset(p.id);
+                          setAiForm(f => ({...f, prompt: p.prompt}));
+                          if (aiPromptRef.current) aiPromptRef.current.innerHTML = `<p>${p.prompt}</p>`;
+                        }
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <button className="ai-presets-toggle" onClick={() => setPresetsExpanded(v => !v)}>
+                  <span>{presetsExpanded ? "Show less" : "More templates"}</span>
+                  <svg className={`ai-presets-chevron${presetsExpanded ? " open" : ""}`} width="12" height="12" viewBox="0 0 12 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1.5l5 5 5-5"/></svg>
+                </button>
+              </div>
+
+              <div className="ai-prompt-divider">
+                <span className="ai-prompt-divider-line" />
+                <span className="ai-prompt-divider-text">or write your own</span>
+                <span className="ai-prompt-divider-line" />
+              </div>
+
+              <div className="ai-prompt-section">
+                <label className="field-label">Describe what the client is looking for</label>
+                <div className="ai-prompt-box">
+                  <div className="ai-prompt-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                    <span>AI Prompt</span>
+                  </div>
+                  <RichTextFieldToolbar />
+                  <div
+                    ref={aiPromptRef}
+                    className="rt-editor ai-prompt-editor"
+                    contentEditable
+                    suppressContentEditableWarning
+                    data-placeholder="e.g. Client holds 50 BTC and wants to protect against a 15% drawdown over the next 3 months while keeping upside exposure. They'd prefer a zero-cost structure if possible..."
+                    onInput={() => {
+                      if (aiPromptRef.current) {
+                        setAiForm(p => ({...p, prompt: aiPromptRef.current.innerText}));
+                        setActivePreset(null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <div className="form-action-note">
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>AI will suggest a trade type and pre-fill all parameters. You can review and edit before generating.</span>
+                </div>
+                <button className="btn-generate ai-generate-btn" onClick={handleAiGenerate}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  Generate Trade Idea
+                  <span className="btn-arrow">&rarr;</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PHASE: AI GENERATING ═══ */}
+        {phase === PHASES.AI_GENERATING && (
+          <div className="phase-generating phase-ai-generating">
+            <div className="generating-inner">
+              <div className="generating-glyph">
+                <img src="/sdm-logo-full.svg" alt="SDM" className="generating-logo" />
+              </div>
+              <h2 className="generating-title">AI is Structuring Your Trade</h2>
+              <div className="generating-steps">
+                {AI_GENERATING_STEPS.map((step, idx) => (
+                  <div key={idx} className={`gen-step ${generatingStep > idx ? "done" : generatingStep === idx ? "active" : ""}`}>
+                    <div className="gen-step-dot" />
+                    {step}
+                    {generatingStep > idx && <span className="gen-check">{"\u2713"}</span>}
+                    {generatingStep === idx && <div className="gen-spinner" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PHASE: AI REVIEW ═══ */}
+        {phase === PHASES.AI_REVIEW && selectedTrade && (
+          <div className="phase-configure phase-ai-review">
+            <div className="configure-sidebar">
+              {/* AI Review header */}
+              <div className="ai-review-card">
+                <div className="ai-review-card-header">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  <span>AI-Suggested Trade</span>
+                  <span className="ai-beta-badge">BETA</span>
+                </div>
+                <div className="ai-review-card-body">
+                  <div className="sidebar-icon" style={{ "--accent": selectedTrade.color }}>{selectedTrade.icon}</div>
+                  <div className="sidebar-tag" style={{ color: selectedTrade.color }}>{selectedTrade.tag}</div>
+                  <div className="sidebar-label">{selectedTrade.label}</div>
+                  <div className="sidebar-category">{selectedTrade.category}</div>
+                </div>
+              </div>
+
+              <div className="sidebar-desc">
+                {selectedTrade.description}
+              </div>
+
+              <div className="sidebar-output-preview">
+                <div className="output-preview-label">Report Includes</div>
+                <div className="output-preview-item"><span className="output-icon">✦</span> Payoff Diagram</div>
+                <div className="output-preview-item"><span className="output-icon">◼</span> Risk/Reward KPIs</div>
+                <div className="output-preview-item"><span className="output-icon">◫</span> Trade Structure Breakdown</div>
+                <div className="output-preview-item"><span className="output-icon">⊡</span> AI Executive Summary</div>
+              </div>
+
+              <button className="btn-back" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>&larr; Back to Ask AI</button>
+            </div>
+
+            <div className="configure-form">
+              <div className="ai-review-header">
+                <div className="ai-review-badge-row">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  <span className="ai-beta-badge">AI GENERATED</span>
+                </div>
+                <h2 className="form-title">Review & Confirm Trade</h2>
+                <p className="form-sub">AI has suggested a <strong>{selectedTrade.label}</strong> based on your client brief. Review the parameters below — edit anything that needs adjusting, then generate your report.</p>
+              </div>
+
+              <div className="fields-grid">
+                {selectedTrade.fields.map(field => (
+                  <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} />
+                ))}
+              </div>
+
+              <div className="form-actions">
+                <div className="form-action-note">
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>You can edit any field before generating. The AI suggestion is a starting point.</span>
+                </div>
+                <button className="btn-generate" onClick={handleGenerate} style={{ "--accent": selectedTrade.color }}>
+                  Generate Report
+                  <span className="btn-arrow">&rarr;</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

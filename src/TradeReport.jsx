@@ -132,11 +132,15 @@ function PayoffChart({ analysis, accentColor }) {
   const fmtAxis = (v) => {
     if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
     if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+    if (Math.abs(v) < 1 && v !== 0) return v.toFixed(4);
+    if (Math.abs(v) < 100) return v.toFixed(2);
     return v.toFixed(0);
   };
 
   const fmtPrice = (v) => {
     if (v >= 1e3) return `$${(v / 1e3).toFixed(v >= 1e4 ? 0 : 1)}K`;
+    if (v < 1 && v > 0) return `$${v.toFixed(4)}`;
+    if (v < 100) return `$${v.toFixed(2)}`;
     return `$${v.toFixed(0)}`;
   };
 
@@ -244,7 +248,7 @@ function PayoffChart({ analysis, accentColor }) {
               Math.abs(c.price - leg.strike) < Math.abs(closest.price - leg.strike) ? c : closest
             ).pnl
           );
-          const fmtStrike = leg.strike >= 1e3 ? `$${(leg.strike / 1e3).toFixed(leg.strike >= 1e4 ? 0 : 1)}K` : `$${leg.strike}`;
+          const fmtStrike = leg.strike >= 1e3 ? `$${(leg.strike / 1e3).toFixed(leg.strike >= 1e4 ? 0 : 1)}K` : leg.strike < 1 && leg.strike > 0 ? `$${leg.strike.toFixed(4)}` : `$${leg.strike.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           return (
             <g key={`leg${leg.idx}`}>
               <line x1={x} y1={PAD.top} x2={x} y2={H - PAD.bottom}
@@ -565,7 +569,13 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
   const [linkText, setLinkText] = useState("Link");
-  const [execHtml, setExecHtml] = useState(fieldValues.executive_summary ? `<p>${fieldValues.executive_summary.replace(/\n/g, "</p><p>")}</p>` : "");
+  const [execHtml, setExecHtml] = useState(() => {
+    const raw = fieldValues.executive_summary;
+    if (!raw) return "";
+    // If already contains HTML tags, use as-is
+    if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+    return `<p>${raw.replace(/\n/g, "</p><p>")}</p>`;
+  });
   const [execEditing, setExecEditing] = useState(false);
 
   const handleEditorSave = useCallback(() => {
@@ -731,7 +741,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
           {analysis.breakevens && analysis.breakevens.length > 0 && (
             <div className="risk-item">
               <span className="risk-label">Breakeven</span>
-              <span className="risk-value">${analysis.breakevens.map(b => b.toLocaleString()).join(", ")}</span>
+              <span className="risk-value">${analysis.breakevens.map(b => Math.abs(b) < 1 && b !== 0 ? b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })).join(", ")}</span>
             </div>
           )}
           {analysis.metrics.filter(m => m.negative).map((m, i) => (
