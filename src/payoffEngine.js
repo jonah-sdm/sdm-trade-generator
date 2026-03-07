@@ -157,9 +157,9 @@ function computeLongSeagull(f) {
 }
 
 // --- REVERSE CASH & CARRY ---
-// This is a delta-neutral strategy — P&L doesn't vary with price.
-// The real risk is MARGIN: if price spikes, short perp bleeds margin → liquidation.
-// Chart shows margin health (remaining margin %) at each price level.
+// Delta-neutral: long spot + short perp. Net P&L is ~flat (funding cost only).
+// Chart shows combined P&L: spot gain/loss + perp gain/loss + funding cost.
+// Liquidation risk if price rises sharply and margin on short perp is exhausted.
 function computeReverseCashCarry(f) {
   const spotPrice = n(f.spot_price);
   const units = n(f.btc_amount);
@@ -173,28 +173,39 @@ function computeReverseCashCarry(f) {
   const annualFundingCost = portfolio * (fundingRate / 100);
   const monthlyFundingCost = annualFundingCost / 12;
 
-  // Liquidation: perp loss eats all margin → price where (P - spot) * units = marginPosted
+  // Liquidation: perp loss eats all margin
   const liqPrice = spotPrice > 0 ? spotPrice + marginPosted / units : 0;
-  // Warning zone at 50% margin
   const warningPrice = spotPrice > 0 ? spotPrice + (marginPosted * 0.5) / units : 0;
 
-  // Chart: margin remaining at each price level
-  const minP = spotPrice * 0.85;
+  // Chart: combined P&L of long spot + short perp
+  const minP = spotPrice * 0.7;
   const maxP = liqPrice * 1.15;
 
   const curve = buildCurve(minP, maxP, (price) => {
-    // If price goes UP, short perp loses money, eating margin
-    // If price goes DOWN, short perp gains, margin stays healthy
-    const perpLoss = Math.max(0, (price - spotPrice) * units);
-    const marginRemaining = marginPosted - perpLoss;
-    return marginRemaining;
+    // Long spot P&L
+    const spotPnl = (price - spotPrice) * units;
+    // Short perp P&L (opposite of spot)
+    const perpPnl = (spotPrice - price) * units;
+    // Combined = nearly zero (delta-neutral)
+    let combined = spotPnl + perpPnl;
+
+    // After liquidation, short perp is closed — only long spot remains
+    if (price >= liqPrice) {
+      // Margin is fully lost, perp is liquidated at liqPrice
+      const perpLossAtLiq = (liqPrice - spotPrice) * units;
+      combined = spotPnl - perpLossAtLiq;
+    }
+
+    // Subtract ongoing funding cost (annualized, shown as drag)
+    combined -= monthlyFundingCost;
+
+    return combined;
   });
 
   return {
     curve,
     spot: spotPrice,
-    breakevens: [warningPrice],
-    chartLabel: "Margin Remaining ($)",
+    breakevens: [liqPrice],
     metrics: [
       { label: "Portfolio Value", value: fmt(portfolio), sub: `${units.toLocaleString()} ${f.asset || "units"}` },
       { label: "Cash Released", value: fmt(cashReleased), sub: `${cashPct}% unlocked`, positive: true },
