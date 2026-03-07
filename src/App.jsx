@@ -665,8 +665,8 @@ export default function App() {
           <div className="phase-home">
             <div className="home-header">
               <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="home-logo-full" />
-              <h1 className="home-title">SDM Studio</h1>
-              <p className="home-sub">Institutional-grade tools for digital asset trading, lending, and derivatives.</p>
+              <h1 className="home-title">Trade Idea Studio</h1>
+              <p className="home-sub">Upload a document or configure a trade to generate institutional-grade reports in seconds.</p>
             </div>
 
             <div className="home-cta-label">
@@ -1087,7 +1087,7 @@ export default function App() {
                 <div className="output-preview-item"><span className="output-icon">&#x25C8;</span><span>Payoff Diagram</span></div>
                 <div className="output-preview-item"><span className="output-icon">&#x25A3;</span><span>Risk/Reward KPIs</span></div>
                 <div className="output-preview-item"><span className="output-icon">&#x29C9;</span><span>Trade Structure Breakdown</span></div>
-                <div className="output-preview-item"><span className="output-icon">&nearr;</span><span>Canva Export (optional)</span></div>
+                <div className="output-preview-item"><span className="output-icon">{"\u2197"}</span><span>Canva Export (optional)</span></div>
               </div>
               <button className="btn-back" onClick={() => navigateTo(PHASES.SELECT)}>&larr; Back to Trade Types</button>
             </div>
@@ -1171,7 +1171,7 @@ export default function App() {
                 <div className="output-preview-item"><span className="output-icon">&#x25C8;</span><span>Loan Structure & Pricing</span></div>
                 <div className="output-preview-item"><span className="output-icon">&#x25A3;</span><span>Payment Schedule</span></div>
                 <div className="output-preview-item"><span className="output-icon">&#x29C9;</span><span>Risk & Margin Analysis</span></div>
-                <div className="output-preview-item"><span className="output-icon">&nearr;</span><span>Executive Summary</span></div>
+                <div className="output-preview-item"><span className="output-icon">{"\u2197"}</span><span>Executive Summary</span></div>
               </div>
               <button className="btn-back" onClick={handleReset}>&larr; Back to Home</button>
             </div>

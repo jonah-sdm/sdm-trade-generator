@@ -119,7 +119,10 @@
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px),
+    var(--bg);
+  background-size: 32px 32px, 100% 100%;
   color: var(--text);
   font-family: var(--font-body);
   min-height: 100vh;
@@ -127,49 +130,47 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Film grain noise — adds texture and depth to flat dark surfaces */
-body::after {
+/* ── Background System ── */
+
+/* Ambient gradient orbs — visible on every page */
+#root::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
+  background:
+    radial-gradient(ellipse 600px 500px at 10% 15%, rgba(139,92,246,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 500px 600px at 90% 20%, rgba(59,130,246,0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 700px 400px at 50% 5%, rgba(245,166,35,0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 500px 400px at 85% 85%, rgba(0,200,150,0.05) 0%, transparent 100%),
+    radial-gradient(ellipse 500px 400px at 5% 80%, rgba(245,166,35,0.04) 0%, transparent 100%);
   pointer-events: none;
-  z-index: 9999;
-  opacity: 0.5;
-  mix-blend-mode: overlay;
+  z-index: 0;
+  animation: ambientDrift 25s ease-in-out infinite alternate;
 }
 
-/* ── Background System ── */
+/* Fine grid lines overlay — architectural texture */
+#root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 100px 100px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 75%);
+}
+
+@keyframes ambientDrift {
+  0% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 0.85; transform: scale(0.97); }
+}
 
 .main {
   position: relative;
-  overflow: hidden;
-}
-
-/* Ambient top-edge glow — warm light spilling from behind the header */
-.main::before {
-  content: '';
-  position: fixed;
-  top: -200px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120%;
-  height: 500px;
-  background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(245,166,35,0.04) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Soft vignette — darkens edges, focuses attention center */
-.main::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse 80% 70% at 50% 50%, transparent 40%, rgba(0,0,0,0.35) 100%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .main > * { position: relative; z-index: 1; }
@@ -365,23 +366,24 @@ button.crumb:disabled {
   position: relative;
 }
 
-/* Smooth ambient gradient behind home hero — no harsh blobs */
+/* Smooth ambient gradient behind home hero */
 .phase-home::before {
   content: '';
   position: absolute;
-  inset: -100px;
+  inset: -150px;
   background:
-    radial-gradient(ellipse 70% 50% at 50% 20%, rgba(245,166,35,0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 25% 70%, rgba(96,165,250,0.025) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 75% 60%, rgba(168,85,247,0.02) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 50% 15%, rgba(245,166,35,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 20% 65%, rgba(59,130,246,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 80% 55%, rgba(139,92,246,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 35% at 60% 85%, rgba(0,200,150,0.035) 0%, transparent 55%);
   pointer-events: none;
   z-index: 0;
   animation: homeGlow 20s ease-in-out infinite alternate;
 }
 
 @keyframes homeGlow {
-  0% { opacity: 0.7; }
-  100% { opacity: 1; }
+  0% { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.03); }
 }
 
 .home-header {
@@ -2842,7 +2844,8 @@ button.crumb:disabled {
   .report-section, .kpi-card, .gen-step { backdrop-filter: none !important; background: var(--bg2) !important; }
   .main { padding: 0 !important; }
   .main::before, .main::after { display: none !important; }
-  body::after { display: none !important; }
+  body::before, body::after { display: none !important; }
+  #root::before, #root::after { display: none !important; }
 
   /* Hide running header/footer — single page PDF doesn't need them */
   .print-running-header,
@@ -4611,6 +4614,54 @@ html {
 .product-card-ai:hover .product-card-cta {
   background: rgba(139,92,246,0.15);
   border-color: rgba(139,92,246,0.35);
+}
+
+/* ── Shared Report Viewer ── */
+.shared-report-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+.shared-report-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.shared-report-logo {
+  height: 24px;
+}
+.shared-report-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex: 1;
+}
+.shared-report-home {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber);
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.15);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.shared-report-home:hover {
+  background: rgba(245,166,35,0.14);
+}
+.shared-report-frame {
+  flex: 1;
+  border: none;
+  width: 100%;
+  background: var(--bg);
 }
 
 /* ── Sales Library Page ── */

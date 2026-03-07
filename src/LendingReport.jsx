@@ -105,11 +105,74 @@ ${reportHtml}
   printWindow.onload = () => { setTimeout(() => { printWindow.print(); }, 400); };
 }
 
+function buildLendingStandaloneHtml(reportRef) {
+  if (!reportRef.current) return '';
+  const styleSheets = Array.from(document.styleSheets);
+  let cssText = "";
+  styleSheets.forEach(sheet => {
+    try { Array.from(sheet.cssRules).forEach(rule => { cssText += rule.cssText + "\n"; }); } catch (e) {}
+  });
+  let reportHtml = reportRef.current.outerHTML;
+  reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
+                         .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>Lending Proposal — SDM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
+  --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
+  --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
+  --amber: #F5A623; --gold: var(--amber); --gold-dark: #D4910A;
+  --font-display: 'Sora', sans-serif; --font-body: 'Sora', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Sora', -apple-system, sans-serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); padding: 32px; }
+.report-share-bar, .report-actions, .btn-edit-thesis, .btn-save-thesis, .btn-back, .btn-new-trade { display: none !important; }
+${cssText}
+</style></head>
+<body><div style="max-width:900px;margin:0 auto;padding:0 20px;">${reportHtml}</div></body></html>`;
+}
+
+async function handleLendingShareLink(reportRef, data, setLinkText) {
+  if (!reportRef.current) return;
+  setLinkText("Saving...");
+  const fullHtml = buildLendingStandaloneHtml(reportRef);
+  const filename = `SDM-Lending-${data.collateralAsset}-${new Date().toISOString().slice(0, 10)}.html`;
+  try {
+    const res = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: fullHtml, filename }),
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    const { url } = await res.json();
+    await navigator.clipboard.writeText(url);
+    setLinkText("Link copied!");
+    window.open(url, "_blank");
+  } catch (e) {
+    const blob = new Blob([fullHtml], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setLinkText("Downloaded!");
+  }
+  setTimeout(() => setLinkText("Link"), 3000);
+}
+
 export default function LendingReport({ data, fieldValues, onBack, onReset }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
   const [execHtml, setExecHtml] = useState(fieldValues?.executive_summary ? `<p>${fieldValues.executive_summary.replace(/\n/g, "</p><p>")}</p>` : "");
   const [execEditing, setExecEditing] = useState(false);
+  const [linkText, setLinkText] = useState("Link");
 
   const handleEditorSave = useCallback(() => {
     if (editorRef.current) {
@@ -494,8 +557,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             </button>
           </div>
           <div className="share-group">
-            <button className="btn-export-pdf" onClick={() => navigator.clipboard.writeText(window.location.href)}>
-              Link
+            <button className="btn-export-pdf" onClick={() => handleLendingShareLink(reportRef, data, setLinkText)}>
+              {linkText}
             </button>
           </div>
         </div>

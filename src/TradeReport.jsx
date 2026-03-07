@@ -441,26 +441,39 @@ ${reportHtml}
 </html>`;
 }
 
-function handleShareLink(reportRef, trade, setLinkText) {
+async function handleShareLink(reportRef, trade, setLinkText) {
   if (!reportRef.current) return;
 
+  setLinkText("Saving...");
   const fullHtml = buildStandaloneHtml(reportRef, trade);
-  const blob = new Blob([fullHtml], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
+  const filename = `SDM-${trade.label.replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.html`;
 
-  // Open in new tab so user can share it, and also copy
-  window.open(url, "_blank");
+  try {
+    const res = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: fullHtml, filename }),
+    });
 
-  // Also trigger download so they have the file
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `SDM-${trade.label.replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    if (!res.ok) throw new Error("Upload failed");
+    const { url } = await res.json();
 
-  setLinkText("Downloaded!");
-  setTimeout(() => setLinkText("Link"), 2500);
+    await navigator.clipboard.writeText(url);
+    setLinkText("Link copied!");
+    window.open(url, "_blank");
+  } catch (e) {
+    // Fallback: download as file
+    const blob = new Blob([fullHtml], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setLinkText("Downloaded!");
+  }
+
+  setTimeout(() => setLinkText("Link"), 3000);
 }
 
 function handleExportPDF(reportRef, trade) {

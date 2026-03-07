@@ -2,7 +2,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
+  "functions": {
+    "api/share.js": {
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
+    { "source": "/api/share", "destination": "/api/share" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
