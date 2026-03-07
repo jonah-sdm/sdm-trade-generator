@@ -337,7 +337,30 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 ${cssText}
 
 /* Hide print-only headers from standalone view */
-.print-running-header, .print-running-footer, .standalone-page-header, .standalone-page-footer { display: none !important; }
+.print-running-header, .print-running-footer { display: none !important; }
+
+/* Standalone share header */
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 14px;
+  margin: 0 0 24px;
+  border-bottom: 1px solid var(--amber);
+}
+.share-header img { height: 26px; width: auto; }
+.share-header-right {
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.share-header-right .doc-name {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 12px;
+}
 
 /* ── Print / PDF page layout ── */
 @media print {
@@ -360,6 +383,13 @@ ${cssText}
 </style>
 </head>
 <body>
+<div class="share-header">
+  <img src="${SDM_LOGO_SVG}" alt="SDM" />
+  <div class="share-header-right">
+    <div class="doc-name">${trade.label}</div>
+    <div>${footerDate} &middot; ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</div>
+  </div>
+</div>
 ${reportHtml}
 </body>
 </html>`;
