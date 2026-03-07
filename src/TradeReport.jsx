@@ -155,12 +155,12 @@ function PayoffChart({ analysis, accentColor }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="payoff-svg">
       <defs>
         <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.05" />
+          <stop offset="0%" stopColor="#00C896" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#00C896" stopOpacity="0.05" />
         </linearGradient>
         <linearGradient id="redGrad" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+          <stop offset="0%" stopColor="#FF453A" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#FF453A" stopOpacity="0.05" />
         </linearGradient>
       </defs>
 
@@ -169,7 +169,7 @@ function PayoffChart({ analysis, accentColor }) {
           <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y}
             stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
           <text x={PAD.left - 10} y={g.y + 4} textAnchor="end"
-            fill="rgba(255,255,255,0.35)" fontSize="10" fontFamily="Inter, sans-serif">
+            fill="rgba(255,255,255,0.35)" fontSize="10" fontFamily="'Sora', sans-serif">
             {fmtAxis(g.val)}
           </text>
         </g>
@@ -179,7 +179,7 @@ function PayoffChart({ analysis, accentColor }) {
           <line x1={g.x} y1={PAD.top} x2={g.x} y2={H - PAD.bottom}
             stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
           <text x={g.x} y={H - PAD.bottom + 18} textAnchor="middle"
-            fill="rgba(255,255,255,0.35)" fontSize="10" fontFamily="Inter, sans-serif">
+            fill="rgba(255,255,255,0.35)" fontSize="10" fontFamily="'Sora', sans-serif">
             {fmtPrice(g.val)}
           </text>
         </g>
@@ -197,7 +197,7 @@ function PayoffChart({ analysis, accentColor }) {
           <path d={spotLinePath} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5"
             strokeDasharray="6,4" strokeLinecap="round" />
           <text x={scaleX(maxPrice) - 4} y={scaleY((maxPrice - spot) * spotMultiplier) - 6}
-            textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="Inter, sans-serif" fontWeight="500">
+            textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="'Sora', sans-serif" fontWeight="500">
             Long Spot
           </text>
         </g>
@@ -216,7 +216,7 @@ function PayoffChart({ analysis, accentColor }) {
           <rect x={scaleX(spot) - 24} y={H - PAD.bottom + 26} width="48" height="18" rx="4"
             fill="rgba(255,255,255,0.08)" />
           <text x={scaleX(spot)} y={H - PAD.bottom + 38} textAnchor="middle"
-            fill="rgba(255,255,255,0.6)" fontSize="9" fontFamily="Inter, sans-serif" fontWeight="600">
+            fill="rgba(255,255,255,0.6)" fontSize="9" fontFamily="'Sora', sans-serif" fontWeight="600">
             SPOT
           </text>
         </g>
@@ -255,7 +255,7 @@ function PayoffChart({ analysis, accentColor }) {
                 stroke={leg.color} strokeWidth="1" strokeDasharray="4,4" opacity="0.4" />
               <circle cx={x} cy={curveY} r="4" fill={leg.color} stroke="#111118" strokeWidth="2" />
               <text x={x} y={y} textAnchor="middle"
-                fill={leg.color} fontSize="8" fontFamily="Inter, sans-serif" fontWeight="600" opacity="0.85">
+                fill={leg.color} fontSize="8" fontFamily="'Sora', sans-serif" fontWeight="600" opacity="0.85">
                 {leg.action} {fmtStrike}
               </text>
             </g>
@@ -269,7 +269,7 @@ function PayoffChart({ analysis, accentColor }) {
             <circle cx={scaleX(be)} cy={zeroY} r="5" fill="none"
               stroke="#ca8a04" strokeWidth="2" />
             <text x={scaleX(be)} y={zeroY - 12} textAnchor="middle"
-              fill="#ca8a04" fontSize="9" fontFamily="Inter, sans-serif" fontWeight="600">
+              fill="#ca8a04" fontSize="9" fontFamily="'Sora', sans-serif" fontWeight="600">
               BE
             </text>
           </g>
@@ -277,9 +277,9 @@ function PayoffChart({ analysis, accentColor }) {
       ))}
 
       <text x={PAD.left - 10} y={12} textAnchor="end"
-        fill="rgba(255,255,255,0.25)" fontSize="9" fontFamily="Inter, sans-serif">P&L</text>
+        fill="rgba(255,255,255,0.25)" fontSize="9" fontFamily="'Sora', sans-serif">P&L</text>
       <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end"
-        fill="rgba(255,255,255,0.25)" fontSize="9" fontFamily="Inter, sans-serif">Price</text>
+        fill="rgba(255,255,255,0.25)" fontSize="9" fontFamily="'Sora', sans-serif">Price</text>
     </svg>
   );
 }
@@ -322,15 +322,15 @@ function buildStandaloneHtml(reportRef, trade) {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>SDM — ${trade.label}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
   --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
   --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
-  --gold: #FFC32C; --gold-dark: #D4A017;
-  --font-display: 'Inter', sans-serif; --font-body: 'Inter', sans-serif;
-  --font-serif: 'Instrument Serif', Georgia, serif;
+  --amber: #F5A623; --gold: var(--amber); --gold-dark: #D4910A;
+  --font-display: 'Sora', sans-serif; --font-body: 'Sora', 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Sora', -apple-system, sans-serif;
 }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); margin: 0; padding: 32px; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .btn-back { display: none !important; }
@@ -485,15 +485,15 @@ function handleExportPDF(reportRef, trade) {
 <meta charset="utf-8"/>
 <title>Report — SDM Trade Idea Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
   --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
   --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
-  --gold: #FFC32C; --gold-dark: #D4A017;
-  --font-display: 'Inter', sans-serif; --font-body: 'Inter', sans-serif;
-  --font-serif: 'Instrument Serif', Georgia, serif;
+  --amber: #F5A623; --gold: var(--amber); --gold-dark: #D4910A;
+  --font-display: 'Sora', sans-serif; --font-body: 'Sora', 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Sora', -apple-system, sans-serif;
 }
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html {
@@ -616,7 +616,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       </div>
 
       {/* SDM Letterhead */}
-      <div className="letterhead">
+      <div className="letterhead reveal-section reveal-delay-0">
         <div className="letterhead-left">
           <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="letterhead-logo" />
         </div>
@@ -625,10 +625,10 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
           <span className="letterhead-time">{timeStr}</span>
         </div>
       </div>
-      <div className="letterhead-divider" />
+      <div className="letterhead-divider reveal-section reveal-delay-0" />
 
       {/* Report Header */}
-      <div className="report-header">
+      <div className="report-header reveal-section reveal-delay-1">
         <div className="report-header-left">
           <div className="report-badge">
             <span className="report-icon">{trade.icon}</span>
@@ -640,7 +640,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       </div>
 
       {/* Executive Summary — editable */}
-      <div className="report-section exec-summary">
+      <div className="report-section exec-summary reveal-section reveal-delay-2">
         <div className="section-header">
           <h2 className="section-title">Executive Summary</h2>
           {!execEditing && (
@@ -678,7 +678,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       </div>
 
       {/* KPI Cards */}
-      <div className="report-kpis">
+      <div className="report-kpis reveal-section reveal-delay-3">
         {analysis.metrics.map((m, i) => (
           <div key={i} className={`kpi-card ${m.positive ? "kpi-positive" : ""} ${m.negative ? "kpi-negative" : ""}`}>
             <div className="kpi-label">{m.label}</div>
@@ -689,7 +689,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       </div>
 
       {/* Payoff Diagram */}
-      <div className="report-section">
+      <div className="report-section reveal-section reveal-delay-4">
         <div className="section-header">
           <h2 className="section-title">{analysis.chartLabel ? "Margin Health vs. Price" : "Payoff at Expiry"}</h2>
           <div className="section-legend">
@@ -715,7 +715,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       </div>
 
       {/* Trade Structure */}
-      <div className="report-section">
+      <div className="report-section reveal-section reveal-delay-5">
         <h2 className="section-title">Trade Structure</h2>
         <div className="legs-table">
           <div className="legs-header">
@@ -735,7 +735,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       </div>
 
       {/* Risk Summary */}
-      <div className="report-section">
+      <div className="report-section reveal-section reveal-delay-6">
         <h2 className="section-title">Risk Summary</h2>
         <div className="risk-grid">
           {analysis.breakevens && analysis.breakevens.length > 0 && (

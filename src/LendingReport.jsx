@@ -54,16 +54,17 @@ function handleExportPDF(reportRef) {
 <meta charset="utf-8"/>
 <title>Lending Proposal &mdash; SDM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
   --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
   --border-gold: rgba(255,195,44,0.20);
   --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
-  --gold: #FFC32C; --gold-dark: #D4A017; --accent: #4ade80;
-  --font-display: 'Inter', sans-serif; --font-body: 'Inter', sans-serif;
-  --font-serif: 'Instrument Serif', serif;
+  --amber: #F5A623; --gold: var(--amber); --gold-dark: #D4910A; --accent: #4ade80;
+  --font-display: 'Sora', sans-serif; --font-body: 'Sora', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Sora', -apple-system, sans-serif;
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --gradient-brand: linear-gradient(135deg, #FFC32C 0%, #D4A017 100%);
@@ -142,7 +143,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
       <div className="report" ref={reportRef} style={{ "--accent": "#4ade80" }}>
 
         {/* SDM Letterhead — identical to trade report */}
-        <div className="letterhead">
+        <div className="letterhead reveal-section reveal-delay-0">
           <div className="letterhead-left">
             <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="letterhead-logo" />
           </div>
@@ -151,10 +152,10 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             <span className="letterhead-time">{timeStr}</span>
           </div>
         </div>
-        <div className="letterhead-divider" />
+        <div className="letterhead-divider reveal-section reveal-delay-0" />
 
         {/* Report Header */}
-        <div className="report-header">
+        <div className="report-header reveal-section reveal-delay-1">
           <div className="report-header-left">
             <div className="report-badge">
               <span className="report-icon">
@@ -168,7 +169,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* KPI Cards */}
-        <div className="report-kpis">
+        <div className="report-kpis reveal-section reveal-delay-2">
           <div className="kpi-card" style={{ borderLeftColor: "#4ade80" }}>
             <div className="kpi-label">Net Loan Proceeds</div>
             <div className="kpi-value" style={{ color: "#4ade80" }}>{$k(data.netLoanProceeds)}</div>
@@ -202,7 +203,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Executive Summary — editable */}
-        <div className="report-section exec-summary">
+        <div className="report-section exec-summary reveal-section reveal-delay-3">
           <div className="section-header">
             <h2 className="section-title">Executive Summary</h2>
             {!execEditing && (
@@ -242,7 +243,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Loan Structure */}
-        <div className="report-section">
+        <div className="report-section reveal-section reveal-delay-4">
           <div className="section-header">
             <h2 className="section-title">Loan Structure</h2>
           </div>
@@ -283,7 +284,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Cost of Borrowing */}
-        <div className="report-section">
+        <div className="report-section reveal-section reveal-delay-5">
           <div className="section-header">
             <h2 className="section-title">Cost of Borrowing</h2>
           </div>
@@ -316,7 +317,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Payment Schedule */}
-        <div className="report-section">
+        <div className="report-section reveal-section reveal-delay-6">
           <div className="section-header">
             <h2 className="section-title">Payment Schedule</h2>
           </div>
@@ -353,7 +354,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Risk Management */}
-        <div className="report-section">
+        <div className="report-section reveal-section reveal-delay-7">
           <div className="section-header">
             <h2 className="section-title">Margin Call &amp; Risk Management</h2>
           </div>
@@ -399,7 +400,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Key Terms */}
-        <div className="report-section">
+        <div className="report-section reveal-section reveal-delay-8">
           <div className="section-header">
             <h2 className="section-title">Key Terms &amp; Conditions</h2>
           </div>

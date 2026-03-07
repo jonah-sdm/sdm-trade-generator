@@ -237,6 +237,8 @@ export default function App() {
   const aiPromptRef = useRef(null);
 
   const skipPushRef = useRef(false);
+  const [navExpanded, setNavExpanded] = useState(false);
+
 
   const isLendingPhase = phase === PHASES.LENDING_CONFIGURE || phase === PHASES.LENDING_GENERATING || phase === PHASES.LENDING_RESULT;
   const isTradingPhase = [PHASES.SELECT, PHASES.UPLOAD, PHASES.CONFIGURE, PHASES.GENERATING, PHASES.RESULT, PHASES.AI_CONFIGURE, PHASES.AI_GENERATING, PHASES.AI_REVIEW].includes(phase);
@@ -629,6 +631,34 @@ export default function App() {
         )}
       </header>
 
+      {/* Floating Pill Navigation */}
+      <nav className="pill-nav" onMouseEnter={() => setNavExpanded(true)} onMouseLeave={() => setNavExpanded(false)}>
+        <button className={`pill-nav-item ${phase === PHASES.HOME ? 'active' : ''}`} onClick={handleReset} title="Home">
+          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+          <span className="pill-nav-label">Home</span>
+        </button>
+        <button className={`pill-nav-item ${phase === PHASES.AI_CONFIGURE || phase === PHASES.AI_GENERATING || phase === PHASES.AI_REVIEW ? 'active' : ''}`} onClick={() => navigateTo(PHASES.AI_CONFIGURE)} title="Ask AI">
+          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg></span>
+          <span className="pill-nav-label">Ask AI</span>
+        </button>
+        <button className={`pill-nav-item ${isTradingPhase && phase !== PHASES.AI_CONFIGURE && phase !== PHASES.AI_GENERATING && phase !== PHASES.AI_REVIEW ? 'active' : ''}`} onClick={() => { setSelectedTrade(null); navigateTo(PHASES.SELECT); }} title="Derivatives">
+          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+          <span className="pill-nav-label">Derivatives</span>
+        </button>
+        <button className={`pill-nav-item ${isLendingPhase ? 'active' : ''}`} onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)} title="Lending">
+          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
+          <span className="pill-nav-label">Lending</span>
+        </button>
+        <button className={`pill-nav-item ${isSalesPhase ? 'active' : ''}`} onClick={() => navigateTo(PHASES.SALES_LIBRARY)} title="Sales">
+          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          <span className="pill-nav-label">Sales Library</span>
+        </button>
+        <button className="pill-nav-item" onClick={() => setShowFeedback(true)} title="Feedback">
+          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+          <span className="pill-nav-label">Feedback</span>
+        </button>
+      </nav>
+
       <main className="main">
         {/* ═══ PHASE: HOME — Product Selection ═══ */}
         {phase === PHASES.HOME && (
@@ -645,9 +675,9 @@ export default function App() {
               <span className="home-cta-line" />
             </div>
 
-            <div className="product-grid">
+            <div className="bento-grid">
               {/* Ask AI — Special branded */}
-              <div className="product-card-ai-wrap">
+              <div className="bento-ai product-card-ai-wrap">
                 <div className="ai-card-glow" />
                 <button className="product-card product-card-ai" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>
                   <div className="product-card-icon-ring product-ring-violet">
@@ -666,72 +696,84 @@ export default function App() {
               </div>
 
               {/* Sales Library */}
-              <button className="product-card product-card-sales" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
-                <div className="product-card-icon-ring product-ring-amber">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    <line x1="9" y1="7" x2="16" y2="7"/>
-                    <line x1="9" y1="11" x2="14" y2="11"/>
-                  </svg>
-                </div>
-                <span className="product-card-badge badge-amber">SALES</span>
-                <h2 className="product-card-title">Sales Library</h2>
-                <p className="product-card-desc">Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
-                <div className="product-card-cta">
-                  <span>Browse documents</span>
-                  <span className="product-card-arrow">&rarr;</span>
-                </div>
-              </button>
+              <div className="bento-sales card-wrap card-wrap-amber">
+                <div className="card-border-glow" />
+                <button className="product-card product-card-sales" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
+                  <div className="product-card-icon-ring product-ring-amber">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      <line x1="9" y1="7" x2="16" y2="7"/>
+                      <line x1="9" y1="11" x2="14" y2="11"/>
+                    </svg>
+                  </div>
+                  <span className="product-card-badge badge-amber">SALES</span>
+                  <h2 className="product-card-title">Sales Library</h2>
+                  <p className="product-card-desc">Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
+                  <div className="product-card-cta">
+                    <span>Browse documents</span>
+                    <span className="product-card-arrow">&rarr;</span>
+                  </div>
+                </button>
+              </div>
 
               {/* Derivatives */}
-              <button className="product-card product-card-blue" onClick={() => navigateTo(PHASES.SELECT)}>
-                <div className="product-card-icon-ring product-ring-blue">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-                    <polyline points="16 7 22 7 22 13"/>
-                  </svg>
-                </div>
-                <span className="product-card-badge badge-blue">DERIVATIVES</span>
-                <h2 className="product-card-title">Derivatives Studio</h2>
-                <p className="product-card-desc">Generate institutional-grade trade reports with payoff diagrams, risk metrics, and executive summaries.</p>
-                <div className="product-card-cta">
-                  <span>Create a trade report</span>
-                  <span className="product-card-arrow">&rarr;</span>
-                </div>
-              </button>
+              <div className="bento-deriv card-wrap card-wrap-blue">
+                <div className="card-border-glow" />
+                <button className="product-card product-card-blue" onClick={() => navigateTo(PHASES.SELECT)}>
+                  <div className="product-card-icon-ring product-ring-blue">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                      <polyline points="16 7 22 7 22 13"/>
+                    </svg>
+                  </div>
+                  <span className="product-card-badge badge-blue">DERIVATIVES</span>
+                  <h2 className="product-card-title">Derivatives Studio</h2>
+                  <p className="product-card-desc">Generate institutional-grade trade reports with payoff diagrams, risk metrics, and executive summaries.</p>
+                  <div className="product-card-cta">
+                    <span>Create a trade report</span>
+                    <span className="product-card-arrow">&rarr;</span>
+                  </div>
+                </button>
+              </div>
 
               {/* Lending */}
-              <button className="product-card product-card-lending" onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}>
-                <div className="product-card-icon-ring product-ring-green">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="6" width="20" height="14" rx="2"/>
-                    <path d="M2 10h20"/>
-                    <circle cx="12" cy="16" r="2"/>
-                  </svg>
-                </div>
-                <span className="product-card-badge badge-green">LENDING</span>
-                <h2 className="product-card-title">Lending Calculator</h2>
-                <p className="product-card-desc">Calculate collateralized loan terms, generate branded lending proposals with payment schedules and risk analysis.</p>
-                <div className="product-card-cta">
-                  <span>Build a lending proposal</span>
-                  <span className="product-card-arrow">&rarr;</span>
-                </div>
-              </button>
+              <div className="bento-lending card-wrap card-wrap-green">
+                <div className="card-border-glow" />
+                <button className="product-card product-card-lending" onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}>
+                  <div className="product-card-icon-ring product-ring-green">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="2" y="6" width="20" height="14" rx="2"/>
+                      <path d="M2 10h20"/>
+                      <circle cx="12" cy="16" r="2"/>
+                    </svg>
+                  </div>
+                  <span className="product-card-badge badge-green">LENDING</span>
+                  <h2 className="product-card-title">Lending Calculator</h2>
+                  <p className="product-card-desc">Calculate collateralized loan terms, generate branded lending proposals with payment schedules and risk analysis.</p>
+                  <div className="product-card-cta">
+                    <span>Build a lending proposal</span>
+                    <span className="product-card-arrow">&rarr;</span>
+                  </div>
+                </button>
+              </div>
 
               {/* Trading Desk — Coming Soon */}
-              <div className="product-card product-card-disabled">
-                <div className="product-card-icon-ring product-ring-purple">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                  </svg>
+              <div className="bento-trading card-wrap card-wrap-purple">
+                <div className="card-border-glow" />
+                <div className="product-card product-card-disabled">
+                  <div className="product-card-icon-ring product-ring-purple">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="M2 17l10 5 10-5"/>
+                      <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                  </div>
+                  <span className="product-card-badge badge-purple">TRADING</span>
+                  <h2 className="product-card-title">Trading Desk</h2>
+                  <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
+                  <div className="product-card-coming-soon">Coming Soon</div>
                 </div>
-                <span className="product-card-badge badge-purple">TRADING</span>
-                <h2 className="product-card-title">Trading Desk</h2>
-                <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
-                <div className="product-card-coming-soon">Coming Soon</div>
               </div>
             </div>
           </div>
@@ -851,7 +893,7 @@ export default function App() {
                   <input className="field-input" type="text" placeholder="e.g. 5000000" value={aiForm.portfolioValue} onChange={e => setAiForm(p => ({...p, portfolioValue: e.target.value}))} />
                 </div>
                 <div className="field-group">
-                  <label className="field-label">Target Expiry Date</label>
+                  <label className="field-label">Target Expiry Date <span style={{fontWeight: 400, color: "var(--text-dim)", fontSize: "0.75em"}}>(Can leave blank if not sure)</span></label>
                   <input className="field-input" type="text" placeholder="e.g. 26 Jun 2026" value={aiForm.expiryDate} onChange={e => setAiForm(p => ({...p, expiryDate: e.target.value}))} />
                 </div>
                 <div className="field-group">
@@ -951,7 +993,7 @@ export default function App() {
               <div className="generating-glyph">
                 <img src="/sdm-logo-full.svg" alt="SDM" className="generating-logo" />
               </div>
-              <h2 className="generating-title">AI is Structuring Your Trade</h2>
+              <h2 className="generating-title"><span className="typewriter-title">AI is Structuring Your Trade</span></h2>
               <div className="generating-steps">
                 {AI_GENERATING_STEPS.map((step, idx) => (
                   <div key={idx} className={`gen-step ${generatingStep > idx ? "done" : generatingStep === idx ? "active" : ""}`}>
@@ -1080,7 +1122,7 @@ export default function App() {
               <div className="generating-glyph">
                 <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="generating-logo" />
               </div>
-              <h2 className="generating-title">Building your report</h2>
+              <h2 className="generating-title"><span className="typewriter-title">Building your report</span></h2>
               <div className="generating-steps">
                 {["Analyzing trade structure", "Computing payoff matrix", "Building risk profile", "Rendering report"].map((step, i) => (
                   <div key={i} className={`gen-step ${i <= generatingStep ? "done" : ""} ${i === generatingStep ? "active" : ""}`}>
@@ -1179,7 +1221,7 @@ export default function App() {
               <div className="generating-glyph">
                 <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="generating-logo" />
               </div>
-              <h2 className="generating-title">Building your lending proposal</h2>
+              <h2 className="generating-title"><span className="typewriter-title">Building your lending proposal</span></h2>
               <div className="generating-steps">
                 {["Validating collateral parameters", "Computing loan structure", "Building payment schedule", "Rendering proposal"].map((step, i) => (
                   <div key={i} className={`gen-step ${i <= generatingStep ? "done" : ""} ${i === generatingStep ? "active" : ""}`}>
@@ -1313,32 +1355,10 @@ export default function App() {
       )}
 
       <footer className="footer">
-        <div className="footer-nav">
-          <button className="footer-nav-link" onClick={handleReset}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Home
-          </button>
-          <button className="footer-nav-link" onClick={() => { setSelectedTrade(null); navigateTo(PHASES.SELECT); }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-            Derivatives Studio
-          </button>
-          <button className="footer-nav-link" onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-            Lending
-          </button>
-          <button className="footer-nav-link" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            Sales Library
-          </button>
-          <button className="footer-nav-link" onClick={() => setShowFeedback(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Feedback
-          </button>
-        </div>
         <div className="footer-meta">
           <span>SDM &mdash; Internal Use Only</span>
           <span className="footer-dot">&middot;</span>
-          <span>SDM Studio v1.0</span>
+          <span>SDM Studio v2.0</span>
         </div>
       </footer>
 
