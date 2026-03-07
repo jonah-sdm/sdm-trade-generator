@@ -3017,9 +3017,9 @@ button.crumb:disabled {
 ================================ */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -3715,5 +3715,260 @@ html {
   }
   .lending-schedule-table {
     overflow-x: auto;
+  }
+}
+
+/* ================================
+   Sales Library — Amber Accents
+================================ */
+.product-ring-amber {
+  background: rgba(255,195,44,0.08);
+  border-color: rgba(255,195,44,0.15);
+  color: var(--gold);
+}
+.badge-amber { color: var(--gold); }
+.product-card-sales:hover::before { background: var(--gold); }
+.product-card-sales .product-card-cta { color: var(--gold); }
+
+/* ── Sales Library Page ── */
+.phase-sales-library {
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease;
+}
+
+.sales-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.sales-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.sales-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.sales-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.sales-search {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 16px 11px 40px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.sales-search:focus {
+  border-color: rgba(255,195,44,0.5);
+  box-shadow: 0 0 0 4px rgba(255,195,44,0.08);
+  background: var(--bg2);
+}
+
+.sales-search::placeholder {
+  color: var(--text-dim);
+}
+
+.sales-category-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sales-pill {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sales-pill:hover {
+  border-color: var(--border-light);
+  color: var(--text);
+}
+
+.sales-pill.active {
+  background: rgba(255,195,44,0.10);
+  border-color: rgba(255,195,44,0.30);
+  color: var(--gold);
+}
+
+/* ── Document Card Grid ── */
+.sales-doc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.sales-doc-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.sales-doc-card:hover {
+  border-color: rgba(255,255,255,0.10);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.sales-doc-thumb {
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.sales-doc-thumb-icon {
+  opacity: 0.8;
+  transition: transform 0.25s ease;
+}
+
+.sales-doc-card:hover .sales-doc-thumb-icon {
+  transform: scale(1.1);
+}
+
+.sales-doc-type-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.sales-doc-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.sales-doc-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sales-doc-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sales-doc-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.sales-doc-domain {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.sales-doc-arrow {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.sales-doc-card:hover .sales-doc-arrow {
+  color: var(--gold);
+  transform: translate(2px, -2px);
+}
+
+.sales-loading {
+  text-align: center;
+  padding: 60px 0;
+}
+
+.sales-empty {
+  text-align: center;
+  padding: 48px 20px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1000px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+  .sales-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sales-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sales-doc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .sales-doc-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

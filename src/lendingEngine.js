@@ -45,6 +45,7 @@ function computeLendingProposal(inputs) {
     loanCurrency = "USD",
     ltv: ltvInput,
     annualRate: rateInput,
+    arrangementFee: feeInput,
   } = inputs;
 
   const units = parseFloat(String(collateralUnits).replace(/,/g, ""));
@@ -52,6 +53,7 @@ function computeLendingProposal(inputs) {
   const term = parseInt(termMonths);
   const ltvPct = parseFloat(String(ltvInput || "65").replace(/,/g, ""));
   const ratePct = parseFloat(String(rateInput || "8").replace(/,/g, ""));
+  const feePct = parseFloat(String(feeInput || "2").replace(/,/g, ""));
 
   if (isNaN(units) || isNaN(price) || units <= 0 || price <= 0) {
     return { error: "Please enter valid collateral units and price per unit." };
@@ -68,13 +70,18 @@ function computeLendingProposal(inputs) {
     return { error: "Annual interest rate must be greater than 0%." };
   }
 
+  if (isNaN(feePct) || feePct < 0) {
+    return { error: "Arrangement fee must be 0% or greater." };
+  }
+
   const ltv = ltvPct / 100;
   const annualRate = ratePct / 100;
+  const arrangementFeeRate = feePct / 100;
 
   // Core calculations
   const collateralValue = units * price;
   const grossLoan = collateralValue * ltv;
-  const arrangementFeeAmount = grossLoan * TERMS.arrangementFee;
+  const arrangementFeeAmount = grossLoan * arrangementFeeRate;
   const netLoanProceeds = grossLoan - arrangementFeeAmount;
 
   if (netLoanProceeds < TERMS.minLoan) {
@@ -124,6 +131,7 @@ function computeLendingProposal(inputs) {
     loanCurrency,
     ltvPct,
     ratePct,
+    feePct,
   });
 
   return {
@@ -151,7 +159,7 @@ function computeLendingProposal(inputs) {
 
     // Terms (dynamic)
     ltv,
-    arrangementFeeRate: TERMS.arrangementFee,
+    arrangementFeeRate: arrangementFeeRate,
     annualRate,
     defaultThreshold: TERMS.defaultThreshold,
     marginCureDays: TERMS.marginCureDays,
@@ -163,7 +171,7 @@ function generateLendingSummary(d) {
 
   return `SDM Lending proposes a collateralized loan facility for ${d.borrowerName}, secured against ${fmt(d.units)} ${d.collateralAsset} valued at ${$(d.price)} per unit (Fair Market Price based on 3-day pricing model).
 
-The total collateral value is ${$(d.collateralValue)}, supporting a gross loan of ${$(d.grossLoan)} at a ${d.ltvPct}% loan-to-value ratio. After deducting the 2% arrangement fee of ${$(d.arrangementFeeAmount)}, net loan proceeds of ${$(d.netLoanProceeds)} ${d.loanCurrency} will be distributed to the borrower at closing.
+The total collateral value is ${$(d.collateralValue)}, supporting a gross loan of ${$(d.grossLoan)} at a ${d.ltvPct}% loan-to-value ratio. After deducting the ${d.feePct}% arrangement fee of ${$(d.arrangementFeeAmount)}, net loan proceeds of ${$(d.netLoanProceeds)} ${d.loanCurrency} will be distributed to the borrower at closing.
 
 The loan carries an annual interest rate of ${d.ratePct}%, payable quarterly in arrears at ${$(d.quarterlyPayment)} per quarter over ${d.totalQuarters} quarters (${d.term}-month term). Total interest over the life of the loan is ${$(d.totalInterest)}, bringing the all-in cost of borrowing to ${$(d.totalCost)}.
 

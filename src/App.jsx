@@ -18,6 +18,8 @@ const PHASES = {
   LENDING_CONFIGURE: "lending_configure",
   LENDING_GENERATING: "lending_generating",
   LENDING_RESULT: "lending_result",
+  // Sales Library
+  SALES_LIBRARY: "sales_library",
 };
 
 const PHASE_TITLES = {
@@ -30,6 +32,7 @@ const PHASE_TITLES = {
   [PHASES.LENDING_CONFIGURE]: "Lending Calculator — SDM",
   [PHASES.LENDING_GENERATING]: "Generating Proposal — SDM",
   [PHASES.LENDING_RESULT]: "Lending Proposal — SDM",
+  [PHASES.SALES_LIBRARY]: "Sales Library — SDM",
 };
 
 function TradeCard({ trade, selected, onClick }) {
@@ -137,6 +140,34 @@ function FieldInput({ field, value, onChange }) {
   );
 }
 
+// ─── Sales Library: auto-detect doc type from name ───
+const DOC_TYPE_MAP = [
+  { match: /deck|pitch/i, type: "Pitch Deck", icon: "deck", color: "#60a5fa", desc: "Presentation deck for client meetings and pitches" },
+  { match: /1\s*pager|one.pager/i, type: "One-Pager", icon: "page", color: "#4ade80", desc: "Single-page product summary and key highlights" },
+  { match: /overview/i, type: "Overview", icon: "overview", color: "#a78bfa", desc: "Comprehensive product overview and terms" },
+  { match: /lending|loan/i, type: "Lending", icon: "lending", color: "#34d399", desc: "Lending product details, terms, and structures" },
+  { match: /corporate/i, type: "Corporate", icon: "corp", color: "#f59e0b", desc: "Company overview, structure, and capabilities" },
+  { match: /derivative|option|call|put|carry/i, type: "Derivatives", icon: "deriv", color: "#f472b6", desc: "Derivatives strategy breakdown and trade examples" },
+  { match: /algo|trading/i, type: "Trading", icon: "trade", color: "#38bdf8", desc: "Trading product details and execution strategies" },
+  { match: /tax|planning/i, type: "Tax", icon: "tax", color: "#fb923c", desc: "Tax planning strategies and compliance frameworks" },
+  { match: /payment/i, type: "Payments", icon: "pay", color: "#a3e635", desc: "Payment infrastructure and settlement solutions" },
+  { match: /miner|mining/i, type: "Mining", icon: "mine", color: "#facc15", desc: "Mining operations, treasury, and financing solutions" },
+  { match: /treasury|bitcoin/i, type: "Treasury", icon: "treasury", color: "#fbbf24", desc: "Bitcoin treasury strategy and corporate adoption" },
+  { match: /product/i, type: "Product", icon: "product", color: "#c084fc", desc: "Full product suite overview and service catalogue" },
+  { match: /welcome/i, type: "Welcome", icon: "welcome", color: "#67e8f9", desc: "Introduction to SDM and onboarding guide" },
+  { match: /spot/i, type: "Spot Trading", icon: "spot", color: "#22d3ee", desc: "Spot trading execution and OTC desk capabilities" },
+  { match: /auto.sell/i, type: "Auto Sell", icon: "auto", color: "#a78bfa", desc: "Automated selling strategies and DCA programs" },
+  { match: /ecosystem/i, type: "Ecosystem", icon: "eco", color: "#2dd4bf", desc: "SDM ecosystem map and integrated service overview" },
+  { match: /property|real.estate/i, type: "Real Estate", icon: "property", color: "#fb7185", desc: "Crypto-backed lending for property acquisitions" },
+];
+
+function getDocMeta(name) {
+  for (const entry of DOC_TYPE_MAP) {
+    if (entry.match.test(name)) return entry;
+  }
+  return { type: "Document", icon: "doc", color: "#8b8b9a", desc: "SDM sales and marketing collateral" };
+}
+
 // Lending form fields definition
 const LENDING_FIELDS = [
   { key: "borrowerName", label: "Borrower / Client Name", type: "text", placeholder: "e.g. Acme Capital" },
@@ -145,6 +176,7 @@ const LENDING_FIELDS = [
   { key: "pricePerUnit", label: "Price Per Unit (USD)", type: "number", placeholder: "e.g. 95000" },
   { key: "ltv", label: "Loan-to-Value (%)", type: "number", placeholder: "e.g. 65" },
   { key: "annualRate", label: "Annual Interest Rate (%)", type: "number", placeholder: "e.g. 8" },
+  { key: "arrangementFee", label: "Arrangement Fee (%)", type: "number", placeholder: "e.g. 2" },
   { key: "termMonths", label: "Loan Term (Months)", type: "select", options: ["1", "3", "6", "12", "18", "24", "36"] },
   { key: "loanCurrency", label: "Loan Currency", type: "select", options: ["USD", "CAD", "EUR", "GBP"] },
   { key: "executive_summary", label: "Executive Summary (optional)", type: "textarea", placeholder: "Add custom notes, context, or override the auto-generated summary..." },
@@ -167,14 +199,45 @@ export default function App() {
   const [feedbackFiles, setFeedbackFiles] = useState([]);
   const [feedbackSent, setFeedbackSent] = useState(false);
   // Lending state
-  const [lendingValues, setLendingValues] = useState({ termMonths: "1", loanCurrency: "USD", collateralAsset: "BTC", ltv: "65", annualRate: "8" });
+  const [lendingValues, setLendingValues] = useState({ termMonths: "1", loanCurrency: "USD", collateralAsset: "BTC", ltv: "65", annualRate: "8", arrangementFee: "2" });
   const [lendingData, setLendingData] = useState(null);
   const [lendingError, setLendingError] = useState(null);
+  // Sales Library state
+  const [salesDocs, setSalesDocs] = useState([]);
+  const [salesLoading, setSalesLoading] = useState(false);
+  const [salesFilter, setSalesFilter] = useState("");
+  const [salesCategory, setSalesCategory] = useState("All");
 
   const skipPushRef = useRef(false);
 
   const isLendingPhase = phase === PHASES.LENDING_CONFIGURE || phase === PHASES.LENDING_GENERATING || phase === PHASES.LENDING_RESULT;
   const isTradingPhase = [PHASES.SELECT, PHASES.UPLOAD, PHASES.CONFIGURE, PHASES.GENERATING, PHASES.RESULT].includes(phase);
+  const isSalesPhase = phase === PHASES.SALES_LIBRARY;
+
+  // ─── Fetch Sales Library from Google Sheet ───
+  const SALES_SHEET_ID = "1dr-_tWxb1AS4RHbblugFs4KuTaNruep_viKwTjpqstA"; // Replace with actual Sheet ID
+  const fetchSalesDocs = useCallback(async () => {
+    setSalesLoading(true);
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SALES_SHEET_ID}/gviz/tq?tqx=out:json`;
+      const res = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      const rows = json.table.rows;
+      // Skip header row (first row), columns: A=Name, B=URL, C=Category (optional), D=Description (optional)
+      const docs = rows.slice(1).map(r => ({
+        name: r.c[0]?.v || "",
+        url: r.c[1]?.v || "",
+        category: r.c[2]?.v || "General",
+        description: r.c[3]?.v || "",
+      })).filter(d => d.name && d.url);
+      setSalesDocs(docs);
+    } catch (e) {
+      console.error("Failed to fetch sales docs:", e);
+      setSalesDocs([]);
+    }
+    setSalesLoading(false);
+  }, [SALES_SHEET_ID]);
 
   // ─── Phase history (browser back/forward) ───
   const navigateTo = useCallback((newPhase) => {
@@ -219,6 +282,12 @@ export default function App() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, []);
+
+  useEffect(() => {
+    if (phase === PHASES.SALES_LIBRARY && salesDocs.length === 0) {
+      fetchSalesDocs();
+    }
+  }, [phase, salesDocs.length, fetchSalesDocs]);
 
   const handleSelectTrade = (trade) => {
     setSelectedTrade(trade);
@@ -373,6 +442,15 @@ export default function App() {
         {/* Breadcrumb */}
         {isTradingPhase && renderTradingBreadcrumb()}
         {isLendingPhase && renderLendingBreadcrumb()}
+        {isSalesPhase && (
+          <div className="breadcrumb">
+            <button className="crumb crumb-home" onClick={handleReset}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </button>
+            <span className="crumb-sep">&rsaquo;</span>
+            <span className="crumb active">Sales Library</span>
+          </div>
+        )}
       </header>
 
       <main className="main">
@@ -392,7 +470,41 @@ export default function App() {
             </div>
 
             <div className="product-grid">
-              {/* Trading */}
+              {/* Sales Library */}
+              <button className="product-card product-card-sales" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
+                <div className="product-card-icon-ring product-ring-amber">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    <line x1="9" y1="7" x2="16" y2="7"/>
+                    <line x1="9" y1="11" x2="14" y2="11"/>
+                  </svg>
+                </div>
+                <span className="product-card-badge badge-amber">SALES</span>
+                <h2 className="product-card-title">Sales Library</h2>
+                <p className="product-card-desc">Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
+                <div className="product-card-cta">
+                  <span>Browse documents</span>
+                  <span className="product-card-arrow">&rarr;</span>
+                </div>
+              </button>
+
+              {/* Trading Desk — Coming Soon */}
+              <div className="product-card product-card-disabled">
+                <div className="product-card-icon-ring product-ring-purple">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                  </svg>
+                </div>
+                <span className="product-card-badge badge-purple">TRADING</span>
+                <h2 className="product-card-title">Trading Desk</h2>
+                <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
+                <div className="product-card-coming-soon">Coming Soon</div>
+              </div>
+
+              {/* Derivatives */}
               <button className="product-card product-card-blue" onClick={() => navigateTo(PHASES.SELECT)}>
                 <div className="product-card-icon-ring product-ring-blue">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -426,21 +538,6 @@ export default function App() {
                   <span className="product-card-arrow">&rarr;</span>
                 </div>
               </button>
-
-              {/* Derivatives — Coming Soon */}
-              <div className="product-card product-card-disabled">
-                <div className="product-card-icon-ring product-ring-purple">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                  </svg>
-                </div>
-                <span className="product-card-badge badge-purple">TRADING</span>
-                <h2 className="product-card-title">Trading Desk</h2>
-                <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
-                <div className="product-card-coming-soon">Coming Soon</div>
-              </div>
             </div>
           </div>
         )}
@@ -681,6 +778,90 @@ export default function App() {
             onReset={handleReset}
           />
         )}
+
+        {/* ═══ PHASE: SALES LIBRARY ═══ */}
+        {phase === PHASES.SALES_LIBRARY && (
+          <div className="phase-sales-library">
+            <div className="sales-header">
+              <div className="sales-header-left">
+                <h1 className="phase-title">Sales Library</h1>
+                <p className="phase-sub">Browse and share SDM sales collateral. Documents sync live from the team sheet.</p>
+              </div>
+              <button className="btn-back" onClick={handleReset}>{"\u2190"} Back to Home</button>
+            </div>
+
+            <div className="sales-controls">
+              <div className="sales-search-wrap">
+                <svg className="sales-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  className="sales-search"
+                  type="text"
+                  placeholder="Search documents..."
+                  value={salesFilter}
+                  onChange={e => setSalesFilter(e.target.value)}
+                />
+              </div>
+              <div className="sales-category-pills">
+                {["All", ...Array.from(new Set(salesDocs.map(d => d.category)))].map(cat => (
+                  <button
+                    key={cat}
+                    className={`sales-pill ${salesCategory === cat ? "active" : ""}`}
+                    onClick={() => setSalesCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {salesLoading ? (
+              <div className="sales-loading">
+                <div className="gen-spinner" style={{ width: 24, height: 24, margin: "0 auto" }} />
+                <p style={{ color: "var(--text-muted)", marginTop: 12, fontSize: 13 }}>Loading documents...</p>
+              </div>
+            ) : (
+              <div className="sales-doc-grid">
+                {salesDocs
+                  .filter(d => salesCategory === "All" || d.category === salesCategory)
+                  .filter(d => !salesFilter || d.name.toLowerCase().includes(salesFilter.toLowerCase()) || (d.description || getDocMeta(d.name).desc).toLowerCase().includes(salesFilter.toLowerCase()))
+                  .map((doc, i) => {
+                    const meta = getDocMeta(doc.name);
+                    const desc = doc.description || meta.desc;
+                    return (
+                      <a key={i} href={doc.url} target="_blank" rel="noreferrer" className="sales-doc-card">
+                        <div className="sales-doc-thumb" style={{ background: `linear-gradient(135deg, ${meta.color}18, ${meta.color}08)`, borderColor: `${meta.color}25` }}>
+                          <div className="sales-doc-thumb-icon" style={{ color: meta.color }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+                          </div>
+                          <span className="sales-doc-type-badge" style={{ background: `${meta.color}20`, color: meta.color, borderColor: `${meta.color}30` }}>{meta.type}</span>
+                        </div>
+                        <div className="sales-doc-card-body">
+                          <span className="sales-doc-name">{doc.name}</span>
+                          <span className="sales-doc-desc">{desc}</span>
+                        </div>
+                        <div className="sales-doc-card-footer">
+                          <span className="sales-doc-domain">docsend.com</span>
+                          <svg className="sales-doc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </div>
+                      </a>
+                    );
+                  })
+                }
+                {salesDocs.length > 0 && salesDocs
+                  .filter(d => salesCategory === "All" || d.category === salesCategory)
+                  .filter(d => !salesFilter || d.name.toLowerCase().includes(salesFilter.toLowerCase()))
+                  .length === 0 && (
+                  <div className="sales-empty">No documents match your search.</div>
+                )}
+                {salesDocs.length === 0 && !salesLoading && (
+                  <div className="sales-empty">
+                    No documents found. Make sure the Google Sheet is shared publicly and the Sheet ID is configured.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Canva Exporting Overlay */}
@@ -719,6 +900,10 @@ export default function App() {
           <button className="footer-nav-link" onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
             Lending
+          </button>
+          <button className="footer-nav-link" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Sales Library
           </button>
           <button className="footer-nav-link" onClick={() => setShowFeedback(true)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
