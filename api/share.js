@@ -76,11 +76,12 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to save to GitHub', detail: err });
     }
 
-    // Build the GitHub Pages URL
-    const [org, repoName] = repo.split('/');
-    const pagesUrl = `https://${org}.github.io/${repoName}/${path}`;
+    // Build permanent URL — use raw.githubusercontent.com served through htmlpreview
+    // This is instant (no GitHub Pages build delay)
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
+    const viewUrl = `https://htmlpreview.github.io/?${rawUrl}`;
 
-    return res.status(200).json({ url: pagesUrl });
+    return res.status(200).json({ url: viewUrl });
   } catch (err) {
     console.error('Share error:', err);
     return res.status(500).json({ error: 'Failed to save report', detail: String(err) });

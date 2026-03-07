@@ -628,18 +628,6 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
         <span>Secure Digital Markets — Trade Idea Studio</span>
       </div>
 
-      {/* SDM Letterhead */}
-      <div className="letterhead reveal-section reveal-delay-0">
-        <div className="letterhead-left">
-          <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="letterhead-logo" />
-        </div>
-        <div className="letterhead-right">
-          <span className="letterhead-date">{dateStr}</span>
-          <span className="letterhead-time">{timeStr}</span>
-        </div>
-      </div>
-      <div className="letterhead-divider reveal-section reveal-delay-0" />
-
       {/* Report Header */}
       <div className="report-header reveal-section reveal-delay-1">
         <div className="report-header-left">
