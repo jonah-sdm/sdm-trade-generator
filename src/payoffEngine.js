@@ -15,9 +15,14 @@ export function generateExecutiveSummary(tradeId, fields) {
   const asset = fields.asset || "the underlying asset";
   const fmtN = (v) => {
     const num = parseNum(v);
-    if (!num) return v;
+    if (!num && num !== 0) return v;
     if (Math.abs(num) >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-    if (Math.abs(num) >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
+    return `$${num.toLocaleString()}`;
+  };
+  // Format any value as $X,XXX with commas
+  const $ = (v) => {
+    const num = parseNum(v);
+    if (!num && num !== 0) return `$${v}`;
     return `$${num.toLocaleString()}`;
   };
 
@@ -35,22 +40,22 @@ export function generateExecutiveSummary(tradeId, fields) {
     }
 
     case "covered_call":
-      return `This income strategy generates premium by selling call options against an existing ${asset} position of ${fields.holdings || 10} units currently held at a cost basis of $${fields.cost_basis}. The portfolio collects $${fields.premium} per unit in premium income by granting another party the right to purchase the holdings at $${fields.strike}. If ${asset} remains below $${fields.strike} at expiry (${fields.expiry || "the target date"}), the portfolio retains the position and the full premium. If ${asset} rises above the strike, the position is called away at $${fields.strike} plus the premium collected. The position is protected down to a breakeven of $${(parseNum(fields.cost_basis) - parseNum(fields.premium)).toFixed(2)}. The annualized return on this premium is approximately ${fields.current_price && fields.dte ? ((parseNum(fields.premium) / parseNum(fields.current_price)) * (365 / parseNum(fields.dte)) * 100).toFixed(1) : "N/A"}%.`;
+      return `This income strategy generates premium by selling call options against an existing ${asset} position of ${fields.holdings || 10} units currently held at a cost basis of ${$(fields.cost_basis)}. The portfolio collects ${$(fields.premium)} per unit in premium income by granting another party the right to purchase the holdings at ${$(fields.strike)}. If ${asset} remains below ${$(fields.strike)} at expiry (${fields.expiry || "the target date"}), the portfolio retains the position and the full premium. If ${asset} rises above the strike, the position is called away at ${$(fields.strike)} plus the premium collected. The position is protected down to a breakeven of ${$((parseNum(fields.cost_basis) - parseNum(fields.premium)).toFixed(2))}. The annualized return on this premium is approximately ${fields.current_price && fields.dte ? ((parseNum(fields.premium) / parseNum(fields.current_price)) * (365 / parseNum(fields.dte)) * 100).toFixed(1) : "N/A"}%.`;
 
     case "cash_secured_put":
-      return `This strategy generates income by selling put options on ${asset}, currently trading at $${fields.current_price}. The portfolio collects $${fields.premium} per unit in premium by committing to purchase ${asset} at $${fields.strike} if the price falls to that level by ${fields.expiry || "the expiry date"}. This requires ${fmtN(fields.capital_required)} in capital to be held in reserve. If the option expires worthless (${asset} stays above $${fields.strike}), the portfolio keeps the full premium as profit. If assigned, the effective purchase price would be $${fields.effective_basis || (parseNum(fields.strike) - parseNum(fields.premium)).toFixed(2)} — a ${((1 - (parseNum(fields.strike) - parseNum(fields.premium)) / parseNum(fields.current_price)) * 100).toFixed(1)}% discount to the current market price.`;
+      return `This strategy generates income by selling put options on ${asset}, currently trading at ${$(fields.current_price)}. The portfolio collects ${$(fields.premium)} per unit in premium by committing to purchase ${asset} at ${$(fields.strike)} if the price falls to that level by ${fields.expiry || "the expiry date"}. This requires ${fmtN(fields.capital_required)} in capital to be held in reserve. If the option expires worthless (${asset} stays above ${$(fields.strike)}), the portfolio keeps the full premium as profit. If assigned, the effective purchase price would be ${$(fields.effective_basis || (parseNum(fields.strike) - parseNum(fields.premium)).toFixed(2))} — a ${((1 - (parseNum(fields.strike) - parseNum(fields.premium)) / parseNum(fields.current_price)) * 100).toFixed(1)}% discount to the current market price.`;
 
     case "leap":
-      return `This position takes a long-term directional view on ${asset} through a long-dated call option expiring ${fields.expiry || "in the future"} (${fields.dte || "300+"} days out). Rather than purchasing the asset outright, the portfolio acquires ${fields.contracts || 1} call option contract(s) at a $${fields.strike} strike price for $${fields.premium} per unit, committing ${fmtN(fields.total_outlay)} in total capital. This provides leveraged upside exposure — if ${asset} appreciates significantly, the percentage return on capital deployed is magnified compared to owning the asset directly. The maximum risk is limited to the ${fmtN(fields.total_outlay)} premium paid. The position breaks even at $${(parseNum(fields.strike) + parseNum(fields.premium)).toFixed(2)}, requiring a ${((parseNum(fields.strike) + parseNum(fields.premium)) / parseNum(fields.current_price) * 100 - 100).toFixed(1)}% move from current levels.`;
+      return `This position takes a long-term directional view on ${asset} through a long-dated call option expiring ${fields.expiry || "in the future"} (${fields.dte || "300+"} days out). Rather than purchasing the asset outright, the portfolio acquires ${fields.contracts || 1} call option contract(s) at a ${$(fields.strike)} strike price for ${$(fields.premium)} per unit, committing ${fmtN(fields.total_outlay)} in total capital. This provides leveraged upside exposure — if ${asset} appreciates significantly, the percentage return on capital deployed is magnified compared to owning the asset directly. The maximum risk is limited to the ${fmtN(fields.total_outlay)} premium paid. The position breaks even at ${$((parseNum(fields.strike) + parseNum(fields.premium)).toFixed(2))}, requiring a ${((parseNum(fields.strike) + parseNum(fields.premium)) / parseNum(fields.current_price) * 100 - 100).toFixed(1)}% move from current levels.`;
 
     case "wheel":
-      return `The Wheel is a systematic income generation strategy on ${asset} that cycles between selling cash-secured puts and covered calls. The portfolio is currently in the "${fields.current_phase || "active"}" phase, having completed ${fields.cycles_completed || 0} full cycles. To date, the strategy has collected $${fields.total_premium} in cumulative premium, reducing the effective cost basis to $${fields.cost_basis} per unit. The current active position has a strike of $${fields.current_strike} generating $${fields.current_premium} in premium. The annualized return on this strategy is approximately ${fields.annualized_return || "N/A"}%. The strategy is designed to generate consistent income in range-bound or moderately trending markets.`;
+      return `The Wheel is a systematic income generation strategy on ${asset} that cycles between selling cash-secured puts and covered calls. The portfolio is currently in the "${fields.current_phase || "active"}" phase, having completed ${fields.cycles_completed || 0} full cycles. To date, the strategy has collected ${$(fields.total_premium)} in cumulative premium, reducing the effective cost basis to ${$(fields.cost_basis)} per unit. The current active position has a strike of ${$(fields.current_strike)} generating ${$(fields.current_premium)} in premium. The annualized return on this strategy is approximately ${fields.annualized_return || "N/A"}%. The strategy is designed to generate consistent income in range-bound or moderately trending markets.`;
 
     case "collar":
-      return `This hedging strategy protects an existing ${fields.holdings || 50}-unit position in ${asset} (currently at $${fields.current_price}, cost basis $${fields.cost_basis}) by establishing a price floor at $${fields.put_strike} through a purchased put option, while partially funding that protection by selling a call option at $${fields.call_strike}. The net cost of this protection is $${(parseNum(fields.put_premium) - parseNum(fields.call_premium)).toFixed(2)} per unit${parseNum(fields.put_premium) <= parseNum(fields.call_premium) ? " (net credit — the protection generates income)" : ""}. The portfolio value is protected down to $${fields.put_strike} (${fmtN(fields.protected_value)} in total protected value), with upside participation capped at $${fields.call_strike}. This structure expires ${fields.expiry || "on the target date"}.`;
+      return `This hedging strategy protects an existing ${fields.holdings || 50}-unit position in ${asset} (currently at ${$(fields.current_price)}, cost basis ${$(fields.cost_basis)}) by establishing a price floor at ${$(fields.put_strike)} through a purchased put option, while partially funding that protection by selling a call option at ${$(fields.call_strike)}. The net cost of this protection is ${$((parseNum(fields.put_premium) - parseNum(fields.call_premium)).toFixed(2))} per unit${parseNum(fields.put_premium) <= parseNum(fields.call_premium) ? " (net credit — the protection generates income)" : ""}. The portfolio value is protected down to ${$(fields.put_strike)} (${fmtN(fields.protected_value)} in total protected value), with upside participation capped at ${$(fields.call_strike)}. This structure expires ${fields.expiry || "on the target date"}.`;
 
     case "earnings_play":
-      return `This analysis evaluates the risk profile of an existing ${fields.position_type || "options"} position in ${asset} heading into the event on ${fields.event_date || "the upcoming date"}. The market is currently pricing an expected move of ±${fields.expected_move_pct}% (approximately $${(parseNum(fields.current_price) * parseNum(fields.expected_move_pct) / 100).toFixed(2)} in either direction). The current position at the $${fields.strike} strike has collected $${fields.premium_collected} in premium, providing a ${((parseNum(fields.premium_collected) / parseNum(fields.current_price)) * 100).toFixed(1)}% cushion against adverse moves. Historical context: the last three event reactions were ${fields.last_3_reactions || "N/A"}. Recommendation: ${fields.recommendation || "under review"}.`;
+      return `This analysis evaluates the risk profile of an existing ${fields.position_type || "options"} position in ${asset} heading into the event on ${fields.event_date || "the upcoming date"}. The market is currently pricing an expected move of ±${fields.expected_move_pct}% (approximately ${$((parseNum(fields.current_price) * parseNum(fields.expected_move_pct) / 100).toFixed(2))} in either direction). The current position at the ${$(fields.strike)} strike has collected ${$(fields.premium_collected)} in premium, providing a ${((parseNum(fields.premium_collected) / parseNum(fields.current_price)) * 100).toFixed(1)}% cushion against adverse moves. Historical context: the last three event reactions were ${fields.last_3_reactions || "N/A"}. Recommendation: ${fields.recommendation || "under review"}.`;
 
     default:
       return "Trade analysis summary is being prepared.";
@@ -82,6 +87,12 @@ function fmt(v, decimals = 0) {
   if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
   if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(decimals > 0 ? decimals : 0)}K`;
   return `$${v.toLocaleString(undefined, { maximumFractionDigits: decimals })}`;
+}
+// Full comma-formatted dollar amount (no abbreviation)
+function fmtFull(v) {
+  const num = typeof v === "number" ? v : parseFloat(String(v).replace(/[$,%\s,]/g, ""));
+  if (isNaN(num)) return `$${v}`;
+  return `$${num.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
 function buildCurve(minPrice, maxPrice, pnlFn, steps = 200) {
@@ -222,15 +233,15 @@ function computeCoveredCall(f) {
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
-      { label: "Current Price", value: `$${price}`, sub: f.asset || "—" },
-      { label: "Max Profit", value: fmt(maxProfit), sub: `At $${strike}+`, positive: true },
-      { label: "Breakeven", value: `$${breakeven.toFixed(2)}`, sub: "Downside" },
-      { label: "Premium", value: `$${premium}`, sub: `${annReturn}% ann.`, positive: true },
+      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
+      { label: "Max Profit", value: fmt(maxProfit), sub: `At ${fmtFull(strike)}+`, positive: true },
+      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Downside" },
+      { label: "Premium", value: fmtFull(premium), sub: `${annReturn}% ann.`, positive: true },
       { label: "IV Rank / DTE", value: `${f.iv_rank}% / ${dte}d`, sub: `${n(f.delta)} delta` },
     ],
     legs: [
-      { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ $${cost}`, color: "#00C2FF" },
-      { action: "SELL", type: "Call", strike, label: `$${strike} Call @ $${premium}`, color: "#ef4444" },
+      { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ ${fmtFull(cost)}`, color: "#00C2FF" },
+      { action: "SELL", type: "Call", strike, label: `${fmtFull(strike)} Call @ ${fmtFull(premium)}`, color: "#ef4444" },
     ],
     zones: [
       { from: breakeven, to: strike, label: "Profit Zone", color: "rgba(74,222,128,0.08)" },
@@ -262,14 +273,14 @@ function computeCashSecuredPut(f) {
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
-      { label: "Current Price", value: `$${price}`, sub: f.asset || "—" },
+      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Max Income", value: fmt(maxProfit), sub: `${returnOnCapital}% ann.`, positive: true },
-      { label: "Breakeven", value: `$${breakeven.toFixed(2)}`, sub: "Assignment" },
-      { label: "Capital Req.", value: fmt(capital), sub: `Eff. basis $${effectiveBasis}` },
+      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Assignment" },
+      { label: "Capital Req.", value: fmt(capital), sub: `Eff. basis ${fmtFull(effectiveBasis)}` },
       { label: "IV Rank / DTE", value: `${f.iv_rank}% / ${dte}d`, sub: `${f.delta} delta` },
     ],
     legs: [
-      { action: "SELL", type: "Put", strike, label: `$${strike} Put @ $${premium}`, color: "#A78BFA" },
+      { action: "SELL", type: "Put", strike, label: `${fmtFull(strike)} Put @ ${fmtFull(premium)}`, color: "#A78BFA" },
     ],
     zones: [
       { from: breakeven, to: maxP, label: "Profit Zone", color: "rgba(74,222,128,0.08)" },
@@ -298,14 +309,14 @@ function computeLeap(f) {
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
-      { label: "Current Price", value: `$${price}`, sub: f.asset || "—" },
+      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Capital at Risk", value: fmt(totalOutlay), sub: `${contracts} contracts`, negative: true },
-      { label: "Breakeven", value: `$${breakeven.toFixed(2)}`, sub: `+${((breakeven / price - 1) * 100).toFixed(1)}%` },
+      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: `+${((breakeven / price - 1) * 100).toFixed(1)}%` },
       { label: "Delta", value: f.delta, sub: `Leverage ~${(n(f.delta) * price / premium).toFixed(1)}x` },
       { label: "DTE", value: `${dte}d`, sub: f.expiry || "" },
     ],
     legs: [
-      { action: "BUY", type: "Call (Long-Dated)", strike, label: `$${strike} Call @ $${premium}`, color: "#FB923C" },
+      { action: "BUY", type: "Call (Long-Dated)", strike, label: `${fmtFull(strike)} Call @ ${fmtFull(premium)}`, color: "#FB923C" },
     ],
     zones: [
       { from: breakeven, to: maxP, label: "Profit Zone", color: "rgba(74,222,128,0.08)" },
@@ -347,20 +358,20 @@ function computeWheel(f) {
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
-      { label: "Current Price", value: `$${price}`, sub: f.asset || "—" },
+      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Phase", value: f.current_phase || "—", sub: `Cycle ${cycles}` },
-      { label: "Total Premium", value: `$${totalPremium}`, sub: `${cycles} cycles`, positive: true },
-      { label: "Adj. Basis", value: `$${costBasis}`, sub: `BE: $${breakeven.toFixed(2)}` },
-      { label: "Ann. Return", value: `${annReturn}%`, sub: `$${currentPremium} current`, positive: true },
+      { label: "Total Premium", value: fmtFull(totalPremium), sub: `${cycles} cycles`, positive: true },
+      { label: "Adj. Basis", value: fmtFull(costBasis), sub: `BE: ${fmtFull(breakeven.toFixed(2))}` },
+      { label: "Ann. Return", value: `${annReturn}%`, sub: `${fmtFull(currentPremium)} current`, positive: true },
     ],
     legs: isSellingPuts
-      ? [{ action: "SELL", type: "Put", strike: currentStrike, label: `$${currentStrike} Put @ $${currentPremium}`, color: "#34D399" }]
+      ? [{ action: "SELL", type: "Put", strike: currentStrike, label: `${fmtFull(currentStrike)} Put @ ${fmtFull(currentPremium)}`, color: "#34D399" }]
       : isSellingCalls
         ? [
-            { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ $${costBasis}`, color: "#00C2FF" },
-            { action: "SELL", type: "Call", strike: currentStrike, label: `$${currentStrike} Call @ $${currentPremium}`, color: "#34D399" },
+            { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ ${fmtFull(costBasis)}`, color: "#00C2FF" },
+            { action: "SELL", type: "Call", strike: currentStrike, label: `${fmtFull(currentStrike)} Call @ ${fmtFull(currentPremium)}`, color: "#34D399" },
           ]
-        : [{ action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ $${costBasis}`, color: "#00C2FF" }],
+        : [{ action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ ${fmtFull(costBasis)}`, color: "#00C2FF" }],
     zones: [],
   };
 }
@@ -392,16 +403,16 @@ function computeCollar(f) {
   return {
     curve, spot: price, breakevens: [cost + netCost],
     metrics: [
-      { label: "Current Price", value: `$${price}`, sub: f.asset || "—" },
-      { label: "Protected Floor", value: `$${putStrike}`, sub: `${holdings} units` },
-      { label: "Upside Cap", value: `$${callStrike}`, sub: `Max ${fmt(maxProfit)}`, positive: true },
-      { label: "Net Cost", value: `$${netCost.toFixed(2)}`, sub: netCost <= 0 ? "Credit" : "Debit", positive: netCost <= 0 },
+      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
+      { label: "Protected Floor", value: fmtFull(putStrike), sub: `${holdings} units` },
+      { label: "Upside Cap", value: fmtFull(callStrike), sub: `Max ${fmt(maxProfit)}`, positive: true },
+      { label: "Net Cost", value: fmtFull(netCost.toFixed(2)), sub: netCost <= 0 ? "Credit" : "Debit", positive: netCost <= 0 },
       { label: "Value Protected", value: fmt(protectedVal), sub: f.expiry || "" },
     ],
     legs: [
-      { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ $${cost}`, color: "#00C2FF" },
-      { action: "BUY", type: "Put", strike: putStrike, label: `$${putStrike} Put @ $${putPrem}`, color: "#F472B6" },
-      { action: "SELL", type: "Call", strike: callStrike, label: `$${callStrike} Call @ $${callPrem}`, color: "#ef4444" },
+      { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ ${fmtFull(cost)}`, color: "#00C2FF" },
+      { action: "BUY", type: "Put", strike: putStrike, label: `${fmtFull(putStrike)} Put @ ${fmtFull(putPrem)}`, color: "#F472B6" },
+      { action: "SELL", type: "Call", strike: callStrike, label: `${fmtFull(callStrike)} Call @ ${fmtFull(callPrem)}`, color: "#ef4444" },
     ],
     zones: [
       { from: putStrike, to: callStrike, label: "Active Range", color: "rgba(244,114,182,0.06)" },
@@ -446,14 +457,14 @@ function computeEarningsPlay(f) {
   return {
     curve, spot: price, breakevens: [strike - premCollected],
     metrics: [
-      { label: "Current Price", value: `$${price}`, sub: f.asset || "—" },
-      { label: "Expected Move", value: `±${move}%`, sub: `$${downTarget.toFixed(0)} – $${upTarget.toFixed(0)}` },
-      { label: "Position", value: posType, sub: `$${strike} strike` },
-      { label: "Premium", value: `$${premCollected}`, sub: `${cushion}% cushion`, positive: true },
+      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
+      { label: "Expected Move", value: `±${move}%`, sub: `${fmtFull(downTarget.toFixed(0))} – ${fmtFull(upTarget.toFixed(0))}` },
+      { label: "Position", value: posType, sub: `${fmtFull(strike)} strike` },
+      { label: "Premium", value: fmtFull(premCollected), sub: `${cushion}% cushion`, positive: true },
       { label: "Event", value: f.event_date || "—", sub: f.recommendation || "" },
     ],
     legs: [
-      { action: posType.includes("Short") || posType.includes("Covered") ? "SELL" : "BUY", type: posType, strike, label: `$${strike} @ $${premCollected}`, color: "#FBBF24" },
+      { action: posType.includes("Short") || posType.includes("Covered") ? "SELL" : "BUY", type: posType, strike, label: `${fmtFull(strike)} @ ${fmtFull(premCollected)}`, color: "#FBBF24" },
     ],
     zones: [
       { from: downTarget, to: upTarget, label: "Expected Move", color: "rgba(251,191,36,0.06)" },

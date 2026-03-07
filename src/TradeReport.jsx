@@ -62,6 +62,26 @@ function PayoffChart({ analysis, accentColor }) {
     `${i === 0 ? "M" : "L"}${scaleX(c.price).toFixed(1)},${scaleY(c.pnl).toFixed(1)}`
   ).join(" ");
 
+  // Spot reference line — "Long BTC" diagonal showing what holding spot would return
+  // Derive multiplier from the trade curve slope near the spot price
+  const spotMultiplier = (() => {
+    if (!spot || spot <= 0) return 0;
+    // Find the curve slope near spot by sampling two close points
+    const nearSpot = curve.filter(c => Math.abs(c.price - spot) < (maxPrice - minPrice) * 0.1);
+    if (nearSpot.length < 2) {
+      // Fallback: use first and last to estimate scale
+      const first = curve[0], last = curve[curve.length - 1];
+      if (last.price === first.price) return 1;
+      return Math.abs(last.pnl - first.pnl) / (last.price - first.price);
+    }
+    // Use max absolute P&L to normalize — the spot line should look proportional
+    const absPnl = Math.max(Math.abs(maxPnl), Math.abs(minPnl));
+    const priceRange = maxPrice - minPrice;
+    return priceRange > 0 ? absPnl / (priceRange * 0.5) : 1;
+  })();
+
+  const spotLinePath = spot > 0 ? `M${scaleX(minPrice).toFixed(1)},${scaleY((minPrice - spot) * spotMultiplier).toFixed(1)} L${scaleX(maxPrice).toFixed(1)},${scaleY((maxPrice - spot) * spotMultiplier).toFixed(1)}` : "";
+
   const buildFillPath = (filterFn) => {
     const segments = [];
     let inSegment = false;
@@ -131,12 +151,12 @@ function PayoffChart({ analysis, accentColor }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="payoff-svg">
       <defs>
         <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.02" />
+          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.05" />
         </linearGradient>
         <linearGradient id="redGrad" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.02" />
+          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
         </linearGradient>
       </defs>
 
@@ -164,22 +184,27 @@ function PayoffChart({ analysis, accentColor }) {
       <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY}
         stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="4,3" />
 
-      {zones && zones.map((z, i) => (
-        <rect key={`z${i}`}
-          x={scaleX(Math.max(z.from, minPrice))}
-          y={PAD.top}
-          width={scaleX(Math.min(z.to, maxPrice)) - scaleX(Math.max(z.from, minPrice))}
-          height={cH}
-          fill={z.color}
-        />
-      ))}
-
       <path d={greenFill} fill="url(#greenGrad)" />
       <path d={redFill} fill="url(#redGrad)" />
 
+      {/* Long BTC spot reference line — dashed diagonal */}
+      {spotLinePath && !analysis.chartLabel && (
+        <g>
+          <path d={spotLinePath} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5"
+            strokeDasharray="6,4" strokeLinecap="round" />
+          <text x={scaleX(maxPrice) - 4} y={scaleY((maxPrice - spot) * spotMultiplier) - 6}
+            textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="Inter, sans-serif" fontWeight="500">
+            Long Spot
+          </text>
+        </g>
+      )}
+
+      {/* Strategy payoff line */}
       <path d={linePath} fill="none" stroke={accentColor || "#00C2FF"} strokeWidth="2.5"
         strokeLinejoin="round" strokeLinecap="round" />
 
+
+      {/* Spot price vertical */}
       {spot > minPrice && spot < maxPrice && (
         <g>
           <line x1={scaleX(spot)} y1={PAD.top} x2={scaleX(spot)} y2={H - PAD.bottom}
@@ -193,19 +218,46 @@ function PayoffChart({ analysis, accentColor }) {
         </g>
       )}
 
-      {legs && legs.map((leg, i) => (
-        leg.strike > minPrice && leg.strike < maxPrice && (
-          <g key={`leg${i}`}>
-            <line x1={scaleX(leg.strike)} y1={H - PAD.bottom} x2={scaleX(leg.strike)} y2={H - PAD.bottom + 6}
-              stroke={leg.color} strokeWidth="2" />
-            <circle cx={scaleX(leg.strike)} cy={scaleY(
-              curve.reduce((closest, c) =>
-                Math.abs(c.price - leg.strike) < Math.abs(closest.price - leg.strike) ? c : closest
-              ).pnl
-            )} r="4" fill={leg.color} stroke="#111118" strokeWidth="2" />
-          </g>
-        )
-      ))}
+      {/* Strike labels + dots on curve */}
+      {(() => {
+        if (!legs) return null;
+        const visible = legs
+          .map((leg, i) => ({ ...leg, idx: i }))
+          .filter(leg => leg.strike > minPrice && leg.strike < maxPrice)
+          .sort((a, b) => a.strike - b.strike);
+        // Stagger labels that are too close together
+        const labelPositions = [];
+        const MIN_GAP = 55; // min px between labels
+        visible.forEach(leg => {
+          const x = scaleX(leg.strike);
+          let y = PAD.top - 6;
+          for (const prev of labelPositions) {
+            if (Math.abs(x - prev.x) < MIN_GAP) {
+              y = Math.min(y, prev.y - 12);
+            }
+          }
+          labelPositions.push({ x, y, leg });
+        });
+        return labelPositions.map(({ x, y, leg }) => {
+          const curveY = scaleY(
+            curve.reduce((closest, c) =>
+              Math.abs(c.price - leg.strike) < Math.abs(closest.price - leg.strike) ? c : closest
+            ).pnl
+          );
+          const fmtStrike = leg.strike >= 1e3 ? `$${(leg.strike / 1e3).toFixed(leg.strike >= 1e4 ? 0 : 1)}K` : `$${leg.strike}`;
+          return (
+            <g key={`leg${leg.idx}`}>
+              <line x1={x} y1={PAD.top} x2={x} y2={H - PAD.bottom}
+                stroke={leg.color} strokeWidth="1" strokeDasharray="4,4" opacity="0.4" />
+              <circle cx={x} cy={curveY} r="4" fill={leg.color} stroke="#111118" strokeWidth="2" />
+              <text x={x} y={y} textAnchor="middle"
+                fill={leg.color} fontSize="8" fontFamily="Inter, sans-serif" fontWeight="600" opacity="0.85">
+                {leg.action} {fmtStrike}
+              </text>
+            </g>
+          );
+        });
+      })()}
 
       {breakevens && breakevens.map((be, i) => (
         be > minPrice && be < maxPrice && (
@@ -242,6 +294,8 @@ function buildShareText(trade, analysis) {
   return lines.filter(Boolean).join("\n");
 }
 
+const SDM_LOGO_SVG = `data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%0A%3Csvg%20id%3D%22Camada_1%22%20data-name%3D%22Camada%201%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20viewBox%3D%220%200%20600%20231.11%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3Cstyle%3E%0A%20%20%20%20%20%20.cls-1%20%7B%0A%20%20%20%20%20%20%20%20fill%3A%20%23fff%3B%0A%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20.cls-1%2C%20.cls-2%20%7B%0A%20%20%20%20%20%20%20%20stroke-width%3A%200px%3B%0A%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20.cls-2%20%7B%0A%20%20%20%20%20%20%20%20fill%3A%20%23eec13f%3B%0A%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20.cls-3%20%7B%0A%20%20%20%20%20%20%20%20filter%3A%20url(%23outer-glow-1)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%3C%2Fstyle%3E%0A%20%20%20%20%3Cfilter%20id%3D%22outer-glow-1%22%20filterUnits%3D%22userSpaceOnUse%22%3E%0A%20%20%20%20%20%20%3CfeOffset%20dx%3D%220%22%20dy%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3CfeGaussianBlur%20result%3D%22blur%22%20stdDeviation%3D%229.89%22%2F%3E%0A%20%20%20%20%20%20%3CfeFlood%20flood-color%3D%22%231851eb%22%20flood-opacity%3D%22.28%22%2F%3E%0A%20%20%20%20%20%20%3CfeComposite%20in2%3D%22blur%22%20operator%3D%22in%22%2F%3E%0A%20%20%20%20%20%20%3CfeComposite%20in%3D%22SourceGraphic%22%2F%3E%0A%20%20%20%20%3C%2Ffilter%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Cg%20class%3D%22cls-3%22%3E%0A%20%20%20%20%3Cpath%20class%3D%22cls-2%22%20d%3D%22M38.49%2C62.99v-12.32c55.08-23.68%2C103.1-23.66%2C158.16%2C0v39.04l-15.32-6.1v-20.36c-35.12-14.65-74.87-20.1-111-5.74l126.04%2C50.13c-.35%2C6.04-1.03%2C11.87-2.04%2C17.34L38.49%2C62.99Z%22%2F%3E%0A%20%20%20%20%3Cpath%20class%3D%22cls-2%22%20d%3D%22M113.53%2C203.69c-31.51-18.3-64.08-42.26-74.37-78.81l20.76%2C7.81c10.7%2C21.74%2C31.47%2C37.38%2C57.79%2C53.27%2C20.35-12.42%2C34.29-22.88%2C44.65-34.23l-123.57-49.15c-.36-5.44-.29-12.72-.29-18.27%2C11.62%2C4.64%2C143.04%2C56.81%2C149.86%2C59.74-15.41%2C27.83-43.18%2C46.57-70.64%2C61.69l-4.18-2.07Z%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cpath%20class%3D%22cls-1%22%20d%3D%22M295.28%2C159.49c-15.27%2C0-28-3.4-38.87-10.39l6.11-12.22c9.9%2C6.2%2C20.8%2C9.35%2C32.41%2C9.35%2C17.08%2C0%2C20.67-5.43%2C20.67-9.98%2C0-6.7-5.61-8.38-21.39-9.75-29-2.56-34.5-10.23-34.5-23.48%2C0-14.92%2C13.03-23.83%2C34.87-23.83%2C12.94%2C0%2C23.68%2C2.86%2C32.78%2C8.75l-5.56%2C11.72c-7.69-4.73-16.82-7.22-26.51-7.22-12.24%2C0-19.26%2C3.55-19.26%2C9.75%2C0%2C6.69%2C5.61%2C8.37%2C21.39%2C9.74%2C29%2C2.57%2C34.5%2C10.24%2C34.5%2C23.49%2C0%2C10.98-6.35%2C24.06-36.63%2C24.06Z%22%2F%3E%0A%20%20%3Cpolygon%20class%3D%22cls-1%22%20points%3D%22525.36%20158.08%20525.36%20101.02%20523.1%20100.55%20498.16%20158.08%20487.15%20158.08%20462.21%20100.55%20459.95%20101.02%20459.95%20158.08%20444.81%20158.08%20444.81%2080.6%20468.22%2080.6%20493.07%20137.8%20517.79%2080.6%20541.32%2080.6%20541.32%20158.08%20525.36%20158.08%22%2F%3E%0A%20%20%3Cpath%20class%3D%22cls-1%22%20d%3D%22M389.06%2C80.59h-36.04v13.37h34.16c16.42%2C0%2C25.84%2C9.25%2C25.84%2C25.37s-9.42%2C25.37-25.84%2C25.37h-18.49v-39.9h-15.67v53.28h36.04c25.22%2C0%2C40.27-14.48%2C40.27-38.75s-15.06-38.74-40.27-38.74Z%22%2F%3E%0A%3C%2Fsvg%3E`;
+
 function buildStandaloneHtml(reportRef, trade) {
   const styleSheets = Array.from(document.styleSheets);
   let cssText = "";
@@ -251,7 +305,12 @@ function buildStandaloneHtml(reportRef, trade) {
     } catch (e) { /* cross-origin sheets */ }
   });
 
-  const reportHtml = reportRef.current.outerHTML;
+  // Replace local image paths with inline data URI so logo works in standalone HTML
+  let reportHtml = reportRef.current.outerHTML;
+  reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
+                         .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
+  const now = new Date();
+  const footerDate = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -272,13 +331,109 @@ function buildStandaloneHtml(reportRef, trade) {
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); margin: 0; padding: 32px; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .btn-back { display: none !important; }
 ${cssText}
+
+/* ── Fixed header & footer for standalone view ── */
+.standalone-page-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--gold);
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--text-muted);
+  z-index: 100;
+}
+.standalone-page-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.standalone-page-header .header-logo {
+  height: 28px;
+  width: auto;
+}
+.standalone-page-header .header-right {
+  text-align: right;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.standalone-page-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 32px;
+  background: var(--bg);
+  border-top: 1px solid var(--border-light);
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--text-muted);
+  z-index: 100;
+}
+.standalone-page-footer .footer-right {
+  text-align: right;
+  color: var(--text-dim);
+}
+
+/* Offset body so content doesn't hide behind fixed header/footer */
+body { padding-top: 52px !important; padding-bottom: 52px !important; }
+
+/* ── Print / PDF page layout ── */
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-  body { background: var(--bg) !important; }
+  @page {
+    size: A4;
+    margin: 18mm 15mm 18mm 15mm;
+  }
+  body { background: var(--bg) !important; padding: 0 !important; }
+  /* Fixed elements repeat on every printed page */
+  .standalone-page-header {
+    padding: 0 0 6px 0;
+    border-bottom: 1px solid var(--gold);
+  }
+  .standalone-page-footer {
+    padding: 6px 0 0 0;
+    border-top: 1px solid var(--border-light);
+  }
+  .report { gap: 16px !important; }
+  .report-section { break-inside: avoid; page-break-inside: avoid; }
+  .report-kpis { break-inside: avoid; page-break-inside: avoid; }
+  .legs-table { break-inside: avoid; page-break-inside: avoid; }
+  .risk-grid { break-inside: avoid; page-break-inside: avoid; }
+  .chart-container { break-inside: avoid; page-break-inside: avoid; }
+  .exec-summary { break-inside: auto; }
+  .kpi-card { break-inside: avoid; page-break-inside: avoid; }
+  .report-disclaimer { break-before: avoid; }
 }
 </style>
 </head>
-<body>${reportHtml}</body>
+<body>
+<div class="standalone-page-header">
+  <div class="header-left">
+    <img src="${SDM_LOGO_SVG}" alt="Secure Digital Markets" class="header-logo" />
+  </div>
+  <div class="header-right">
+    ${footerDate}
+  </div>
+</div>
+${reportHtml}
+<div class="standalone-page-footer">
+  <div class="footer-right" style="width:100%;display:flex;justify-content:space-between;">
+    <span>Confidential — Internal Use Only</span>
+    <span>SDM Trade Idea Studio</span>
+  </div>
+</div>
+</body>
 </html>`;
 }
 
@@ -301,12 +456,96 @@ function handleShareLink(reportRef, trade, setLinkText) {
   document.body.removeChild(a);
 
   setLinkText("Downloaded!");
-  setTimeout(() => setLinkText("Share Link"), 2500);
+  setTimeout(() => setLinkText("Link"), 2500);
 }
 
-function handleExportPDF(reportRef) {
+function handleExportPDF(reportRef, trade) {
   if (!reportRef.current) return;
-  window.print();
+
+  // Build a clean standalone page that looks exactly like the web view
+  const styleSheets = Array.from(document.styleSheets);
+  let cssText = "";
+  styleSheets.forEach(sheet => {
+    try {
+      Array.from(sheet.cssRules).forEach(rule => { cssText += rule.cssText + "\n"; });
+    } catch (e) { /* cross-origin */ }
+  });
+
+  let reportHtml = reportRef.current.outerHTML;
+  reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
+                         .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Report — SDM Trade Idea Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
+  --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
+  --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
+  --gold: #FFC32C; --gold-dark: #D4A017;
+  --font-display: 'Inter', sans-serif; --font-body: 'Inter', sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  background: var(--bg);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 32px 36px;
+  -webkit-font-smoothing: antialiased;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+.report { max-width: 100% !important; }
+.report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .btn-back,
+.print-running-header, .print-running-footer { display: none !important; }
+${cssText}
+/* Override any print styles from app CSS */
+@media print {
+  @page { size: A4; margin: 0 !important; }
+  *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  html { background: #0a0a0f !important; }
+  body {
+    background: #0a0a0f !important;
+    padding: 12mm 12mm 12mm 12mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  .report { max-width: 100% !important; gap: 28px !important; }
+  .report-section { break-inside: avoid; }
+  .report-kpis { break-inside: avoid; }
+  .chart-container { break-inside: avoid; }
+  .legs-table { break-inside: avoid; }
+  .risk-grid { break-inside: avoid; }
+  /* Hide app noise */
+  .header, .footer, .breadcrumb { display: none !important; }
+  .main::before, .main::after, body::after { display: none !important; }
+}
+</style>
+</head>
+<body>${reportHtml}</body>
+</html>`;
+
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(html);
+  printWindow.document.close();
+  // Wait for fonts/images to load, then print
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
 }
 
 function handleShare(platform, trade, analysis) {
@@ -325,7 +564,7 @@ function handleShare(platform, trade, analysis) {
 export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
-  const [linkText, setLinkText] = useState("Share Link");
+  const [linkText, setLinkText] = useState("Link");
   const [execHtml, setExecHtml] = useState(fieldValues.executive_summary ? `<p>${fieldValues.executive_summary.replace(/\n/g, "</p><p>")}</p>` : "");
   const [execEditing, setExecEditing] = useState(false);
 
@@ -354,14 +593,22 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
 
   return (
     <div className="report" ref={reportRef} style={{ "--accent": trade.color }}>
+      {/* Print-only running header & footer */}
+      <div className="print-running-header">
+        <div className="print-header-left">
+          <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="print-header-logo" />
+        </div>
+        <div className="print-header-right">{dateStr}</div>
+      </div>
+      <div className="print-running-footer">
+        <span>Confidential — Internal Use Only</span>
+        <span>Secure Digital Markets — Trade Idea Studio</span>
+      </div>
+
       {/* SDM Letterhead */}
       <div className="letterhead">
         <div className="letterhead-left">
-          <img src="/sdm-logo.svg" alt="SDM" className="letterhead-logo" width="38" height="42" />
-          <div className="letterhead-text">
-            <span className="letterhead-name">SDM</span>
-            <span className="letterhead-slogan">Trade Idea Studio</span>
-          </div>
+          <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="letterhead-logo" />
         </div>
         <div className="letterhead-right">
           <span className="letterhead-date">{dateStr}</span>
@@ -400,20 +647,20 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
               className="rt-editor"
               contentEditable
               suppressContentEditableWarning
-              dangerouslySetInnerHTML={{ __html: execHtml || `<p>${execSummary}</p>` }}
+              dangerouslySetInnerHTML={{ __html: execHtml || "" }}
             />
             <button className="btn-save-thesis" onClick={handleEditorSave}>
               Save
             </button>
           </div>
         ) : (
-          <div className="exec-content" onClick={() => !execHtml && setExecEditing(true)}>
+          <div className="exec-content">
             {execHtml ? (
               <div className="exec-text exec-user-text" dangerouslySetInnerHTML={{ __html: execHtml }} />
             ) : (
               <>
                 <p className="exec-text">{execSummary}</p>
-                <p className="thesis-placeholder" style={{ marginTop: 12 }}>Click "Edit" to add your own executive summary instead...</p>
+                <p className="thesis-placeholder" style={{ marginTop: 12 }}>Click "Edit" to write your own executive summary instead...</p>
               </>
             )}
           </div>
@@ -447,6 +694,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
                 <span className="legend-item"><span className="legend-dot legend-green" />Profit</span>
                 <span className="legend-item"><span className="legend-dot legend-red" />Loss</span>
                 <span className="legend-item"><span className="legend-dot legend-yellow" />Breakeven</span>
+                <span className="legend-item"><span className="legend-line" />Long Spot</span>
               </>
             )}
           </div>
@@ -505,6 +753,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
 
       {/* Share & Export Bar */}
       <div className="report-share-bar">
+        <img src="/sdm-logo-full.svg" alt="SDM" className="share-bar-logo" />
         <div className="share-group">
           <span className="share-label">Share</span>
           <button className="share-btn share-telegram" onClick={() => handleShare("telegram", trade, analysis)}>
@@ -519,15 +768,14 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
             Email
           </button>
+          <button className="share-btn share-pdf" onClick={() => handleExportPDF(reportRef, trade)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            PDF
+          </button>
         </div>
         <div className="share-group">
-          <button className="share-btn share-link" onClick={() => handleShareLink(reportRef, trade, setLinkText)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <button className="btn-export-pdf" onClick={() => handleShareLink(reportRef, trade, setLinkText)}>
             {linkText}
-          </button>
-          <button className="share-btn share-pdf" onClick={() => handleExportPDF(reportRef)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Export to PDF
           </button>
         </div>
       </div>
@@ -536,19 +784,36 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
       <div className="report-actions">
         {onBack && <button className="btn-back" onClick={onBack}>← Edit Parameters</button>}
         <button className="btn-new-trade" onClick={onReset}>New Trade</button>
-        <button className="btn-share-link" onClick={() => handleShareLink(reportRef, trade, setLinkText)}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          {linkText}
-        </button>
-        <button className="btn-export-pdf" onClick={() => handleExportPDF(reportRef)}>
-          Export to PDF →
-        </button>
       </div>
 
       {/* Disclaimer */}
       <div className="report-disclaimer">
         SDM — Internal Use Only. This document does not constitute investment advice.
         Generated {dateStr} at {timeStr}.
+      </div>
+
+      {/* Branded Footer / CTA */}
+      <div className="report-footer-cta">
+        <div className="footer-cta-divider" />
+        <div className="footer-cta-content">
+          <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="footer-cta-logo" />
+          <p className="footer-cta-tagline">The Institutional Choice for <span className="tagline-gold">Digital</span> <span className="tagline-blue">Asset</span> Trading</p>
+          <div className="footer-cta-contacts">
+            <a href="mailto:sales@sdm.co" className="footer-cta-link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
+              sales@sdm.co
+            </a>
+            <a href="https://twitter.com/SD_Markets" target="_blank" rel="noopener noreferrer" className="footer-cta-link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              @SD_Markets
+            </a>
+            <a href="https://t.me/SecureDigitalMarkets" target="_blank" rel="noopener noreferrer" className="footer-cta-link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              Telegram
+            </a>
+          </div>
+        </div>
+        <p className="footer-cta-legal">Confidential — For intended recipient only. Not investment advice.</p>
       </div>
     </div>
   );
