@@ -422,14 +422,6 @@ body { padding-top: 52px !important; padding-bottom: 52px !important; }
 </style>
 </head>
 <body>
-<div class="standalone-page-header">
-  <div class="header-left">
-    <img src="${SDM_LOGO_SVG}" alt="Secure Digital Markets" class="header-logo" />
-  </div>
-  <div class="header-right">
-    ${footerDate}
-  </div>
-</div>
 ${reportHtml}
 <div class="standalone-page-footer">
   <div class="footer-right" style="width:100%;display:flex;justify-content:space-between;">
