@@ -336,61 +336,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .btn-back { display: none !important; }
 ${cssText}
 
-/* ── Fixed header & footer for standalone view ── */
-.standalone-page-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 32px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--gold);
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--text-muted);
-  z-index: 100;
-}
-.standalone-page-header .header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.standalone-page-header .header-logo {
-  height: 28px;
-  width: auto;
-}
-.standalone-page-header .header-right {
-  text-align: right;
-  color: var(--text-dim);
-  font-size: 11px;
-}
-
-.standalone-page-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 32px;
-  background: var(--bg);
-  border-top: 1px solid var(--border-light);
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--text-muted);
-  z-index: 100;
-}
-.standalone-page-footer .footer-right {
-  text-align: right;
-  color: var(--text-dim);
-}
-
-/* Offset body so content doesn't hide behind fixed header/footer */
-body { padding-top: 52px !important; padding-bottom: 52px !important; }
+/* Hide print-only headers from standalone view */
+.print-running-header, .print-running-footer, .standalone-page-header, .standalone-page-footer { display: none !important; }
 
 /* ── Print / PDF page layout ── */
 @media print {
@@ -400,15 +347,6 @@ body { padding-top: 52px !important; padding-bottom: 52px !important; }
     margin: 18mm 15mm 18mm 15mm;
   }
   body { background: var(--bg) !important; padding: 0 !important; }
-  /* Fixed elements repeat on every printed page */
-  .standalone-page-header {
-    padding: 0 0 6px 0;
-    border-bottom: 1px solid var(--gold);
-  }
-  .standalone-page-footer {
-    padding: 6px 0 0 0;
-    border-top: 1px solid var(--border-light);
-  }
   .report { gap: 16px !important; }
   .report-section { break-inside: avoid; page-break-inside: avoid; }
   .report-kpis { break-inside: avoid; page-break-inside: avoid; }
@@ -423,12 +361,6 @@ body { padding-top: 52px !important; padding-bottom: 52px !important; }
 </head>
 <body>
 ${reportHtml}
-<div class="standalone-page-footer">
-  <div class="footer-right" style="width:100%;display:flex;justify-content:space-between;">
-    <span>Confidential — Internal Use Only</span>
-    <span>SDM Trade Idea Studio</span>
-  </div>
-</div>
 </body>
 </html>`;
 }
