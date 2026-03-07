@@ -277,15 +277,15 @@ function computeCashSecuredPut(f) {
   const effectiveBasis = n(f.effective_basis) || (strike - premium);
 
   const breakeven = strike - premium;
-  const maxProfit = premium * 100;
-  const returnOnCapital = capital > 0 ? ((premium * 100 / capital) * (365 / (dte || 30)) * 100).toFixed(1) : "N/A";
+  const maxProfit = premium;
+  const returnOnCapital = capital > 0 ? ((premium / capital) * (365 / (dte || 30)) * 100).toFixed(1) : "N/A";
 
   const minP = strike * 0.75;
   const maxP = price * 1.15;
 
   const curve = buildCurve(minP, maxP, (p) => {
-    if (p >= strike) return premium * 100;
-    return (p - strike + premium) * 100;
+    if (p >= strike) return premium;
+    return p - strike + premium;
   });
 
   return {
@@ -312,7 +312,7 @@ function computeLeap(f) {
   const strike = n(f.strike);
   const premium = n(f.premium);
   const contracts = n(f.contracts) || 1;
-  const totalOutlay = n(f.total_outlay) || premium * contracts * 100;
+  const totalOutlay = n(f.total_outlay) || premium * contracts;
   const dte = n(f.dte);
 
   const breakeven = strike + premium;
@@ -321,7 +321,7 @@ function computeLeap(f) {
 
   const curve = buildCurve(minP, maxP, (p) => {
     if (p <= strike) return -totalOutlay;
-    return ((p - strike) * contracts * 100) - totalOutlay;
+    return ((p - strike) * contracts) - totalOutlay;
   });
 
   return {
@@ -480,17 +480,17 @@ function computeEarningsPlay(f) {
   const curve = buildCurve(minP, maxP, (p) => {
     switch (posType) {
       case "Short Put":
-        if (p >= strike) return premCollected * 100;
-        return (p - strike + premCollected) * 100;
+        if (p >= strike) return premCollected;
+        return p - strike + premCollected;
       case "Long Call":
-        if (p <= strike) return -premCollected * 100;
-        return ((p - strike) - premCollected) * 100;
+        if (p <= strike) return -premCollected;
+        return (p - strike) - premCollected;
       case "Covered Call":
-        if (p > strike) return (strike - price + premCollected) * 100;
-        return (p - price + premCollected) * 100;
+        if (p > strike) return strike - price + premCollected;
+        return p - price + premCollected;
       case "Short Call Spread":
-        if (p <= strike) return premCollected * 100;
-        return (premCollected - (p - strike)) * 100;
+        if (p <= strike) return premCollected;
+        return premCollected - (p - strike);
       default:
         return 0;
     }
