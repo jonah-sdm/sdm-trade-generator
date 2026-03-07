@@ -1,7 +1,16 @@
 // Stores report HTML as a file in a GitHub repo → served via GitHub Pages
 // Permanent URL that never expires
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
+  // Allow CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -27,6 +36,30 @@ export default async function handler(req, res) {
     // Create/update file via GitHub Contents API
     const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
 
+    // Check if file already exists (same filename = same trade on same day)
+    let sha;
+    try {
+      const checkRes = await fetch(apiUrl + `?ref=${branch}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+        },
+      });
+      if (checkRes.ok) {
+        const existing = await checkRes.json();
+        sha = existing.sha;
+      }
+    } catch (e) {
+      // File doesn't exist, that's fine
+    }
+
+    const body = {
+      message: `Add report: ${safeName}`,
+      content,
+      branch,
+    };
+    if (sha) body.sha = sha; // Required for updates
+
     const ghRes = await fetch(apiUrl, {
       method: 'PUT',
       headers: {
@@ -34,27 +67,22 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github+json',
       },
-      body: JSON.stringify({
-        message: `Add report: ${safeName}`,
-        content,
-        branch,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!ghRes.ok) {
       const err = await ghRes.text();
-      console.error('GitHub API error:', err);
-      return res.status(500).json({ error: 'Failed to save to GitHub' });
+      console.error('GitHub API error:', ghRes.status, err);
+      return res.status(500).json({ error: 'Failed to save to GitHub', detail: err });
     }
 
     // Build the GitHub Pages URL
-    // Format: https://{org}.github.io/{repo-name}/reports/{filename}
     const [org, repoName] = repo.split('/');
     const pagesUrl = `https://${org}.github.io/${repoName}/${path}`;
 
     return res.status(200).json({ url: pagesUrl });
   } catch (err) {
     console.error('Share error:', err);
-    return res.status(500).json({ error: 'Failed to save report' });
+    return res.status(500).json({ error: 'Failed to save report', detail: String(err) });
   }
-}
+};
