@@ -341,23 +341,23 @@ ${cssText}
 
 /* Standalone share header */
 .share-header {
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0 14px;
-  margin: 0 0 24px;
+  padding: 14px 0 14px;
+  margin: 0 0 28px;
   border-bottom: 1px solid var(--amber);
 }
-.share-header img { height: 26px; width: auto; }
+.share-header img { height: 28px; width: auto; display: block; }
 .share-header-right {
   text-align: right;
-  font-family: var(--font-body);
+  font-family: 'Sora', 'Inter', sans-serif;
   font-size: 11px;
-  color: var(--text-muted);
+  color: #8a8a9a;
   line-height: 1.5;
 }
 .share-header-right .doc-name {
-  color: var(--text);
+  color: #f0f0f5;
   font-weight: 500;
   font-size: 12px;
 }
