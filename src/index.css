@@ -4912,6 +4912,76 @@ html {
   }
 }
 
+/* ─── Report Wrapper & Theme Picker ─────────────────────────── */
+
+.report-wrapper {
+  width: 100%;
+}
+
+.report-theme-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.report-theme-label {
+  font-family: 'Montserrat', 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.report-theme-options {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.report-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  font-family: 'Montserrat', 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.report-theme-btn:hover {
+  border-color: rgba(255,195,44,0.4);
+  color: rgba(255,255,255,0.75);
+}
+
+.report-theme-btn.active {
+  border-color: #FFC32C;
+  color: #FFC32C;
+  background: rgba(255,195,44,0.08);
+}
+
+.report-theme-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
 /* ─── AI Response Box & Theme Picker ─────────────────────────── */
 
 .ai-response-section {

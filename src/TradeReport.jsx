@@ -1,6 +1,14 @@
 import { useMemo, useRef, useState, useCallback } from "react";
 import { computeTradeAnalysis, generateExecutiveSummary } from "./payoffEngine";
 
+// ─── REPORT THEMES ───
+const REPORT_THEMES = {
+  dark:     { "--bg": "#0d0d0d", "--bg2": "#141414", "--bg3": "#1a1a1a", "--bg4": "#1a1a1a", "--border": "rgba(42,42,42,1)",    "--border-light": "rgba(60,60,60,1)",    "--text": "#FFFFFF",   "--text-muted": "#7a7a7a", "--text-dim": "#555555", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
+  charcoal: { "--bg": "#111110", "--bg2": "#191917", "--bg3": "#1f1f1c", "--bg4": "#1f1f1c", "--border": "rgba(48,48,40,1)",    "--border-light": "rgba(64,64,56,1)",    "--text": "#F5F0E8", "--text-muted": "#7a7570", "--text-dim": "#505048", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
+  light:    { "--bg": "#F4F4F4", "--bg2": "#FFFFFF",  "--bg3": "#FFFFFF",  "--bg4": "#F0F0F0", "--border": "rgba(232,232,232,1)", "--border-light": "rgba(216,216,216,1)", "--text": "#0d0d0d", "--text-muted": "#888888", "--text-dim": "#aaaaaa", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
+  midnight: { "--bg": "#060a12", "--bg2": "#0b1120", "--bg3": "#0f1828", "--bg4": "#0f1828", "--border": "rgba(26,37,64,1)",    "--border-light": "rgba(37,53,80,1)",    "--text": "#E8F0FF", "--text-muted": "#4a6080", "--text-dim": "#2a3a58", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
+};
+
 // ─── RICH TEXT TOOLBAR ───
 function RichTextToolbar() {
   const exec = (cmd, val) => {
@@ -543,6 +551,7 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
     return `<p>${raw.replace(/\n/g, "</p><p>")}</p>`;
   });
   const [execEditing, setExecEditing] = useState(false);
+  const [reportTheme, setReportTheme] = useState("dark");
 
   const handleEditorSave = useCallback(() => {
     if (editorRef.current) {
@@ -568,7 +577,28 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
   );
 
   return (
-    <div className="report" ref={reportRef} style={{ "--accent": trade.color }}>
+    <div className="report-wrapper">
+      {/* Theme picker — outside reportRef so it never appears in PDF or share exports */}
+      <div className="report-theme-bar">
+        <span className="report-theme-label">Report Theme</span>
+        <div className="report-theme-options">
+          {Object.keys(REPORT_THEMES).map(t => (
+            <button
+              key={t}
+              className={`report-theme-btn${reportTheme === t ? " active" : ""}`}
+              onClick={() => setReportTheme(t)}
+            >
+              <span
+                className="report-theme-swatch"
+                style={{ background: REPORT_THEMES[t]["--bg"], borderColor: REPORT_THEMES[t]["--border"] }}
+              />
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+    <div className="report" ref={reportRef} style={{ ...REPORT_THEMES[reportTheme], "--accent": trade.color }}>
       {/* Print-only running header & footer */}
       <div className="print-running-header">
         <div className="print-header-left">
@@ -780,5 +810,6 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
         <p className="footer-cta-legal">Confidential — For intended recipient only. Not investment advice.</p>
       </div>
     </div>
+    </div>{/* report-wrapper */}
   );
 }
