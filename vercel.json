@@ -6,10 +6,15 @@
     "api/share.js": {
       "maxDuration": 30,
       "memory": 256
+    },
+    "api/ask-ai.js": {
+      "maxDuration": 30,
+      "memory": 256
     }
   },
   "rewrites": [
     { "source": "/api/share", "destination": "/api/share" },
+    { "source": "/api/ask-ai", "destination": "/api/ask-ai" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

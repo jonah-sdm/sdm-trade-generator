@@ -20,6 +20,13 @@ const ASK_AI_PRESETS = [
   { id: "exit-plan-builder", label: "Write me an exit plan before I enter this trade", prompt: "Client is about to open a position and wants a complete exit plan written before entering, so they can reference it objectively if the trade becomes emotional. Build the plan for all three scenarios: (1) Trade works \u2014 at what profit level to close, and whether to scale out or exit all at once; (2) Trade moves against the client \u2014 the specific price at which to roll vs. cut the loss, and what would invalidate the original thesis; (3) Nothing happens \u2014 stock goes sideways and the position approaches expiration. Also flag any earnings dates, ex-dividend dates, or other catalysts between entry and expiration that could affect the position." },
 ];
 
+const AI_RESPONSE_THEMES = {
+  dark:     { bg: "#0d0d0d", surface: "#141414", card: "#1a1a1a", border: "#2a2a2a", accent: "#FFC32C", text: "#FFFFFF",   muted: "#7a7a7a" },
+  charcoal: { bg: "#111110", surface: "#191917", card: "#1f1f1c", border: "#303028", accent: "#FFC32C", text: "#F5F0E8", muted: "#7a7570" },
+  light:    { bg: "#F4F4F4", surface: "#FFFFFF",  card: "#FFFFFF",  border: "#E8E8E8", accent: "#FFC32C", text: "#0d0d0d", muted: "#888888" },
+  midnight: { bg: "#060a12", surface: "#0b1120", card: "#0f1828", border: "#1a2540", accent: "#FFC32C", text: "#E8F0FF", muted: "#4a6080" },
+};
+
 const PHASES = {
   HOME: "home",
   SELECT: "select",
@@ -235,6 +242,9 @@ export default function App() {
   const [activePreset, setActivePreset] = useState(null);
   const [presetsExpanded, setPresetsExpanded] = useState(false);
   const aiPromptRef = useRef(null);
+  const [aiResponse, setAiResponse] = useState("");
+  const [aiResponseLoading, setAiResponseLoading] = useState(false);
+  const [aiTheme, setAiTheme] = useState("dark");
 
   const skipPushRef = useRef(false);
   const [navExpanded, setNavExpanded] = useState(false);
@@ -420,6 +430,27 @@ export default function App() {
     return summaries[tradeId] || `<p>SDM proposes a derivatives structure on ${asset} based on the client's ${objective.toLowerCase()} objective and ${riskTolerance.toLowerCase()} risk profile. With ${asset} at $${$f(price)}, this trade is calibrated to deliver optimal risk-adjusted outcomes aligned with the client's stated goals.</p>`;
   };
 
+  // ─── Navigate to AI review phase with animation ───
+  const proceedToAiReview = () => {
+    navigateTo(PHASES.AI_GENERATING);
+    setGeneratingStep(0);
+    const steps = [
+      "Analyzing client requirements",
+      "Matching optimal trade structure",
+      "Calculating strikes & premiums",
+      "Building executive summary",
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setGeneratingStep(i);
+      if (i >= steps.length) {
+        clearInterval(interval);
+        setTimeout(() => navigateTo(PHASES.AI_REVIEW), 500);
+      }
+    }, 700);
+  };
+
   // ─── AI Trade Advisor: match client goal to trade type ───
   const handleAiGenerate = () => {
     const { asset, currentPrice, portfolioValue, expiryDate, riskTolerance, objective, prompt: userPrompt } = aiForm;
@@ -487,29 +518,29 @@ export default function App() {
     const trade = TRADE_TYPES.find(t => t.id === tradeId);
     if (!trade) return;
 
-    // Show AI generating animation first
+    // Pre-populate trade fields from local matching
     setSelectedTrade(trade);
     const defaults = {};
     trade.fields.forEach(f => { if (f.default) defaults[f.key] = f.default; });
     setFieldValues({ ...defaults, ...autoFields });
 
-    navigateTo(PHASES.AI_GENERATING);
-    setGeneratingStep(0);
-    const aiSteps = [
-      "Analyzing client requirements",
-      "Matching optimal trade structure",
-      "Calculating strikes & premiums",
-      "Building executive summary",
-    ];
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      setGeneratingStep(i);
-      if (i >= aiSteps.length) {
-        clearInterval(interval);
-        setTimeout(() => navigateTo(PHASES.AI_REVIEW), 500);
-      }
-    }, 700);
+    // Call Claude API — show response inline, then let user proceed
+    setAiResponseLoading(true);
+    setAiResponse("");
+    fetch("/api/ask-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ asset, currentPrice, portfolioValue, objective, riskTolerance, prompt: userPrompt }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        setAiResponse(d.response || "");
+        setAiResponseLoading(false);
+      })
+      .catch(() => {
+        setAiResponseLoading(false);
+        proceedToAiReview();
+      });
   };
 
   const AI_GENERATING_STEPS = [
@@ -982,6 +1013,57 @@ export default function App() {
                   <span className="btn-arrow">&rarr;</span>
                 </button>
               </div>
+
+              {/* ─── AI Response Box ─── */}
+              {(aiResponseLoading || aiResponse) && (
+                <div className="ai-response-section">
+                  {aiResponse && (
+                    <div className="ai-theme-picker">
+                      {["dark", "charcoal", "light", "midnight"].map(t => (
+                        <button
+                          key={t}
+                          className={`ai-theme-btn${aiTheme === t ? " active" : ""}`}
+                          onClick={() => setAiTheme(t)}
+                        >
+                          <span className="ai-theme-swatch" style={{ background: AI_RESPONSE_THEMES[t].bg, borderColor: AI_RESPONSE_THEMES[t].border }} />
+                          {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div
+                    className="ai-response-box"
+                    style={{
+                      background: AI_RESPONSE_THEMES[aiTheme].surface,
+                      border: `1px solid ${AI_RESPONSE_THEMES[aiTheme].border}`,
+                      color: AI_RESPONSE_THEMES[aiTheme].text,
+                    }}
+                  >
+                    {aiResponseLoading ? (
+                      <div className="ai-response-loading" style={{ color: AI_RESPONSE_THEMES[aiTheme].muted }}>
+                        <div className="gen-spinner" style={{ width: 20, height: 20, flexShrink: 0 }} />
+                        <span>Analyzing your brief with Claude AI...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="ai-response-label" style={{ color: AI_RESPONSE_THEMES[aiTheme].accent }}>AI Analysis</div>
+                        <div className="ai-response-text" style={{ color: AI_RESPONSE_THEMES[aiTheme].text }}>
+                          {aiResponse.split("\n").filter(Boolean).map((para, i) => (
+                            <p key={i}>{para}</p>
+                          ))}
+                        </div>
+                        <button
+                          className="ai-response-proceed"
+                          onClick={proceedToAiReview}
+                          style={{ background: AI_RESPONSE_THEMES[aiTheme].accent, color: AI_RESPONSE_THEMES[aiTheme].bg === "#F4F4F4" ? "#0d0d0d" : "#0d0d0d" }}
+                        >
+                          Review Trade →
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

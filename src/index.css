@@ -4911,3 +4911,115 @@ html {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ─── AI Response Box & Theme Picker ─────────────────────────── */
+
+.ai-response-section {
+  margin-top: 28px;
+}
+
+.ai-theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.ai-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 13px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  font-family: 'Montserrat', 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ai-theme-btn:hover {
+  border-color: rgba(255,195,44,0.4);
+  color: rgba(255,255,255,0.75);
+}
+
+.ai-theme-btn.active {
+  border-color: #FFC32C;
+  color: #FFC32C;
+  background: rgba(255,195,44,0.08);
+}
+
+.ai-theme-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.ai-response-box {
+  border-radius: 10px;
+  padding: 22px 26px;
+  font-family: 'Poppins', 'Sora', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.75;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.ai-response-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Poppins', 'Sora', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+}
+
+.ai-response-label {
+  font-family: 'Montserrat', 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.ai-response-text p {
+  margin-bottom: 12px;
+  font-family: 'Poppins', 'Sora', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.ai-response-text p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-proceed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 10px 22px;
+  border-radius: 7px;
+  border: none;
+  color: #0d0d0d;
+  font-family: 'Montserrat', 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.ai-response-proceed:hover {
+  opacity: 0.85;
+}
