@@ -234,6 +234,9 @@ export default function App() {
   const [salesLoading, setSalesLoading] = useState(false);
   const [salesFilter, setSalesFilter] = useState("");
   const [salesCategory, setSalesCategory] = useState("All");
+  // Loan component for combined trades
+  const [loanComponent, setLoanComponent] = useState(null);
+  const [showLoanPanel, setShowLoanPanel] = useState(false);
   // AI Trade Advisor state
   const [aiForm, setAiForm] = useState({
     asset: "BTC", currentPrice: "", portfolioValue: "", expiryDate: "",
@@ -1118,6 +1121,7 @@ export default function App() {
                 <div className="output-preview-item"><span className="output-icon">✦</span> Payoff Diagram</div>
                 <div className="output-preview-item"><span className="output-icon">◼</span> Risk/Reward KPIs</div>
                 <div className="output-preview-item"><span className="output-icon">◫</span> Trade Structure Breakdown</div>
+                {showLoanPanel && <div className="output-preview-item" style={{ color: "#4ade80" }}><span className="output-icon">⬡</span> Loan Structure</div>}
                 <div className="output-preview-item"><span className="output-icon">⊡</span> AI Executive Summary</div>
               </div>
 
@@ -1138,6 +1142,81 @@ export default function App() {
                 {selectedTrade.fields.map(field => (
                   <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} />
                 ))}
+              </div>
+
+              {/* ─── Loan Component Panel ─── */}
+              <div className="loan-panel-section">
+                <div className="loan-panel-toggle-row">
+                  <button
+                    className={`loan-panel-toggle${showLoanPanel ? " active" : ""}`}
+                    onClick={() => {
+                      const next = !showLoanPanel;
+                      setShowLoanPanel(next);
+                      if (next && !loanComponent) {
+                        setLoanComponent({
+                          collateralAsset: fieldValues.asset || "BTC",
+                          collateralUnits: "",
+                          pricePerUnit: fieldValues.current_price || fieldValues.spot || fieldValues.spot_price || "",
+                          termMonths: "24",
+                          ltv: "65",
+                          annualRate: "8",
+                          arrangementFee: "2",
+                          useOfProceeds: "",
+                        });
+                      } else if (!next) {
+                        setLoanComponent(null);
+                      }
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+                    {showLoanPanel ? "Remove Loan Component" : "Add Loan Component"}
+                  </button>
+                  {!showLoanPanel && <span className="loan-panel-hint">Combine with an SDM crypto-backed loan</span>}
+                </div>
+
+                {showLoanPanel && loanComponent && (
+                  <div className="loan-panel-fields">
+                    <div className="loan-panel-label">Loan Parameters</div>
+                    <div className="loan-panel-grid">
+                      {[
+                        { key: "collateralAsset", label: "Collateral Asset" },
+                        { key: "collateralUnits", label: "Collateral Units" },
+                        { key: "pricePerUnit", label: "Price Per Unit ($)" },
+                        { key: "termMonths", label: "Term (months)" },
+                        { key: "ltv", label: "LTV (%)" },
+                        { key: "annualRate", label: "Annual Rate (%)" },
+                        { key: "arrangementFee", label: "Arrangement Fee (%)" },
+                      ].map(({ key, label }) => (
+                        <div key={key} className="loan-panel-field">
+                          <label className="loan-panel-field-label">{label}</label>
+                          <input
+                            className="loan-panel-input"
+                            value={loanComponent[key] || ""}
+                            onChange={e => setLoanComponent(prev => ({ ...prev, [key]: e.target.value }))}
+                            placeholder={key === "ltv" ? "65" : key === "annualRate" ? "8" : key === "arrangementFee" ? "2" : ""}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {(() => {
+                      const units = parseFloat(loanComponent.collateralUnits);
+                      const price = parseFloat(loanComponent.pricePerUnit);
+                      const ltv = parseFloat(loanComponent.ltv) / 100 || 0.65;
+                      const fee = parseFloat(loanComponent.arrangementFee) / 100 || 0.02;
+                      if (!isNaN(units) && !isNaN(price) && units > 0 && price > 0) {
+                        const gross = units * price * ltv;
+                        const net = gross * (1 - fee);
+                        return (
+                          <div className="loan-panel-preview">
+                            <span>Gross Loan: <strong>${gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+                            <span>Net Proceeds: <strong>${net.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div className="form-actions">
@@ -1224,6 +1303,7 @@ export default function App() {
           <TradeReport
             trade={selectedTrade}
             fieldValues={fieldValues}
+            loanComponent={loanComponent}
             onBack={() => navigateTo(PHASES.CONFIGURE)}
             onReset={handleReset}
           />

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useCallback } from "react";
 import { computeTradeAnalysis, generateExecutiveSummary } from "./payoffEngine";
+import { computeLendingProposal, fmt as lendFmt } from "./lendingEngine";
 
 // ─── REPORT THEMES ───
 const REPORT_THEMES = {
@@ -539,7 +540,7 @@ function handleShare(platform, trade, analysis) {
 }
 
 // ─── MAIN REPORT ───
-export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
+export default function TradeReport({ trade, fieldValues, loanComponent, onBack, onReset }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
   const [linkText, setLinkText] = useState("Link");
@@ -745,6 +746,65 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
         </div>
       </div>
 
+      {/* Loan Structure — rendered when a combined loan + derivatives structure was requested */}
+      {loanComponent && (() => {
+        const loan = computeLendingProposal({
+          collateralAsset: loanComponent.collateralAsset,
+          collateralUnits: loanComponent.collateralUnits,
+          pricePerUnit: loanComponent.pricePerUnit,
+          termMonths: loanComponent.termMonths,
+          ltv: loanComponent.ltv || "65",
+          annualRate: loanComponent.annualRate || "8",
+          arrangementFee: loanComponent.arrangementFee || "2",
+        });
+        if (loan.error) return null;
+        const $k = v => `$${typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : v}`;
+        return (
+          <div className="report-section loan-structure-section reveal-section">
+            <div className="loan-section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+              <h2 className="section-title" style={{ color: "#4ade80" }}>Loan Structure</h2>
+            </div>
+            <div className="loan-kpis">
+              {[
+                { label: "Gross Loan", value: $k(loan.grossLoan), sub: loan.loanCurrency },
+                { label: "Net Proceeds", value: $k(loan.netLoanProceeds), sub: `After ${lendFmt(loan.arrangementFeeRate * 100)}% fee` },
+                { label: "Quarterly Interest", value: $k(loan.quarterlyPayment), sub: `${(loan.annualRate * 100).toFixed(0)}% p.a.` },
+                { label: "Margin Call", value: $k(loan.marginCallPrice), sub: "70% of FMP trigger" },
+              ].map((kpi, i) => (
+                <div key={i} className="loan-kpi">
+                  <div className="loan-kpi-label">{kpi.label}</div>
+                  <div className="loan-kpi-value">{kpi.value}</div>
+                  <div className="loan-kpi-sub">{kpi.sub}</div>
+                </div>
+              ))}
+            </div>
+            <div className="loan-terms-grid">
+              {[
+                ["Collateral", `${lendFmt(loan.collateralUnits)} ${loan.collateralAsset}`],
+                ["Collateral Value", `$${lendFmt(loan.collateralValue)}`],
+                ["LTV", `${(loan.ltv * 100).toFixed(0)}%`],
+                ["Term", `${loan.termMonths} months`],
+                ["Arrangement Fee", `$${lendFmt(loan.arrangementFeeAmount)}`],
+                ["Total Interest", `$${lendFmt(loan.totalInterest)}`],
+                ["All-In Cost", `$${lendFmt(loan.totalCost)}`],
+                ["Effective Rate", `${loan.effectiveRate.toFixed(2)}% p.a.`],
+              ].map(([label, val], i) => (
+                <div key={i} className="loan-term-row">
+                  <span className="loan-term-label">{label}</span>
+                  <span className="loan-term-value">{val}</span>
+                </div>
+              ))}
+            </div>
+            {loanComponent.useOfProceeds && (
+              <div className="loan-use-of-proceeds">
+                <strong>Use of Proceeds:</strong> {loanComponent.useOfProceeds}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Share & Export Bar */}
       <div className="report-share-bar">
         <img src="/sdm-logo-full.svg" alt="SDM" className="share-bar-logo" />
@@ -810,6 +870,6 @@ export default function TradeReport({ trade, fieldValues, onBack, onReset }) {
         <p className="footer-cta-legal">Confidential — For intended recipient only. Not investment advice.</p>
       </div>
     </div>
-    </div>{/* report-wrapper */}
+    </div>
   );
 }
