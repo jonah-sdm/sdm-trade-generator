@@ -3,11 +3,29 @@ import { TRADE_TYPES } from "./tradeTypes";
 import { checkCanvaStatus, startCanvaAuth, exportToCanva, buildReplacements } from "./canvaService";
 import { computeTradeAnalysis } from "./payoffEngine";
 import { computeLendingProposal, SUPPORTED_ASSETS } from "./lendingEngine";
-import { extractFieldsFromSummary } from "./fieldExtractor";
 import TradeReport from "./TradeReport";
 import LendingReport from "./LendingReport";
 import "./index.css";
 
+const ASK_AI_PRESETS = [
+  { id: "strategy-selector", label: "Help me pick the right strategy", prompt: "Client is ready to act but unsure which strategy fits current market conditions. They want the AI to evaluate the setup and recommend the right structure \u2014 whether that\u2019s a cash-secured put, a LEAP, a combination of both, or no trade at all. Walk through the decision in order: IV environment first, then conviction level, then available capital. Do not force a strategy that doesn\u2019t fit the setup. If conditions don\u2019t justify a trade, say so." },
+  { id: "put-strike-optimizer", label: "I want to sell a put — where should I set the strike?", prompt: "Client is considering selling a cash-secured put and wants to find the right strike. Identify key support levels on both the daily and weekly chart based on historical price action. Recommend a strike at or below those levels that still offers meaningful premium, targeting roughly 80% probability of the premium being kept. Calculate the effective cost basis if assigned (strike minus premium). If no available strike offers a risk/reward worth taking, recommend skipping the trade entirely." },
+  { id: "covered-call-timing", label: "Should I sell a covered call right now?", prompt: "Client owns shares and wants to know if now is the right time to sell a covered call. Check RSI on both daily and weekly timeframes for overbought signals. Identify the nearest resistance levels where price has historically stalled. Recommend a strike above the client\u2019s cost basis that sits near a resistance level, targeting approximately 0.20 delta at 30 DTE. Calculate total profit including capital gains and all premium collected if shares are called away at that strike. If the trend is still strong and capping upside would be a mistake, recommend waiting rather than selling for the sake of activity." },
+  { id: "leap-entry-check", label: "Is it a good time to buy a long-dated option?", prompt: "Client wants to buy a LEAP and needs confirmation that all entry conditions are aligned before committing capital. Check: daily and weekly RSI for oversold signals; whether price is at a meaningful support level with historical buyer activity; IV rank relative to its recent range (low IV preferred); and whether the options chain is liquid at the strikes being considered. For a 360+ day contract, recommend a strike that balances leverage with a realistic probability of profit. Return a clear go / no-go verdict. If conditions are not aligned, specify exactly what the client should be waiting for." },
+  { id: "position-sizing", label: "How big should this position be?", prompt: "Client wants to open an options position and needs a position sizing stress test before entering. Calculate what percentage of the total portfolio would be locked into this position if assigned after a 30% adverse move. Flag any sector concentration or overlap with existing holdings. Determine how many contracts or shares at the strike price can be held while keeping sufficient capital available for other opportunities. Recommend a maximum allocation size where a worst-case outcome is painful but not catastrophic. Client has a known tendency to oversize when conviction is high \u2014 factor that in." },
+  { id: "wheel-tracker", label: "Review my wheel strategy and plan the next move", prompt: "Client is running a wheel strategy and wants a full cycle P&L review and next-step recommendation. Using the current position details (whether in the put-selling, assigned, or covered call phase), calculate: adjusted cost basis after all premium collected to date; total cycles completed and cumulative premium; annualized return at the current pace. If currently selling covered calls, identify a strike above cost basis near a resistance level. Assess whether it makes more sense to let shares get called away now or to continue collecting premium for additional cycles." },
+  { id: "early-exit-analysis", label: "Should I take profit now or wait until expiry?", prompt: "Client has sold an option and wants to model the optimal exit strategy. Calculate the buyback price that locks in 50% of premium collected. Estimate how many days it should take to reach that target based on typical theta decay at the current DTE. Compare annualized return for closing at 50% profit in 7\u201310 days vs. holding to expiration. If the position moves against the client before hitting the 50% target, define the specific price point where rolling becomes preferable to waiting \u2014 and model what a roll looks like (expiration, strike, and whether it can be executed for a net credit)." },
+  { id: "earnings-risk", label: "Is it safe to hold this position through an upcoming event?", prompt: "Client has an open options position with an upcoming earnings event and needs a risk assessment before the report. Calculate the expected move currently priced into the options market. Review the last 3\u20134 earnings reactions \u2014 gap up, gap down, or flat. If the client is short a put, assess whether a negative earnings gap could take price below the strike overnight. Determine whether the premium collected is sufficient to cushion a worst-case move. Recommend whether to close before earnings, hold through, or roll to a later expiration. If the risk/reward doesn\u2019t justify holding through a binary event, recommend closing." },
+  { id: "leap-tax-timing", label: "Should I wait to sell for better tax treatment?", prompt: "Client holds a LEAP with unrealized gains and wants to optimize the exit timing around long-term capital gains tax treatment. Calculate the exact date the one-year holding period is reached. Estimate the tax difference between selling today at short-term rates vs. waiting for long-term rates, using the client\u2019s tax bracket. Assess how quickly theta decay is accelerating at the current DTE and how much time value is being lost per week. Check whether price is approaching overbought conditions or a resistance zone before the one-year mark. Given the tax savings vs. the risk of holding longer, recommend whether to hold or take profits now." },
+  { id: "exit-plan-builder", label: "Write me an exit plan before I enter this trade", prompt: "Client is about to open a position and wants a complete exit plan written before entering, so they can reference it objectively if the trade becomes emotional. Build the plan for all three scenarios: (1) Trade works \u2014 at what profit level to close, and whether to scale out or exit all at once; (2) Trade moves against the client \u2014 the specific price at which to roll vs. cut the loss, and what would invalidate the original thesis; (3) Nothing happens \u2014 stock goes sideways and the position approaches expiration. Also flag any earnings dates, ex-dividend dates, or other catalysts between entry and expiration that could affect the position." },
+];
+
+const AI_RESPONSE_THEMES = {
+  dark:     { bg: "#0d0d0d", surface: "#141414", card: "#1a1a1a", border: "#2a2a2a", accent: "#FFC32C", text: "#FFFFFF",   muted: "#7a7a7a" },
+  charcoal: { bg: "#111110", surface: "#191917", card: "#1f1f1c", border: "#303028", accent: "#FFC32C", text: "#F5F0E8", muted: "#7a7570" },
+  light:    { bg: "#F4F4F4", surface: "#FFFFFF",  card: "#FFFFFF",  border: "#E8E8E8", accent: "#FFC32C", text: "#0d0d0d", muted: "#888888" },
+  midnight: { bg: "#060a12", surface: "#0b1120", card: "#0f1828", border: "#1a2540", accent: "#FFC32C", text: "#E8F0FF", muted: "#4a6080" },
+};
 
 const PHASES = {
   HOME: "home",
@@ -86,13 +104,13 @@ function RichTextFieldToolbar() {
   );
 }
 
-function FieldInput({ field, value, onChange, assumed }) {
+function FieldInput({ field, value, onChange }) {
   const editorRef = useRef(null);
 
   if (field.type === "textarea") {
     return (
-      <div className={`field-group field-group-wide${assumed ? " field-group-assumed" : ""}`}>
-        <label className="field-label">{field.label}{assumed && <span className="assumed-badge-inline" style={{marginLeft: 8}}>Assumed</span>}</label>
+      <div className="field-group field-group-wide">
+        <label className="field-label">{field.label}</label>
         <RichTextFieldToolbar />
         <div
           ref={editorRef}
@@ -111,8 +129,8 @@ function FieldInput({ field, value, onChange, assumed }) {
   }
   if (field.type === "select") {
     return (
-      <div className={`field-group${assumed ? " field-group-assumed" : ""}`}>
-        <label className="field-label">{field.label}{assumed && <span className="assumed-badge-inline" style={{marginLeft: 8}}>Assumed</span>}</label>
+      <div className="field-group">
+        <label className="field-label">{field.label}</label>
         <select
           className="field-select"
           value={value || ""}
@@ -127,14 +145,12 @@ function FieldInput({ field, value, onChange, assumed }) {
     );
   }
   const isNum = field.type === "number";
-  // Never show "NaN" in inputs — treat it as empty
-  const cleanVal = isNum && (value === "NaN" || value === "nan" || value === "undefined") ? "" : value;
-  const displayValue = isNum && cleanVal
-    ? String(cleanVal).replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-    : (cleanVal || "");
+  const displayValue = isNum && value
+    ? value.replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    : (value || "");
   return (
-    <div className={`field-group${assumed ? " field-group-assumed" : ""}`}>
-      <label className="field-label">{field.label}{assumed && <span className="assumed-badge-inline" style={{marginLeft: 8}}>Assumed</span>}</label>
+    <div className="field-group">
+      <label className="field-label">{field.label}</label>
       <input
         className="field-input"
         type="text"
@@ -219,13 +235,16 @@ export default function App() {
   const [salesFilter, setSalesFilter] = useState("");
   const [salesCategory, setSalesCategory] = useState("All");
   // AI Trade Advisor state
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [assumedFields, setAssumedFields] = useState([]);
-  const [loanComponent, setLoanComponent] = useState(null);
-  const [showLoanPanel, setShowLoanPanel] = useState(false);
-  const [anthropicKey, setAnthropicKey] = useState(() => localStorage.getItem("sdm_anthropic_key") || "");
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [aiForm, setAiForm] = useState({
+    asset: "BTC", currentPrice: "", portfolioValue: "", expiryDate: "",
+    riskTolerance: "Moderate", objective: "Not Sure — Detect from Notes", prompt: "",
+  });
+  const [activePreset, setActivePreset] = useState(null);
+  const [presetsExpanded, setPresetsExpanded] = useState(false);
+  const aiPromptRef = useRef(null);
+  const [aiResponse, setAiResponse] = useState("");
+  const [aiResponseLoading, setAiResponseLoading] = useState(false);
+  const [aiTheme, setAiTheme] = useState("dark");
 
   const skipPushRef = useRef(false);
   const [navExpanded, setNavExpanded] = useState(false);
@@ -273,24 +292,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith("#share/")) {
-      try {
-        const encoded = hash.slice("#share/".length);
-        const payload = JSON.parse(decodeURIComponent(escape(atob(encoded))));
-        const trade = TRADE_TYPES.find(t => t.id === payload.tradeId);
-        if (trade && payload.fieldValues) {
-          setSelectedTrade(trade);
-          setFieldValues(payload.fieldValues);
-          setLoanComponent(payload.loanComponent || null);
-          setPhase(PHASES.RESULT);
-          window.history.replaceState({ phase: PHASES.RESULT }, "", "#result");
-          return;
-        }
-      } catch (e) {
-        // Invalid share link — fall through to home
-      }
-    }
     window.history.replaceState({ phase: PHASES.HOME }, "", "#home");
   }, []);
 
@@ -346,12 +347,6 @@ export default function App() {
 
   const handleGenerate = () => {
     setError(null);
-    // Extract any missing fields from the executive summary before generating
-    if (selectedTrade) {
-      const summary = fieldValues.executive_summary || "";
-      const filled = extractFieldsFromSummary(summary, selectedTrade.fields, fieldValues);
-      if (filled !== fieldValues) setFieldValues(filled);
-    }
     navigateTo(PHASES.GENERATING);
     setGeneratingStep(0);
     let i = 0;
@@ -435,70 +430,116 @@ export default function App() {
     return summaries[tradeId] || `<p>SDM proposes a derivatives structure on ${asset} based on the client's ${objective.toLowerCase()} objective and ${riskTolerance.toLowerCase()} risk profile. With ${asset} at $${$f(price)}, this trade is calibrated to deliver optimal risk-adjusted outcomes aligned with the client's stated goals.</p>`;
   };
 
-  // ─── AI Trade Advisor: Claude picks trade type + fields + summary ───
-  const handleAiGenerate = () => {
-    if (!aiPrompt.trim()) { setError("Please describe what the client is looking for."); return; }
-    setError(null);
-
-    // Start animation immediately
+  // ─── Navigate to AI review phase with animation ───
+  const proceedToAiReview = () => {
     navigateTo(PHASES.AI_GENERATING);
     setGeneratingStep(0);
-
-    let animStep = 0;
+    const steps = [
+      "Analyzing client requirements",
+      "Matching optimal trade structure",
+      "Calculating strikes & premiums",
+      "Building executive summary",
+    ];
+    let i = 0;
     const interval = setInterval(() => {
-      animStep++;
-      setGeneratingStep(animStep);
-      if (animStep >= 3) clearInterval(interval);
-    }, 800);
+      i++;
+      setGeneratingStep(i);
+      if (i >= steps.length) {
+        clearInterval(interval);
+        setTimeout(() => navigateTo(PHASES.AI_REVIEW), 500);
+      }
+    }, 700);
+  };
 
-    // Fire Claude API — it does everything: trade selection, field values, summary
-    fetch("/api/generate", {
+  // ─── AI Trade Advisor: match client goal to trade type ───
+  const handleAiGenerate = () => {
+    const { asset, currentPrice, portfolioValue, expiryDate, riskTolerance, objective, prompt: userPrompt } = aiForm;
+    if (!currentPrice) { setError("Please enter the current asset price."); return; }
+    if (!userPrompt.trim()) { setError("Please describe what the client is looking for."); return; }
+    setError(null);
+
+    const price = parseFloat(currentPrice.replace(/,/g, ""));
+    const pv = parseFloat((portfolioValue || "0").replace(/,/g, "")) || price * 10;
+    const expiry = expiryDate || "26 Jun 2026";
+    const prompt = userPrompt.toLowerCase();
+    // Smart rounding: preserve decimals for small prices (e.g. DOGE $0.17)
+    const R = (v) => {
+      if (Math.abs(v) < 0.01) return v.toPrecision(2);
+      if (Math.abs(v) < 1) return v.toFixed(4);
+      if (Math.abs(v) < 100) return v.toFixed(2);
+      return String(Math.round(v));
+    };
+
+    // Match objective + prompt keywords to best trade type
+    let tradeId = "covered_call"; // default
+    let autoFields = {};
+    const autoDetect = objective === "Not Sure — Detect from Notes";
+
+    if ((!autoDetect && objective === "Hedge") || /hedge|protect|downside|insurance|collar|floor/i.test(prompt)) {
+      if (/collar|zero.cost|fund/i.test(prompt)) {
+        tradeId = "collar";
+        autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.85), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
+      } else {
+        tradeId = "collar";
+        autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.8), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
+      }
+    } else if ((!autoDetect && objective === "Income") || /income|yield|premium|sell.*call|covered|wheel/i.test(prompt)) {
+      if (/wheel|cycle|systematic/i.test(prompt)) {
+        tradeId = "wheel";
+        autoFields = { asset, current_price: R(price), current_phase: "Selling Puts", original_strike: R(price * 0.92), cost_basis: R(price * 0.88), total_premium: R(price * 0.1), cycles_completed: "2", current_strike: R(price * 0.92), current_premium: R(price * 0.045), annualized_return: "28" };
+      } else if (/put|sell.*put|cash.secured/i.test(prompt)) {
+        tradeId = "cash_secured_put";
+        autoFields = { asset, current_price: R(price), strike: R(price * 0.9), expiry, premium: R(price * 0.035), delta: "-0.22", dte: "30", iv_rank: "65", support_level: R(price * 0.86), effective_basis: R(price * 0.865), capital_required: R(price * 0.9) };
+      } else {
+        tradeId = "covered_call";
+        autoFields = { asset, holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.85), current_price: R(price), strike: R(price * 1.1), expiry, premium: R(price * 0.025), delta: "0.25", dte: "30", iv_rank: "60", resistance_level: R(price * 1.08) };
+      }
+    } else if ((!autoDetect && objective === "Go Long") || /long|bull|upside|call|seagull|leap/i.test(prompt)) {
+      if (/seagull|zero.cost|premium.neutral/i.test(prompt)) {
+        tradeId = "long_seagull";
+        autoFields = { asset, spot: R(price), contracts: String(Math.round(pv / price)), lower_put: R(price * 0.85), lower_call: R(price * 1.05), upper_call: R(price * 1.25), max_pnl: R(pv * 0.2), expiry };
+      } else {
+        tradeId = "leap";
+        autoFields = { asset, current_price: R(price), strike: R(price), expiry, dte: "180", premium: R(price * 0.12), delta: "0.55", iv_rank: "35", contracts: String(Math.max(1, Math.round(pv / price / 10))), total_outlay: R(price * 0.12 * Math.max(1, Math.round(pv / price / 10))) };
+      }
+    } else if ((!autoDetect && objective === "Liquidity") || /liquidity|unlock|cash|carry|basis/i.test(prompt)) {
+      tradeId = "reverse_cash_carry";
+      autoFields = { asset, spot_price: R(price), btc_amount: String(Math.round(pv / price)), portfolio_value: R(pv), margin_pct: "15", cash_released_pct: "85", exchange: "Deribit", funding_rate: "10", client_use_case: "Liquidity Unlock" };
+    } else if ((!autoDetect && objective === "Event") || /event|halving|etf|catalyst|binary|macro/i.test(prompt)) {
+      tradeId = "earnings_play";
+      autoFields = { asset, current_price: R(price), event_date: expiry, expected_move_pct: "8.5", position_type: "No Position", strike: R(price * 0.92), premium_collected: "0", last_3_reactions: "+10%, -5%, +8%", recommendation: "Hold Through Event" };
+    }
+
+    // Add the user prompt as executive summary
+    // Generate polished executive summary from raw notes
+    autoFields.executive_summary = generateAiSummary({ tradeId, asset, price, pv, expiry, riskTolerance, objective, userPrompt, autoFields });
+
+    // Select the trade and populate fields
+    const trade = TRADE_TYPES.find(t => t.id === tradeId);
+    if (!trade) return;
+
+    // Pre-populate trade fields from local matching
+    setSelectedTrade(trade);
+    const defaults = {};
+    trade.fields.forEach(f => { if (f.default) defaults[f.key] = f.default; });
+    setFieldValues({ ...defaults, ...autoFields });
+
+    // Call Claude API — show response inline, then let user proceed
+    setAiResponseLoading(true);
+    setAiResponse("");
+    fetch("/api/ask-ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "select_trade",
-        userPrompt: aiPrompt,
-        apiKey: anthropicKey || undefined,
-      }),
+      body: JSON.stringify({ asset, currentPrice, portfolioValue, objective, riskTolerance, prompt: userPrompt }),
     })
-      .then(r => r.ok ? r.json() : r.json().catch(() => ({})).then(body => Promise.reject({ status: r.status, body })))
-      .then(data => {
-        clearInterval(interval);
-        setGeneratingStep(4);
-
-        const tradeId = data.tradeId;
-        const trade = TRADE_TYPES.find(t => t.id === tradeId);
-        if (!trade) throw new Error(`Unknown trade type: ${tradeId}`);
-
-        // Merge defaults → Claude fields
-        const defaults = {};
-        trade.fields.forEach(f => { if (f.default) defaults[f.key] = f.default; });
-        const merged = {
-          ...defaults,
-          ...data.fields,
-          ...(data.executiveSummary ? { executive_summary: data.executiveSummary } : {}),
-        };
-
-        setSelectedTrade(trade);
-        setFieldValues(merged);
-        setAssumedFields(data.assumptions || []);
-        setLoanComponent(data.loanComponent || null);
-        setShowLoanPanel(!!data.loanComponent);
-        setTimeout(() => navigateTo(PHASES.AI_REVIEW), 400);
+      .then(r => r.json())
+      .then(d => {
+        setAiResponse(d.response || "");
+        setAiResponseLoading(false);
       })
-      .catch(err => {
-        clearInterval(interval);
-        console.error("AI generate failed:", err);
-        // Use setPhase directly — navigateTo calls setError(null) which would wipe the error
-        setPhase(PHASES.AI_CONFIGURE);
-        const status = err?.status;
-        const detail = err?.body?.detail || err?.body?.error || "";
-        const msg = status === 401 || status === 403 || detail.includes("authentication")
-          ? "Invalid API key. Open Settings (gear icon) and paste your Anthropic key."
-          : status === 500
-            ? `AI call failed. ${detail || "Check your Anthropic API key in Settings."}`
-            : "AI analysis failed. Is the API server running? (npm run server)";
-        setError(msg);
+      .catch(() => {
+        setAiResponseLoading(false);
+        proceedToAiReview();
       });
   };
 
@@ -646,12 +687,6 @@ export default function App() {
         <button className="pill-nav-item" onClick={() => setShowFeedback(true)} title="Feedback">
           <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
           <span className="pill-nav-label">Feedback</span>
-        </button>
-        <button className={`pill-nav-item${anthropicKey && anthropicKey.startsWith("sk-ant-") ? " nav-key-set" : ""}`} onClick={() => setShowSettings(true)} title="Settings">
-          <span className="pill-nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </span>
-          <span className="pill-nav-label">Settings</span>
         </button>
       </nav>
 
@@ -857,64 +892,178 @@ export default function App() {
 
         {/* ═══ PHASE: AI CONFIGURE ═══ */}
         {phase === PHASES.AI_CONFIGURE && (
-          <div className="phase-ai phase-ai-chat">
-            <div className="ai-chat-container">
-              <div className="ai-chat-header">
-                <div className="ai-chat-title">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                  <span>Ask AI</span>
-                  <span className="ai-beta-badge">BETA</span>
+          <div className="phase-ai">
+            <div className="ai-header">
+              <div>
+                <h1 className="phase-title">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{verticalAlign: "middle", marginRight: 10}}><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  Ask AI
+                  <span className="ai-beta-badge" style={{marginLeft: 12, verticalAlign: "middle"}}>BETA</span>
+                </h1>
+                <p className="phase-sub">Tell us about your client and what they're looking for. AI will suggest the best derivatives structure and pre-fill the report.</p>
+              </div>
+              <button className="btn-back" onClick={() => navigateTo(PHASES.SELECT)}>&larr; Back to Trade Types</button>
+            </div>
+
+            {error && <div className="error-banner"><span className="error-icon">!</span> {error}</div>}
+
+            <div className="ai-form">
+              <div className="ai-fields-grid">
+                <div className="field-group">
+                  <label className="field-label">Asset / Underlying</label>
+                  <select className="field-select" value={aiForm.asset} onChange={e => setAiForm(p => ({...p, asset: e.target.value}))}>
+                    {["BTC","ETH","SOL","XRP","ADA","AVAX","DOT","MATIC","LINK","UNI","LTC","DOGE","AAVE","ARB","OP"].map(a => <option key={a}>{a}</option>)}
+                  </select>
                 </div>
-                <button className="btn-back" onClick={() => navigateTo(PHASES.SELECT)}>&larr; Back</button>
+                <div className="field-group">
+                  <label className="field-label">Current Price ($)</label>
+                  <input className="field-input" type="text" placeholder="e.g. 95000" value={aiForm.currentPrice} onChange={e => setAiForm(p => ({...p, currentPrice: e.target.value}))} />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Portfolio / Position Value ($)</label>
+                  <input className="field-input" type="text" placeholder="e.g. 5000000" value={aiForm.portfolioValue} onChange={e => setAiForm(p => ({...p, portfolioValue: e.target.value}))} />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Target Expiry Date <span style={{fontWeight: 400, color: "var(--text-dim)", fontSize: "0.75em"}}>(Can leave blank if not sure)</span></label>
+                  <input className="field-input" type="text" placeholder="e.g. 26 Jun 2026" value={aiForm.expiryDate} onChange={e => setAiForm(p => ({...p, expiryDate: e.target.value}))} />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Client Objective</label>
+                  <select className="field-select" value={aiForm.objective} onChange={e => setAiForm(p => ({...p, objective: e.target.value}))}>
+                    {["Not Sure — Detect from Notes","Hedge","Income","Go Long","Liquidity","Event"].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Risk Tolerance</label>
+                  <select className="field-select" value={aiForm.riskTolerance} onChange={e => setAiForm(p => ({...p, riskTolerance: e.target.value}))}>
+                    {["Conservative","Moderate","Aggressive"].map(r => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
               </div>
 
-              <p className="ai-chat-sub">Describe your client's situation in plain language. AI will select the right trade structure and fill in all the parameters.</p>
-
-              {error && <div className="error-banner"><span className="error-icon">!</span> {error}</div>}
-
-              {!anthropicKey && (
-                <div className="ai-key-notice">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  <span>No API key set. <button className="ai-key-notice-link" onClick={() => setShowSettings(true)}>Add your Anthropic key in Settings</button> to use AI.</span>
+              <div className="ai-presets-section">
+                <div className="ai-presets-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  <span>Start from a template</span>
                 </div>
-              )}
-
-              <div className="ai-chat-examples">
-                <div className="ai-chat-examples-label">Try an example:</div>
-                <div className="ai-chat-examples-list">
-                  {[
-                    "My client wants to short $5M of BTC — what's the best structure?",
-                    "Client holds 50 BTC at $80k avg and wants downside protection for 3 months",
-                    "Generate income on a 10 BTC position, client is neutral to slightly bullish",
-                    "Client wants leveraged upside on ETH with defined risk, $200k budget",
-                  ].map(ex => (
-                    <button key={ex} className="ai-chat-example-chip" onClick={() => setAiPrompt(ex)}>
-                      {ex}
+                <div className="ai-presets-grid">
+                  {(presetsExpanded ? ASK_AI_PRESETS : ASK_AI_PRESETS.slice(0, 3)).map(p => (
+                    <button
+                      key={p.id}
+                      className={`ai-preset-chip${activePreset === p.id ? " active" : ""}`}
+                      onClick={() => {
+                        if (activePreset === p.id) {
+                          setActivePreset(null);
+                          setAiForm(f => ({...f, prompt: ""}));
+                          if (aiPromptRef.current) aiPromptRef.current.innerHTML = "";
+                        } else {
+                          setActivePreset(p.id);
+                          setAiForm(f => ({...f, prompt: p.prompt}));
+                          if (aiPromptRef.current) aiPromptRef.current.innerHTML = `<p>${p.prompt}</p>`;
+                        }
+                      }}
+                    >
+                      {p.label}
                     </button>
                   ))}
                 </div>
+                <button className="ai-presets-toggle" onClick={() => setPresetsExpanded(v => !v)}>
+                  <span>{presetsExpanded ? "Show less" : "More templates"}</span>
+                  <svg className={`ai-presets-chevron${presetsExpanded ? " open" : ""}`} width="12" height="12" viewBox="0 0 12 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1.5l5 5 5-5"/></svg>
+                </button>
               </div>
 
-              <div className="ai-chat-input-area">
-                <textarea
-                  className="ai-chat-textarea"
-                  placeholder="e.g. My client wants to short $5M of BTC. They're bearish for the next 6 months and can tolerate moderate risk. What's the best structure?"
-                  value={aiPrompt}
-                  onChange={e => setAiPrompt(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAiGenerate();
-                  }}
-                  rows={5}
-                  autoFocus
-                />
-                <div className="ai-chat-actions">
-                  <span className="ai-chat-hint">⌘ + Enter to send</span>
-                  <button className="ai-chat-send" onClick={handleAiGenerate} disabled={!aiPrompt.trim()}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                    Generate Trade
-                  </button>
+              <div className="ai-prompt-divider">
+                <span className="ai-prompt-divider-line" />
+                <span className="ai-prompt-divider-text">or write your own</span>
+                <span className="ai-prompt-divider-line" />
+              </div>
+
+              <div className="ai-prompt-section">
+                <label className="field-label">Describe what the client is looking for</label>
+                <div className="ai-prompt-box">
+                  <div className="ai-prompt-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                    <span>AI Prompt</span>
+                  </div>
+                  <RichTextFieldToolbar />
+                  <div
+                    ref={aiPromptRef}
+                    className="rt-editor ai-prompt-editor"
+                    contentEditable
+                    suppressContentEditableWarning
+                    data-placeholder="e.g. Client holds 50 BTC and wants to protect against a 15% drawdown over the next 3 months while keeping upside exposure. They'd prefer a zero-cost structure if possible..."
+                    onInput={() => {
+                      if (aiPromptRef.current) {
+                        setAiForm(p => ({...p, prompt: aiPromptRef.current.innerText}));
+                        setActivePreset(null);
+                      }
+                    }}
+                  />
                 </div>
               </div>
+
+              <div className="form-actions">
+                <div className="form-action-note">
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>AI will suggest a trade type and pre-fill all parameters. You can review and edit before generating.</span>
+                </div>
+                <button className="btn-generate ai-generate-btn" onClick={handleAiGenerate}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                  Generate Trade Idea
+                  <span className="btn-arrow">&rarr;</span>
+                </button>
+              </div>
+
+              {/* ─── AI Response Box ─── */}
+              {(aiResponseLoading || aiResponse) && (
+                <div className="ai-response-section">
+                  {aiResponse && (
+                    <div className="ai-theme-picker">
+                      {["dark", "charcoal", "light", "midnight"].map(t => (
+                        <button
+                          key={t}
+                          className={`ai-theme-btn${aiTheme === t ? " active" : ""}`}
+                          onClick={() => setAiTheme(t)}
+                        >
+                          <span className="ai-theme-swatch" style={{ background: AI_RESPONSE_THEMES[t].bg, borderColor: AI_RESPONSE_THEMES[t].border }} />
+                          {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div
+                    className="ai-response-box"
+                    style={{
+                      background: AI_RESPONSE_THEMES[aiTheme].surface,
+                      border: `1px solid ${AI_RESPONSE_THEMES[aiTheme].border}`,
+                      color: AI_RESPONSE_THEMES[aiTheme].text,
+                    }}
+                  >
+                    {aiResponseLoading ? (
+                      <div className="ai-response-loading" style={{ color: AI_RESPONSE_THEMES[aiTheme].muted }}>
+                        <div className="gen-spinner" style={{ width: 20, height: 20, flexShrink: 0 }} />
+                        <span>Analyzing your brief with Claude AI...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="ai-response-label" style={{ color: AI_RESPONSE_THEMES[aiTheme].accent }}>AI Analysis</div>
+                        <div className="ai-response-text" style={{ color: AI_RESPONSE_THEMES[aiTheme].text }}>
+                          {aiResponse.split("\n").filter(Boolean).map((para, i) => (
+                            <p key={i}>{para}</p>
+                          ))}
+                        </div>
+                        <button
+                          className="ai-response-proceed"
+                          onClick={proceedToAiReview}
+                          style={{ background: AI_RESPONSE_THEMES[aiTheme].accent, color: AI_RESPONSE_THEMES[aiTheme].bg === "#F4F4F4" ? "#0d0d0d" : "#0d0d0d" }}
+                        >
+                          Review Trade →
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -969,7 +1118,6 @@ export default function App() {
                 <div className="output-preview-item"><span className="output-icon">✦</span> Payoff Diagram</div>
                 <div className="output-preview-item"><span className="output-icon">◼</span> Risk/Reward KPIs</div>
                 <div className="output-preview-item"><span className="output-icon">◫</span> Trade Structure Breakdown</div>
-                {showLoanPanel && <div className="output-preview-item" style={{ color: "#4ade80" }}><span className="output-icon">⬡</span> Loan Structure</div>}
                 <div className="output-preview-item"><span className="output-icon">⊡</span> AI Executive Summary</div>
               </div>
 
@@ -984,118 +1132,12 @@ export default function App() {
                 </div>
                 <h2 className="form-title">Review & Confirm Trade</h2>
                 <p className="form-sub">AI has suggested a <strong>{selectedTrade.label}</strong> based on your client brief. Review the parameters below — edit anything that needs adjusting, then generate your report.</p>
-                {assumedFields.length > 0 && (
-                  <div className="ai-assumed-banner">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                    Fields marked <span className="assumed-badge-inline">Assumed</span> were estimated by AI — verify before sending to client.
-                  </div>
-                )}
               </div>
 
               <div className="fields-grid">
                 {selectedTrade.fields.map(field => (
-                  <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} assumed={assumedFields.includes(field.key)} />
+                  <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} />
                 ))}
-              </div>
-
-              {/* Missing required fields warning */}
-              {(() => {
-                const nanFields = selectedTrade.fields.filter(f => {
-                  if (f.type !== "number" || f.key === "executive_summary") return false;
-                  const v = fieldValues[f.key];
-                  return !v || v === "NaN" || v === "0" || v === "" || isNaN(Number(v));
-                });
-                if (nanFields.length === 0) return null;
-                return (
-                  <div className="missing-fields-panel" style={{ marginTop: 16, marginBottom: 0 }}>
-                    <div className="missing-fields-header">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <span>Fill in the highlighted fields above to complete the report. If the values are in the executive summary, they'll be detected automatically on generate.</span>
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {nanFields.map(f => (
-                        <span key={f.key} style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--gold)", background: "rgba(255,195,44,0.1)", border: "1px solid rgba(255,195,44,0.2)", borderRadius: 6, padding: "3px 10px" }}>
-                          {f.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* ─── Loan Component Panel ─── */}
-              <div className="loan-panel-section">
-                <div className="loan-panel-toggle-row">
-                  <button
-                    className={`loan-panel-toggle${showLoanPanel ? " active" : ""}`}
-                    onClick={() => {
-                      const next = !showLoanPanel;
-                      setShowLoanPanel(next);
-                      if (next && !loanComponent) {
-                        setLoanComponent({
-                          collateralAsset: fieldValues.asset || "BTC",
-                          collateralUnits: "",
-                          pricePerUnit: fieldValues.current_price || fieldValues.spot || fieldValues.spot_price || "",
-                          termMonths: "24",
-                          ltv: "65",
-                          annualRate: "8",
-                          arrangementFee: "2",
-                          useOfProceeds: "",
-                        });
-                      } else if (!next) {
-                        setLoanComponent(null);
-                      }
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-                    {showLoanPanel ? "Remove Loan Component" : "Add Loan Component"}
-                  </button>
-                  {!showLoanPanel && <span className="loan-panel-hint">Combine with an SDM crypto-backed loan</span>}
-                </div>
-
-                {showLoanPanel && loanComponent && (
-                  <div className="loan-panel-fields">
-                    <div className="loan-panel-label">Loan Parameters</div>
-                    <div className="loan-panel-grid">
-                      {[
-                        { key: "collateralAsset", label: "Collateral Asset" },
-                        { key: "collateralUnits", label: "Collateral Units" },
-                        { key: "pricePerUnit", label: "Price Per Unit ($)" },
-                        { key: "termMonths", label: "Term (months)" },
-                        { key: "ltv", label: "LTV (%)" },
-                        { key: "annualRate", label: "Annual Rate (%)" },
-                        { key: "arrangementFee", label: "Arrangement Fee (%)" },
-                      ].map(({ key, label }) => (
-                        <div key={key} className="loan-panel-field">
-                          <label className="loan-panel-field-label">{label}</label>
-                          <input
-                            className="loan-panel-input"
-                            value={loanComponent[key] || ""}
-                            onChange={e => setLoanComponent(prev => ({ ...prev, [key]: e.target.value }))}
-                            placeholder={key === "ltv" ? "65" : key === "annualRate" ? "8" : key === "arrangementFee" ? "2" : ""}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {(() => {
-                      const units = parseFloat(loanComponent.collateralUnits);
-                      const price = parseFloat(loanComponent.pricePerUnit);
-                      const ltv = parseFloat(loanComponent.ltv) / 100 || 0.65;
-                      const fee = parseFloat(loanComponent.arrangementFee) / 100 || 0.02;
-                      if (!isNaN(units) && !isNaN(price) && units > 0 && price > 0) {
-                        const gross = units * price * ltv;
-                        const net = gross * (1 - fee);
-                        return (
-                          <div className="loan-panel-preview">
-                            <span>Gross Loan: <strong>${gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
-                            <span>Net Proceeds: <strong>${net.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                )}
               </div>
 
               <div className="form-actions">
@@ -1182,7 +1224,6 @@ export default function App() {
           <TradeReport
             trade={selectedTrade}
             fieldValues={fieldValues}
-            loanComponent={loanComponent}
             onBack={() => navigateTo(PHASES.CONFIGURE)}
             onReset={handleReset}
           />
@@ -1402,55 +1443,6 @@ export default function App() {
           <span>SDM Studio v2.0</span>
         </div>
       </footer>
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowSettings(false)}>
-          <div className="settings-modal">
-            <div className="settings-header">
-              <h3 className="settings-title">Settings</h3>
-              <button className="feedback-close" onClick={() => setShowSettings(false)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-
-            <div className="settings-section">
-              <div className="settings-section-label">Anthropic API Key</div>
-              <p className="settings-section-desc">Required for the Ask AI feature. Get your key from <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{color:"var(--gold)"}}>console.anthropic.com</a>.</p>
-              <div className="api-key-field" style={{marginTop: 10}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <input
-                  className="api-key-input"
-                  type={showApiKey ? "text" : "password"}
-                  placeholder="sk-ant-..."
-                  value={anthropicKey}
-                  onChange={e => {
-                    setAnthropicKey(e.target.value);
-                    localStorage.setItem("sdm_anthropic_key", e.target.value);
-                  }}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button className="api-key-toggle" type="button" onClick={() => setShowApiKey(v => !v)}>
-                  {showApiKey ? "Hide" : "Show"}
-                </button>
-              </div>
-              {anthropicKey && anthropicKey.startsWith("sk-ant-") && (
-                <div className="api-key-ok" style={{marginTop: 8}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  API key saved — Ask AI is ready
-                </div>
-              )}
-            </div>
-
-            <div className="settings-footer">
-              <button className="btn-generate" style={{width:"100%", justifyContent:"center"}} onClick={() => setShowSettings(false)}>
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Feedback Modal */}
       {showFeedback && (
