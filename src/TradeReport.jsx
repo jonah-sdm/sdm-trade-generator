@@ -1,13 +1,45 @@
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { computeTradeAnalysis, generateExecutiveSummary } from "./payoffEngine";
+import { extractFieldsFromSummary } from "./fieldExtractor";
 import { computeLendingProposal, fmt as lendFmt } from "./lendingEngine";
 
 // ─── REPORT THEMES ───
+// Applied to document.documentElement so every element on the page inherits them.
 const REPORT_THEMES = {
-  dark:     { "--bg": "#0d0d0d", "--bg2": "#141414", "--bg3": "#1a1a1a", "--bg4": "#1a1a1a", "--border": "rgba(42,42,42,1)",    "--border-light": "rgba(60,60,60,1)",    "--text": "#FFFFFF",   "--text-muted": "#7a7a7a", "--text-dim": "#555555", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
-  charcoal: { "--bg": "#111110", "--bg2": "#191917", "--bg3": "#1f1f1c", "--bg4": "#1f1f1c", "--border": "rgba(48,48,40,1)",    "--border-light": "rgba(64,64,56,1)",    "--text": "#F5F0E8", "--text-muted": "#7a7570", "--text-dim": "#505048", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
-  light:    { "--bg": "#F4F4F4", "--bg2": "#FFFFFF",  "--bg3": "#FFFFFF",  "--bg4": "#F0F0F0", "--border": "rgba(232,232,232,1)", "--border-light": "rgba(216,216,216,1)", "--text": "#0d0d0d", "--text-muted": "#888888", "--text-dim": "#aaaaaa", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
-  midnight: { "--bg": "#060a12", "--bg2": "#0b1120", "--bg3": "#0f1828", "--bg4": "#0f1828", "--border": "rgba(26,37,64,1)",    "--border-light": "rgba(37,53,80,1)",    "--text": "#E8F0FF", "--text-muted": "#4a6080", "--text-dim": "#2a3a58", "--amber": "#FFC32C", "--gold": "#FFC32C", "--amber-dark": "#D4910A", "--gold-dark": "#D4910A" },
+  dark: {
+    "--bg": "#0a0a0f", "--bg2": "#111118", "--bg3": "#16161f", "--bg4": "#1c1c28",
+    "--border": "rgba(255,255,255,0.06)", "--border-light": "rgba(255,255,255,0.11)", "--border-gold": "rgba(255,195,44,0.20)",
+    "--text": "#f0f0f5", "--text-muted": "#8a8a9a", "--text-dim": "#55556a",
+    "--amber": "#FFC32C", "--amber-dark": "#D4910A", "--amber-glow": "rgba(255,195,44,0.15)",
+    "--gold": "#FFC32C", "--gold-dark": "#D4910A", "--gold-glow": "rgba(255,195,44,0.15)",
+    "--glass-surface": "rgba(255,255,255,0.03)", "--glass-card": "rgba(255,255,255,0.05)", "--glass-focus": "rgba(255,255,255,0.09)",
+    "--glass-border-1": "rgba(255,255,255,0.06)", "--glass-border-2": "rgba(255,255,255,0.10)", "--glass-border-3": "rgba(255,255,255,0.15)",
+    "--shadow-xs": "0 1px 2px rgba(0,0,0,0.40)",
+    "--shadow-sm": "0 2px 8px rgba(0,0,0,0.50), 0 1px 2px rgba(0,0,0,0.30)",
+    "--shadow-md": "0 4px 16px rgba(0,0,0,0.60), 0 2px 4px rgba(0,0,0,0.30)",
+    "--shadow-lg": "0 8px 32px rgba(0,0,0,0.70), 0 4px 8px rgba(0,0,0,0.30)",
+    "--shadow-xl": "0 16px 48px rgba(0,0,0,0.80), 0 8px 16px rgba(0,0,0,0.40)",
+    "--shadow-gold": "0 4px 24px rgba(255,195,44,0.15), 0 2px 8px rgba(255,195,44,0.08)",
+    "--gradient-gold": "#FFC32C", "--gradient-gold-subtle": "linear-gradient(135deg, rgba(255,195,44,0.10), rgba(255,195,44,0.04))",
+  },
+  light: {
+    "--bg": "#F5F0E8", "--bg2": "#FAF7F2", "--bg3": "#F2EDE2", "--bg4": "#EAE4D8",
+    "--border": "rgba(0,0,0,0.08)", "--border-light": "rgba(0,0,0,0.13)", "--border-gold": "rgba(160,100,0,0.25)",
+    "--text": "#0d0d0d", "--text-muted": "#555555", "--text-dim": "#999999",
+    "--amber": "#B87000", "--amber-dark": "#7A4A00", "--amber-glow": "rgba(184,112,0,0.12)",
+    "--gold": "#B87000", "--gold-dark": "#7A4A00", "--gold-glow": "rgba(184,112,0,0.12)",
+    "--teal": "#007A52", "--teal-glow": "rgba(0,122,82,0.12)",
+    "--red": "#C41A0F", "--red-glow": "rgba(196,26,15,0.12)",
+    "--glass-surface": "rgba(0,0,0,0.025)", "--glass-card": "rgba(0,0,0,0.04)", "--glass-focus": "rgba(0,0,0,0.07)",
+    "--glass-border-1": "rgba(0,0,0,0.07)", "--glass-border-2": "rgba(0,0,0,0.10)", "--glass-border-3": "rgba(0,0,0,0.14)",
+    "--shadow-xs": "0 1px 3px rgba(0,0,0,0.07)",
+    "--shadow-sm": "0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)",
+    "--shadow-md": "0 4px 16px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06)",
+    "--shadow-lg": "0 8px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.07)",
+    "--shadow-xl": "0 16px 48px rgba(0,0,0,0.14), 0 8px 16px rgba(0,0,0,0.08)",
+    "--shadow-gold": "0 4px 24px rgba(184,112,0,0.18), 0 2px 8px rgba(184,112,0,0.10)",
+    "--gradient-gold": "#B87000", "--gradient-gold-subtle": "linear-gradient(135deg, rgba(184,112,0,0.10), rgba(184,112,0,0.04))",
+  },
 };
 
 // ─── RICH TEXT TOOLBAR ───
@@ -44,7 +76,7 @@ function RichTextToolbar() {
 }
 
 // ─── SVG PAYOFF CHART ───
-function PayoffChart({ analysis, accentColor }) {
+function PayoffChart({ analysis, accentColor, chartColors, adaptLegColor }) {
   const { curve, spot, breakevens, zones, legs } = analysis;
   if (!curve || curve.length === 0) return null;
 
@@ -164,21 +196,21 @@ function PayoffChart({ analysis, accentColor }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="payoff-svg">
       <defs>
         <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#00C896" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#00C896" stopOpacity="0.05" />
+          <stop offset="0%" stopColor={chartColors.teal} stopOpacity="0.45" />
+          <stop offset="100%" stopColor={chartColors.teal} stopOpacity="0.05" />
         </linearGradient>
         <linearGradient id="redGrad" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#FF453A" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#FF453A" stopOpacity="0.05" />
+          <stop offset="0%" stopColor={chartColors.red} stopOpacity="0.45" />
+          <stop offset="100%" stopColor={chartColors.red} stopOpacity="0.05" />
         </linearGradient>
       </defs>
 
       {yGridLines.map((g, i) => (
         <g key={`yg${i}`}>
           <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y}
-            stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+            stroke={chartColors.gridStroke} strokeWidth="1" />
           <text x={PAD.left - 10} y={g.y + 4} textAnchor="end"
-            fill="rgba(255,255,255,0.35)" fontSize="10" fontFamily="'Sora', sans-serif">
+            fill={chartColors.gridText} fontSize="10" fontFamily="'Sora', sans-serif">
             {fmtAxis(g.val)}
           </text>
         </g>
@@ -186,16 +218,16 @@ function PayoffChart({ analysis, accentColor }) {
       {xGridLines.map((g, i) => (
         <g key={`xg${i}`}>
           <line x1={g.x} y1={PAD.top} x2={g.x} y2={H - PAD.bottom}
-            stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+            stroke={chartColors.xGridStroke} strokeWidth="1" />
           <text x={g.x} y={H - PAD.bottom + 18} textAnchor="middle"
-            fill="rgba(255,255,255,0.35)" fontSize="10" fontFamily="'Sora', sans-serif">
+            fill={chartColors.gridText} fontSize="10" fontFamily="'Sora', sans-serif">
             {fmtPrice(g.val)}
           </text>
         </g>
       ))}
 
       <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY}
-        stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="4,3" />
+        stroke={chartColors.zeroLine} strokeWidth="1" strokeDasharray="4,3" />
 
       <path d={greenFill} fill="url(#greenGrad)" />
       <path d={redFill} fill="url(#redGrad)" />
@@ -203,10 +235,10 @@ function PayoffChart({ analysis, accentColor }) {
       {/* Long BTC spot reference line — dashed diagonal */}
       {spotLinePath && !analysis.chartLabel && (
         <g>
-          <path d={spotLinePath} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5"
+          <path d={spotLinePath} fill="none" stroke={chartColors.spotLine} strokeWidth="1.5"
             strokeDasharray="6,4" strokeLinecap="round" />
           <text x={scaleX(maxPrice) - 4} y={scaleY((maxPrice - spot) * spotMultiplier) - 6}
-            textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="'Sora', sans-serif" fontWeight="500">
+            textAnchor="end" fill={chartColors.spotText} fontSize="8" fontFamily="'Sora', sans-serif" fontWeight="500">
             Long Spot
           </text>
         </g>
@@ -221,11 +253,11 @@ function PayoffChart({ analysis, accentColor }) {
       {spot > minPrice && spot < maxPrice && (
         <g>
           <line x1={scaleX(spot)} y1={PAD.top} x2={scaleX(spot)} y2={H - PAD.bottom}
-            stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="6,4" />
+            stroke={chartColors.spotVLine} strokeWidth="1" strokeDasharray="6,4" />
           <rect x={scaleX(spot) - 24} y={H - PAD.bottom + 26} width="48" height="18" rx="4"
-            fill="rgba(255,255,255,0.08)" />
+            fill={chartColors.spotRect} />
           <text x={scaleX(spot)} y={H - PAD.bottom + 38} textAnchor="middle"
-            fill="rgba(255,255,255,0.6)" fontSize="9" fontFamily="'Sora', sans-serif" fontWeight="600">
+            fill={chartColors.spotLabel} fontSize="9" fontFamily="'Sora', sans-serif" fontWeight="600">
             SPOT
           </text>
         </g>
@@ -258,13 +290,14 @@ function PayoffChart({ analysis, accentColor }) {
             ).pnl
           );
           const fmtStrike = leg.strike >= 1e3 ? `$${(leg.strike / 1e3).toFixed(leg.strike >= 1e4 ? 0 : 1)}K` : leg.strike < 1 && leg.strike > 0 ? `$${leg.strike.toFixed(4)}` : `$${leg.strike.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const legColor = adaptLegColor ? adaptLegColor(leg.color) : leg.color;
           return (
             <g key={`leg${leg.idx}`}>
               <line x1={x} y1={PAD.top} x2={x} y2={H - PAD.bottom}
-                stroke={leg.color} strokeWidth="1" strokeDasharray="4,4" opacity="0.4" />
-              <circle cx={x} cy={curveY} r="4" fill={leg.color} stroke="#111118" strokeWidth="2" />
+                stroke={legColor} strokeWidth="1" strokeDasharray="4,4" opacity="0.4" />
+              <circle cx={x} cy={curveY} r="4" fill={legColor} stroke={chartColors.circleBorder} strokeWidth="2" />
               <text x={x} y={y} textAnchor="middle"
-                fill={leg.color} fontSize="8" fontFamily="'Sora', sans-serif" fontWeight="600" opacity="0.85">
+                fill={legColor} fontSize="8" fontFamily="'Sora', sans-serif" fontWeight="600" opacity="0.85">
                 {leg.action} {fmtStrike}
               </text>
             </g>
@@ -276,9 +309,9 @@ function PayoffChart({ analysis, accentColor }) {
         be > minPrice && be < maxPrice && (
           <g key={`be${i}`}>
             <circle cx={scaleX(be)} cy={zeroY} r="5" fill="none"
-              stroke="#ca8a04" strokeWidth="2" />
+              stroke={chartColors.beColor} strokeWidth="2" />
             <text x={scaleX(be)} y={zeroY - 12} textAnchor="middle"
-              fill="#ca8a04" fontSize="9" fontFamily="'Sora', sans-serif" fontWeight="600">
+              fill={chartColors.beColor} fontSize="9" fontFamily="'Sora', sans-serif" fontWeight="600">
               BE
             </text>
           </g>
@@ -286,9 +319,9 @@ function PayoffChart({ analysis, accentColor }) {
       ))}
 
       <text x={PAD.left - 10} y={12} textAnchor="end"
-        fill="rgba(255,255,255,0.25)" fontSize="9" fontFamily="'Sora', sans-serif">P&L</text>
+        fill={chartColors.axisLabel} fontSize="9" fontFamily="'Sora', sans-serif">P&L</text>
       <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end"
-        fill="rgba(255,255,255,0.25)" fontSize="9" fontFamily="'Sora', sans-serif">Price</text>
+        fill={chartColors.axisLabel} fontSize="9" fontFamily="'Sora', sans-serif">Price</text>
     </svg>
   );
 }
@@ -404,38 +437,17 @@ ${reportHtml}
 </html>`;
 }
 
-async function handleShareLink(reportRef, trade, setLinkText) {
-  if (!reportRef.current) return;
-
-  setLinkText("Saving...");
-  const fullHtml = buildStandaloneHtml(reportRef, trade);
-  const filename = `SDM-${trade.label.replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.html`;
-
+async function handleShareLink(trade, fieldValues, loanComponent, setLinkText) {
+  setLinkText("Copying...");
   try {
-    const res = await fetch("/api/share", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html: fullHtml, filename }),
-    });
-
-    if (!res.ok) throw new Error("Upload failed");
-    const { url } = await res.json();
-
+    const payload = JSON.stringify({ tradeId: trade.id, fieldValues, loanComponent: loanComponent || null });
+    const encoded = btoa(unescape(encodeURIComponent(payload)));
+    const url = `${window.location.origin}${window.location.pathname}#share/${encoded}`;
     await navigator.clipboard.writeText(url);
-    setLinkText("Link copied!");
-    window.open(url, "_blank");
+    setLinkText("Copied!");
   } catch (e) {
-    // Fallback: download as file
-    const blob = new Blob([fullHtml], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setLinkText("Downloaded!");
+    setLinkText("Failed");
   }
-
   setTimeout(() => setLinkText("Link"), 3000);
 }
 
@@ -540,19 +552,42 @@ function handleShare(platform, trade, analysis) {
 }
 
 // ─── MAIN REPORT ───
-export default function TradeReport({ trade, fieldValues, loanComponent, onBack, onReset }) {
+export default function TradeReport({ trade, fieldValues: initialFieldValues, loanComponent, onBack, onReset }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
   const [linkText, setLinkText] = useState("Link");
+  const [fieldValues, setFieldValues] = useState(initialFieldValues);
+  const [missingEdits, setMissingEdits] = useState({});
   const [execHtml, setExecHtml] = useState(() => {
-    const raw = fieldValues.executive_summary;
+    const raw = initialFieldValues.executive_summary;
     if (!raw) return "";
-    // If already contains HTML tags, use as-is
     if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
     return `<p>${raw.replace(/\n/g, "</p><p>")}</p>`;
   });
   const [execEditing, setExecEditing] = useState(false);
   const [reportTheme, setReportTheme] = useState("dark");
+
+  // Auto-extract from executive summary on mount
+  useEffect(() => {
+    const summary = initialFieldValues.executive_summary || "";
+    if (summary.trim()) {
+      const filled = extractFieldsFromSummary(summary, trade.fields, initialFieldValues);
+      if (filled !== initialFieldValues) setFieldValues(filled);
+    }
+  }, []); // eslint-disable-line
+
+  // Apply theme globally to entire page (cascades to header, nav, body, everything)
+  useEffect(() => {
+    const vars = REPORT_THEMES[reportTheme];
+    const root = document.documentElement;
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    root.setAttribute("data-theme", reportTheme);
+    return () => {
+      // Reset to dark on unmount
+      Object.keys(vars).forEach(k => root.style.removeProperty(k));
+      root.removeAttribute("data-theme");
+    };
+  }, [reportTheme]);
 
   const handleEditorSave = useCallback(() => {
     if (editorRef.current) {
@@ -577,33 +612,79 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
     [trade.id, fieldValues]
   );
 
+  const isLight = reportTheme === "light";
+  const chartBase = isLight ? "0,0,0" : "255,255,255";
+  const chartColors = {
+    gridStroke:   `rgba(${chartBase},0.08)`,
+    gridText:     `rgba(${chartBase},0.40)`,
+    xGridStroke:  `rgba(${chartBase},0.06)`,
+    zeroLine:     `rgba(${chartBase},0.15)`,
+    spotLine:     `rgba(${chartBase},0.18)`,
+    spotText:     `rgba(${chartBase},0.30)`,
+    spotVLine:    `rgba(${chartBase},0.20)`,
+    spotRect:     `rgba(${chartBase},0.08)`,
+    spotLabel:    `rgba(${chartBase},0.60)`,
+    axisLabel:    `rgba(${chartBase},0.28)`,
+    circleBorder: REPORT_THEMES[reportTheme]["--bg2"],
+    beColor:      isLight ? "#8A5500" : "#ca8a04",
+    teal:         isLight ? "#007A52" : "#00C896",
+    red:          isLight ? "#C41A0F" : "#FF453A",
+  };
+  // Darken bright chart colors for light theme legibility
+  const adaptLegColor = (color) => {
+    if (!isLight) return color;
+    const map = {
+      "#4ADE80": "#166534", "#4ade80": "#166534",
+      "#34D399": "#065F46", "#34d399": "#065F46",
+      "#00C896": "#007A52", "#00c896": "#007A52",
+      "#00C2FF": "#0057A8", "#00c2ff": "#0057A8",
+    };
+    return map[color] || color;
+  };
+  const logoSrc = isLight ? "/sdm-logo-full-dark.svg" : "/sdm-logo-full.svg";
+
+  // Detect required fields that are still missing (NaN) on the report page
+  const missingFields = trade.fields.filter(f => {
+    if (f.type !== "number" || f.key === "executive_summary") return false;
+    const v = fieldValues[f.key];
+    return v === undefined || v === "" || isNaN(Number(v));
+  });
+
+  const handleMissingFieldChange = (key, val) => {
+    setMissingEdits(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleMissingFieldApply = () => {
+    setFieldValues(prev => ({ ...prev, ...missingEdits }));
+    setMissingEdits({});
+  };
+
   return (
     <div className="report-wrapper">
-      {/* Theme picker — outside reportRef so it never appears in PDF or share exports */}
       <div className="report-theme-bar">
-        <span className="report-theme-label">Report Theme</span>
-        <div className="report-theme-options">
-          {Object.keys(REPORT_THEMES).map(t => (
-            <button
-              key={t}
-              className={`report-theme-btn${reportTheme === t ? " active" : ""}`}
-              onClick={() => setReportTheme(t)}
-            >
-              <span
-                className="report-theme-swatch"
-                style={{ background: REPORT_THEMES[t]["--bg"], borderColor: REPORT_THEMES[t]["--border"] }}
-              />
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
+        <span className="report-theme-label">Theme</span>
+        <div className="report-theme-toggle">
+          <button
+            className={`theme-toggle-btn${reportTheme === "dark" ? " active" : ""}`}
+            onClick={() => setReportTheme("dark")}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </button>
+          <button
+            className={`theme-toggle-btn${reportTheme === "light" ? " active" : ""}`}
+            onClick={() => setReportTheme("light")}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Light
+          </button>
         </div>
       </div>
-
-    <div className="report" ref={reportRef} style={{ ...REPORT_THEMES[reportTheme], "--accent": trade.color }}>
+    <div className={`report theme-${reportTheme}`} ref={reportRef} style={{ "--accent": "var(--gold)" }}>
       {/* Print-only running header & footer */}
       <div className="print-running-header">
         <div className="print-header-left">
-          <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="print-header-logo" />
+          <img src={logoSrc} alt="Secure Digital Markets" className="print-header-logo" />
         </div>
         <div className="print-header-right">{dateStr}</div>
       </div>
@@ -623,6 +704,37 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           <p className="report-category">{trade.category} — {trade.description}</p>
         </div>
       </div>
+
+      {/* Missing fields panel — shown when required numeric fields are NaN */}
+      {missingFields.length > 0 && (
+        <div className="missing-fields-panel">
+          <div className="missing-fields-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Some required fields are missing. Fill them in to complete the report.</span>
+          </div>
+          <div className="missing-fields-grid">
+            {missingFields.map(f => (
+              <div key={f.key} className="missing-field-item">
+                <label className="missing-field-label">{f.label}</label>
+                <input
+                  className="missing-field-input"
+                  type="number"
+                  placeholder={f.placeholder || "—"}
+                  value={missingEdits[f.key] ?? ""}
+                  onChange={e => handleMissingFieldChange(f.key, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            className="missing-fields-apply"
+            disabled={Object.keys(missingEdits).length === 0}
+            onClick={handleMissingFieldApply}
+          >
+            Apply &amp; Update Report
+          </button>
+        </div>
+      )}
 
       {/* Executive Summary — editable */}
       <div className="report-section exec-summary reveal-section reveal-delay-2">
@@ -695,7 +807,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           </div>
         </div>
         <div className="chart-container">
-          <PayoffChart analysis={analysis} accentColor={trade.color} />
+          <PayoffChart analysis={analysis} accentColor={trade.color} chartColors={chartColors} adaptLegColor={adaptLegColor} />
         </div>
       </div>
 
@@ -713,11 +825,69 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               <span className={`leg-action leg-action-${leg.action.toLowerCase()}`}>{leg.action}</span>
               <span className="leg-type">{leg.type}</span>
               <span className="leg-detail">{leg.label}</span>
-              <span className="leg-color-bar" style={{ background: leg.color }} />
+              <span className="leg-color-bar" style={{ background: adaptLegColor(leg.color) }} />
             </div>
           ))}
         </div>
       </div>
+
+      {/* Loan Structure — rendered when AI generated a combined loan + derivatives structure */}
+      {loanComponent && (() => {
+        const loan = computeLendingProposal({
+          collateralAsset: loanComponent.collateralAsset,
+          collateralUnits: loanComponent.collateralUnits,
+          pricePerUnit: loanComponent.pricePerUnit,
+          termMonths: loanComponent.termMonths,
+          ltv: loanComponent.ltv || "65",
+          annualRate: loanComponent.annualRate || "8",
+          arrangementFee: loanComponent.arrangementFee || "2",
+        });
+        if (loan.error) return null;
+        return (
+          <div className="report-section loan-structure-section reveal-section reveal-delay-6">
+            <div className="loan-section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+              <h2 className="section-title" style={{marginBottom: 0}}>Loan Structure</h2>
+              <span className="loan-section-badge">SDM LENDING</span>
+            </div>
+            {loanComponent.useOfProceeds && (
+              <p className="loan-use-of-proceeds">
+                <strong>Use of Proceeds:</strong> {loanComponent.useOfProceeds}
+              </p>
+            )}
+            <div className="loan-kpis">
+              <div className="loan-kpi">
+                <div className="loan-kpi-label">Gross Loan</div>
+                <div className="loan-kpi-value">${lendFmt(loan.grossLoan)}</div>
+                <div className="loan-kpi-sub">{loanComponent.ltv || 65}% LTV</div>
+              </div>
+              <div className="loan-kpi">
+                <div className="loan-kpi-label">Net Proceeds</div>
+                <div className="loan-kpi-value loan-kpi-positive">${lendFmt(loan.netLoanProceeds)}</div>
+                <div className="loan-kpi-sub">After {loanComponent.arrangementFee || 2}% arrangement fee</div>
+              </div>
+              <div className="loan-kpi">
+                <div className="loan-kpi-label">Quarterly Interest</div>
+                <div className="loan-kpi-value">${lendFmt(loan.quarterlyPayment)}</div>
+                <div className="loan-kpi-sub">{loanComponent.annualRate || 8}% APR · {loan.termMonths}mo term</div>
+              </div>
+              <div className="loan-kpi loan-kpi-warn">
+                <div className="loan-kpi-label">Margin Call Level</div>
+                <div className="loan-kpi-value loan-kpi-negative">${lendFmt(loan.marginCallPrice)}</div>
+                <div className="loan-kpi-sub">70% of FMP · 5-day cure window</div>
+              </div>
+            </div>
+            <div className="loan-terms-grid">
+              <div className="loan-term-row"><span className="loan-term-label">Collateral</span><span className="loan-term-val">{lendFmt(loanComponent.collateralUnits)} {loanComponent.collateralAsset} @ ${lendFmt(loanComponent.pricePerUnit)}</span></div>
+              <div className="loan-term-row"><span className="loan-term-label">Collateral Value</span><span className="loan-term-val">${lendFmt(loan.collateralValue)}</span></div>
+              <div className="loan-term-row"><span className="loan-term-label">Arrangement Fee</span><span className="loan-term-val">${lendFmt(loan.arrangementFeeAmount)}</span></div>
+              <div className="loan-term-row"><span className="loan-term-label">Total Interest</span><span className="loan-term-val">${lendFmt(loan.totalInterest)}</span></div>
+              <div className="loan-term-row"><span className="loan-term-label">All-In Cost</span><span className="loan-term-val">${lendFmt(loan.totalCost)}</span></div>
+              <div className="loan-term-row"><span className="loan-term-label">Effective Rate</span><span className="loan-term-val">{loan.effectiveRate.toFixed(2)}% p.a.</span></div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Risk Summary */}
       <div className="report-section reveal-section reveal-delay-6">
@@ -736,78 +906,12 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               <span className="risk-sub">{m.sub}</span>
             </div>
           ))}
-          {analysis.metrics.filter(m => m.positive).map((m, i) => (
-            <div key={i} className="risk-item risk-item-good">
-              <span className="risk-label">{m.label}</span>
-              <span className="risk-value">{m.value}</span>
-              <span className="risk-sub">{m.sub}</span>
-            </div>
-          ))}
         </div>
       </div>
 
-      {/* Loan Structure — rendered when a combined loan + derivatives structure was requested */}
-      {loanComponent && (() => {
-        const loan = computeLendingProposal({
-          collateralAsset: loanComponent.collateralAsset,
-          collateralUnits: loanComponent.collateralUnits,
-          pricePerUnit: loanComponent.pricePerUnit,
-          termMonths: loanComponent.termMonths,
-          ltv: loanComponent.ltv || "65",
-          annualRate: loanComponent.annualRate || "8",
-          arrangementFee: loanComponent.arrangementFee || "2",
-        });
-        if (loan.error) return null;
-        const $k = v => `$${typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : v}`;
-        return (
-          <div className="report-section loan-structure-section reveal-section">
-            <div className="loan-section-header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-              <h2 className="section-title" style={{ color: "#4ade80" }}>Loan Structure</h2>
-            </div>
-            <div className="loan-kpis">
-              {[
-                { label: "Gross Loan", value: $k(loan.grossLoan), sub: loan.loanCurrency },
-                { label: "Net Proceeds", value: $k(loan.netLoanProceeds), sub: `After ${lendFmt(loan.arrangementFeeRate * 100)}% fee` },
-                { label: "Quarterly Interest", value: $k(loan.quarterlyPayment), sub: `${(loan.annualRate * 100).toFixed(0)}% p.a.` },
-                { label: "Margin Call", value: $k(loan.marginCallPrice), sub: "70% of FMP trigger" },
-              ].map((kpi, i) => (
-                <div key={i} className="loan-kpi">
-                  <div className="loan-kpi-label">{kpi.label}</div>
-                  <div className="loan-kpi-value">{kpi.value}</div>
-                  <div className="loan-kpi-sub">{kpi.sub}</div>
-                </div>
-              ))}
-            </div>
-            <div className="loan-terms-grid">
-              {[
-                ["Collateral", `${lendFmt(loan.collateralUnits)} ${loan.collateralAsset}`],
-                ["Collateral Value", `$${lendFmt(loan.collateralValue)}`],
-                ["LTV", `${(loan.ltv * 100).toFixed(0)}%`],
-                ["Term", `${loan.termMonths} months`],
-                ["Arrangement Fee", `$${lendFmt(loan.arrangementFeeAmount)}`],
-                ["Total Interest", `$${lendFmt(loan.totalInterest)}`],
-                ["All-In Cost", `$${lendFmt(loan.totalCost)}`],
-                ["Effective Rate", `${loan.effectiveRate.toFixed(2)}% p.a.`],
-              ].map(([label, val], i) => (
-                <div key={i} className="loan-term-row">
-                  <span className="loan-term-label">{label}</span>
-                  <span className="loan-term-value">{val}</span>
-                </div>
-              ))}
-            </div>
-            {loanComponent.useOfProceeds && (
-              <div className="loan-use-of-proceeds">
-                <strong>Use of Proceeds:</strong> {loanComponent.useOfProceeds}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* Share & Export Bar */}
       <div className="report-share-bar">
-        <img src="/sdm-logo-full.svg" alt="SDM" className="share-bar-logo" />
+        <img src={logoSrc} alt="SDM" className="share-bar-logo" />
         <div className="share-group">
           <span className="share-label">Share</span>
           <button className="share-btn share-telegram" onClick={() => handleShare("telegram", trade, analysis)}>
@@ -828,7 +932,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           </button>
         </div>
         <div className="share-group">
-          <button className="btn-export-pdf" onClick={() => handleShareLink(reportRef, trade, setLinkText)}>
+          <button className="btn-export-pdf" onClick={() => handleShareLink(trade, fieldValues, loanComponent, setLinkText)}>
             {linkText}
           </button>
         </div>
@@ -850,7 +954,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
       <div className="report-footer-cta">
         <div className="footer-cta-divider" />
         <div className="footer-cta-content">
-          <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="footer-cta-logo" />
+          <img src={logoSrc} alt="Secure Digital Markets" className="footer-cta-logo" />
           <p className="footer-cta-tagline">The Institutional Choice for <span className="tagline-gold">Digital</span> <span className="tagline-blue">Asset</span> Trading</p>
           <div className="footer-cta-contacts">
             <a href="mailto:sales@sdm.co" className="footer-cta-link">
