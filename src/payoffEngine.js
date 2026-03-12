@@ -31,8 +31,15 @@ export function generateExecutiveSummary(tradeId, fields) {
   };
 
   switch (tradeId) {
-    case "long_seagull":
-      return `This trade establishes a structured options position on ${asset} designed to capture upside price appreciation while limiting downside exposure. The structure is "premium-neutral," meaning there is no upfront cost to enter the trade — the premiums collected from selling options offset the cost of purchased options. If ${asset} rises above ${fmtN(fields.lower_call)}, the position generates profit up to a maximum of ${fmtN(fields.max_pnl)} at ${fmtN(fields.upper_call)}. Below ${fmtN(fields.lower_put)}, the position is exposed to losses as the portfolio would be obligated to purchase ${asset} at that level. The trade expires on ${fields.expiry || "the target date"} and involves ${fields.contracts || "the specified number of"} contracts.`;
+    case "long_seagull": {
+      const spot = parseNum(fields.spot);
+      const lp = parseNum(fields.lower_put), lc = parseNum(fields.lower_call), uc = parseNum(fields.upper_call);
+      return `This is a zero-cost options structure on ${asset}, consisting of a sold put at ${fmtN(lp)}, a bought call at ${fmtN(lc)}, and a sold call at ${fmtN(uc)}. The premiums received from the two short legs fully offset the cost of the long call — net premium paid is zero.
+
+Above ${fmtN(lc)} at expiry, the position generates profit up to a maximum of ${fmtN(fields.max_pnl)} at ${fmtN(uc)}. Above ${fmtN(uc)}, the sold call caps further participation. Below ${fmtN(lp)}, you are obligated to purchase ${asset} at that level — the maximum loss is not bounded by premium but by the put strike. The structure covers ${fields.contracts || "the specified number of"} contracts and expires ${fields.expiry || "on the target date"}.
+
+The key trade-off: no upfront cost in exchange for capped upside at ${fmtN(uc)} and downside obligation below ${fmtN(lp)}. This structure is only appropriate if you are prepared to take delivery of ${asset} at the put strike.`;
+    }
 
     case "reverse_cash_carry": {
       const pv = parseNum(fields.portfolio_value) || (parseNum(fields.spot_price) * parseNum(fields.btc_amount)) || 0;
@@ -40,26 +47,72 @@ export function generateExecutiveSummary(tradeId, fields) {
       const cashAmt = pv * (crPct / 100);
       const mgPct = parseNum(fields.margin_pct) || 15;
       const liqPx = parseNum(fields.spot_price) && parseNum(fields.btc_amount) ? parseNum(fields.spot_price) + (pv * mgPct / 100) / parseNum(fields.btc_amount) : 0;
-      return `This strategy allows the portfolio to unlock liquidity from an existing ${asset} position without selling the asset. By simultaneously holding the spot position and opening an offsetting short perpetual futures contract, the portfolio maintains full price exposure while freeing up approximately ${crPct}% of the position's value as deployable capital — approximately ${fmtN(cashAmt)}. The ongoing cost of this structure is the funding rate, currently estimated at ${fields.funding_rate || "~10"}% APR. Only ${mgPct}% of the portfolio value needs to remain posted as margin.${liqPx ? ` Liquidation risk begins if ${asset} rises above ${fmtN(liqPx)} (margin fully depleted).` : ""} ${fields.client_use_case ? `The released capital is intended for: ${fields.client_use_case}.` : ""} This is executed on ${fields.exchange || "the designated exchange"}.`;
+      return `This structure holds spot ${asset} long while shorting an equivalent notional in perpetual futures on ${fields.exchange || "the designated exchange"}. The two legs offset each other's directional exposure, producing a delta-neutral book. The net effect: approximately ${fmtN(cashAmt)} (${crPct}% of position value) is freed from collateral requirements, with ${mgPct}% of portfolio value retained as margin on the short leg.
+
+The ongoing cost of carry is the funding rate, currently estimated at ${fields.funding_rate || "~10"}% APR — paid when funding is positive (longs pay shorts). The short futures leg introduces liquidation risk if ${asset} rises sharply: ${liqPx ? `liquidation on the short begins near ${fmtN(liqPx)}, at which point margin is exhausted.` : "refer to exchange margin tables for the specific liquidation level."} ${fields.client_use_case ? ` Released capital is designated for: ${fields.client_use_case}.` : ""}
+
+The structure does not change your net ${asset} exposure — a spot price increase still benefits the long leg in proportion to the short leg's loss. The primary risk is funding rate turning negative (shorts pay longs) or a sharp enough rally to trigger liquidation before the margin can be replenished.`;
     }
 
-    case "covered_call":
-      return `This income strategy generates premium by selling call options against an existing ${asset} position of ${fields.holdings || 10} units currently held at a cost basis of ${$(fields.cost_basis)}. The portfolio collects ${$(fields.premium)} per unit in premium income by granting another party the right to purchase the holdings at ${$(fields.strike)}. If ${asset} remains below ${$(fields.strike)} at expiry (${fields.expiry || "the target date"}), the portfolio retains the position and the full premium. If ${asset} rises above the strike, the position is called away at ${$(fields.strike)} plus the premium collected. The position is protected down to a breakeven of ${$((parseNum(fields.cost_basis) - parseNum(fields.premium)).toFixed(2))}. The annualized return on this premium is approximately ${fields.current_price && fields.dte ? ((parseNum(fields.premium) / parseNum(fields.current_price)) * (365 / parseNum(fields.dte)) * 100).toFixed(1) : "N/A"}%.`;
+    case "covered_call": {
+      const annReturn = fields.current_price && fields.dte ? ((parseNum(fields.premium) / parseNum(fields.current_price)) * (365 / parseNum(fields.dte)) * 100).toFixed(1) : "N/A";
+      const breakeven = (parseNum(fields.cost_basis) - parseNum(fields.premium)).toFixed(2);
+      const totalIncome = (parseNum(fields.premium) * (parseNum(fields.holdings) || 1)).toFixed(0);
+      return `You hold ${fields.holdings || 10} ${asset} at a cost basis of ${$(fields.cost_basis)}. This trade sells a call at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, collecting ${$(fields.premium)} per unit — ${$(totalIncome)} total — or approximately ${annReturn}% annualized on the current price. The premium is received immediately and is yours regardless of outcome.
 
-    case "cash_secured_put":
-      return `This strategy generates income by selling put options on ${asset}, currently trading at ${$(fields.current_price)}. The portfolio collects ${$(fields.premium)} per unit in premium by committing to purchase ${asset} at ${$(fields.strike)} if the price falls to that level by ${fields.expiry || "the expiry date"}. This requires ${fmtN(fields.capital_required)} in capital to be held in reserve. If the option expires worthless (${asset} stays above ${$(fields.strike)}), the portfolio keeps the full premium as profit. If assigned, the effective purchase price would be ${$(fields.effective_basis || (parseNum(fields.strike) - parseNum(fields.premium)).toFixed(2))} — a ${((1 - (parseNum(fields.strike) - parseNum(fields.premium)) / parseNum(fields.current_price)) * 100).toFixed(1)}% discount to the current market price.`;
+If ${asset} is below ${$(fields.strike)} at expiry, the option expires worthless and you retain your full position. If ${asset} is above ${$(fields.strike)} at expiry, your holdings are called away at that price. Upside above ${$(fields.strike)} is forfeited. Your effective downside breakeven, after premium, is ${$(breakeven)}.
 
-    case "leap":
-      return `This position takes a long-term directional view on ${asset} through a long-dated call option expiring ${fields.expiry || "in the future"} (${fields.dte || "300+"} days out). Rather than purchasing the asset outright, the portfolio acquires ${fields.contracts || 1} call option contract(s) at a ${$(fields.strike)} strike price for ${$(fields.premium)} per unit, committing ${fmtN(fields.total_outlay)} in total capital. This provides leveraged upside exposure — if ${asset} appreciates significantly, the percentage return on capital deployed is magnified compared to owning the asset directly. The maximum risk is limited to the ${fmtN(fields.total_outlay)} premium paid. The position breaks even at ${$((parseNum(fields.strike) + parseNum(fields.premium)).toFixed(2))}, requiring a ${((parseNum(fields.strike) + parseNum(fields.premium)) / parseNum(fields.current_price) * 100 - 100).toFixed(1)}% move from current levels.`;
+IV Rank is ${fields.iv_rank}% — a higher reading implies relatively elevated premiums versus recent history. The ${fields.delta} delta at the chosen strike reflects the market-implied probability of assignment. If ${asset} is called away and you wish to re-establish the position, you will need to re-enter at the prevailing spot price.`;
+    }
 
-    case "wheel":
-      return `The Wheel is a systematic income generation strategy on ${asset} that cycles between selling cash-secured puts and covered calls. The portfolio is currently in the "${fields.current_phase || "active"}" phase, having completed ${fields.cycles_completed || 0} full cycles. To date, the strategy has collected ${$(fields.total_premium)} in cumulative premium, reducing the effective cost basis to ${$(fields.cost_basis)} per unit. The current active position has a strike of ${$(fields.current_strike)} generating ${$(fields.current_premium)} in premium. The annualized return on this strategy is approximately ${fields.annualized_return || "N/A"}%. The strategy is designed to generate consistent income in range-bound or moderately trending markets.`;
+    case "cash_secured_put": {
+      const effectiveBasis = parseNum(fields.effective_basis) || (parseNum(fields.strike) - parseNum(fields.premium));
+      const discount = ((1 - effectiveBasis / parseNum(fields.current_price)) * 100).toFixed(1);
+      return `${asset} is currently at ${$(fields.current_price)}. This trade sells a put at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, collecting ${$(fields.premium)} per unit. The full capital requirement of ${fmtN(fields.capital_required)} is held in reserve to cover potential assignment.
 
-    case "collar":
-      return `This hedging strategy protects an existing ${fields.holdings || 50}-unit position in ${asset} (currently at ${$(fields.current_price)}, cost basis ${$(fields.cost_basis)}) by establishing a price floor at ${$(fields.put_strike)} through a purchased put option, while partially funding that protection by selling a call option at ${$(fields.call_strike)}. The net cost of this protection is ${$((parseNum(fields.put_premium) - parseNum(fields.call_premium)).toFixed(2))} per unit${parseNum(fields.put_premium) <= parseNum(fields.call_premium) ? " (net credit — the protection generates income)" : ""}. The portfolio value is protected down to ${$(fields.put_strike)} (${fmtN(fields.protected_value)} in total protected value), with upside participation capped at ${$(fields.call_strike)}. This structure expires ${fields.expiry || "on the target date"}.`;
+If ${asset} is above ${$(fields.strike)} at expiry, the option expires worthless and you keep the premium — no ${asset} is purchased. If ${asset} is at or below ${$(fields.strike)} at expiry, you are assigned and purchase ${asset} at an effective cost basis of ${$(effectiveBasis.toFixed(2))} — ${discount}% below the current spot price, net of premium received. There is no further downside protection below the strike; the position behaves identically to long spot below that level.
 
-    case "earnings_play":
-      return `This analysis evaluates the risk profile of an existing ${fields.position_type || "options"} position in ${asset} heading into the event on ${fields.event_date || "the upcoming date"}. The market is currently pricing an expected move of ±${fields.expected_move_pct}% (approximately ${$((parseNum(fields.current_price) * parseNum(fields.expected_move_pct) / 100).toFixed(2))} in either direction). The current position at the ${$(fields.strike)} strike has collected ${$(fields.premium_collected)} in premium, providing a ${((parseNum(fields.premium_collected) / parseNum(fields.current_price)) * 100).toFixed(1)}% cushion against adverse moves. Historical context: the last three event reactions were ${fields.last_3_reactions || "N/A"}. Recommendation: ${fields.recommendation || "under review"}.`;
+IV Rank is ${fields.iv_rank}%. The ${fields.delta} delta indicates the market-implied probability of expiring in the money is approximately ${(Math.abs(parseNum(fields.delta)) * 100).toFixed(0)}%. This trade is only appropriate if you are prepared to own ${asset} at the strike price.`;
+    }
+
+    case "leap": {
+      const breakeven = (parseNum(fields.strike) + parseNum(fields.premium)).toFixed(2);
+      const bePct = ((parseNum(fields.strike) + parseNum(fields.premium)) / parseNum(fields.current_price) * 100 - 100).toFixed(1);
+      return `This is a long call position: ${fields.contracts || 1} contract(s) at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, purchased for ${fmtN(fields.total_outlay)} in total premium. ${asset} is currently at ${$(fields.current_price)}. The position has a delta of ${fields.delta} and ${fields.dte || "300+"} days to expiry.
+
+The breakeven at expiry is ${$(breakeven)} — a ${bePct}% move from the current price. Above that level, the position is profitable in proportion to how far ${asset} exceeds the breakeven. The maximum loss is the ${fmtN(fields.total_outlay)} premium paid, incurred in full if ${asset} is at or below ${$(fields.strike)} at expiry.${fields.target_price ? ` At the stated target of ${$(fields.target_price)}, the intrinsic value at expiry would be ${$(Math.max(0, parseNum(fields.target_price) - parseNum(fields.strike)))} per unit.` : ""}
+
+Time decay (theta) works against this position daily. A ${fields.dte || "300+"}-day expiry reduces — but does not eliminate — the rate of time value erosion versus shorter-dated options. If ${asset} does not reach the breakeven before expiry, the entire premium is lost.`;
+    }
+
+    case "wheel": {
+      const effectiveBasis = (parseNum(fields.cost_basis) - parseNum(fields.total_premium)).toFixed(2);
+      return `This is a summary of the ongoing Wheel strategy on ${asset}. After ${fields.cycles_completed || 0} completed cycles, cumulative premium collected totals ${$(fields.total_premium)}, reducing your adjusted cost basis from ${$(fields.cost_basis)} to ${$(effectiveBasis)} per unit. The strategy is currently in the "${fields.current_phase || "active"}" phase.
+
+The active leg is a ${$(fields.current_strike)} strike generating ${$(fields.current_premium)} this cycle. Annualized return on committed capital is approximately ${fields.annualized_return || "N/A"}%. Each cycle alternates between cash-secured puts (when not holding the asset) and covered calls (when holding), with strike selection determining both the premium collected and the assignment risk.
+
+The strategy generates income in exchange for two specific obligations: to buy ${asset} at the put strike if assigned, and to sell ${asset} at the call strike if called away. Performance deteriorates in trending markets — a sharp directional move can either result in purchasing ${asset} well above market (on an upward gap through the put strike) or being called away before the full upside is captured.`;
+    }
+
+    case "collar": {
+      const netCost = parseNum(fields.put_premium) - parseNum(fields.call_premium);
+      const isCredit = netCost <= 0;
+      return `You hold ${fields.holdings || 50} ${asset} at a cost basis of ${$(fields.cost_basis)}, currently priced at ${$(fields.current_price)}. This trade buys a put at ${$(fields.put_strike)} and sells a call at ${$(fields.call_strike)}, both expiring ${fields.expiry || "on the target date"}. Net cost: ${isCredit ? `credit of ${$(Math.abs(netCost).toFixed(2))} per unit received` : `${$(netCost.toFixed(2))} per unit paid`}.
+
+Below ${$(fields.put_strike)}, losses on the spot position are offset by the put — your total downside is capped regardless of how far ${asset} falls. Above ${$(fields.call_strike)}, gains on the spot position are offset by the short call — you do not participate in any rally beyond that level. Between the two strikes, the position moves dollar-for-dollar with ${asset}. Total protected value: ${fmtN(fields.protected_value)}.
+
+The collar converts an open-ended risk profile into a bounded range. The cost of that downside protection is the forfeiture of upside above ${$(fields.call_strike)}. If ${asset} rallies significantly above the call strike, the opportunity cost may be substantial relative to holding unhedged.`;
+    }
+
+    case "earnings_play": {
+      const expectedMoveDollar = (parseNum(fields.current_price) * parseNum(fields.expected_move_pct) / 100).toFixed(0);
+      const cushionPct = ((parseNum(fields.premium_collected) / parseNum(fields.current_price)) * 100).toFixed(1);
+      return `${asset} is at ${$(fields.current_price)} ahead of the ${fields.event_date || "upcoming"} event. The options market is pricing a ±${fields.expected_move_pct}% implied move, equivalent to approximately ${$(expectedMoveDollar)} in either direction. The current ${fields.position_type || "options"} position is at the ${$(fields.strike)} strike, with ${$(fields.premium_collected)} in collected premium — a ${cushionPct}% buffer before the position begins losing.
+
+For the position to remain profitable, ${asset} must stay within the implied move range on the relevant side. The last three comparable events produced: ${fields.last_3_reactions || "data not available"}. That history does not predict this outcome but provides context on whether the implied move is consistent with realized moves.
+
+Assessment: <strong>${fields.recommendation || "under review"}</strong>. ${fields.recommendation === "Hold Through Event" ? `Premium collected exceeds the breakeven move required — the position has positive expected value relative to historical realized moves at this event type. Hold unless the position size is disproportionate to risk tolerance.` : fields.recommendation === "Close Before Event" ? `Closing before the event locks in accumulated premium and removes binary gap risk. The remaining time value does not justify the event exposure.` : fields.recommendation === "Roll to Later Date" ? `Rolling to a later expiry captures the remaining premium advantage while removing this specific event from the risk window.` : `Review position sizing ahead of the event. Binary events can produce moves that exceed the implied range.`}`;
+    }
 
     default:
       return "Trade analysis summary is being prepared.";
@@ -248,14 +301,17 @@ function computeCoveredCall(f) {
     return positionPnl + callPnl;
   });
 
+  const totalIncome = premium * holdings;
+  const unrealizedGain = price > 0 && cost > 0 ? ((price - cost) * holdings) : 0;
+
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
-      { label: "Max Profit", value: fmt(maxProfit), sub: `At ${fmtFull(strike)}+`, positive: true },
-      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Downside" },
-      { label: "Premium", value: fmtFull(premium), sub: `${annReturn}% ann.`, positive: true },
-      { label: "IV Rank / DTE", value: `${f.iv_rank}% / ${dte}d`, sub: `${n(f.delta)} delta` },
+      { label: "Premium Income", value: fmtFull(totalIncome), sub: `${annReturn}% ann. return`, positive: true },
+      { label: "Max Profit", value: fmt(maxProfit), sub: `If called at ${fmtFull(strike)}`, positive: true },
+      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Downside protection" },
+      { label: "Unrealized Gain", value: fmt(unrealizedGain), sub: `${holdings} units · ${f.iv_rank}% IV`, positive: unrealizedGain >= 0 },
     ],
     legs: [
       { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ ${fmtFull(cost)}`, color: "#00C2FF" },
@@ -288,14 +344,16 @@ function computeCashSecuredPut(f) {
     return p - strike + premium;
   });
 
+  const discountToCurrent = price > 0 ? ((1 - effectiveBasis / price) * 100).toFixed(1) : "0";
+
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
-      { label: "Max Income", value: fmt(maxProfit), sub: `${returnOnCapital}% ann.`, positive: true },
-      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Assignment" },
-      { label: "Capital Req.", value: fmt(capital), sub: `Eff. basis ${fmtFull(effectiveBasis)}` },
-      { label: "IV Rank / DTE", value: `${f.iv_rank}% / ${dte}d`, sub: `${f.delta} delta` },
+      { label: "Premium Income", value: fmtFull(maxProfit), sub: `${returnOnCapital}% ann. return`, positive: true },
+      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "If assigned" },
+      { label: "Effective Basis", value: fmtFull(effectiveBasis), sub: `${discountToCurrent}% below spot`, positive: true },
+      { label: "Capital Req.", value: fmt(capital), sub: `${f.iv_rank}% IV · ${dte}d · ${f.delta} Δ` },
     ],
     legs: [
       { action: "SELL", type: "Put", strike, label: `${fmtFull(strike)} Put @ ${fmtFull(premium)}`, color: "#A78BFA" },
@@ -314,25 +372,40 @@ function computeLeap(f) {
   const contracts = n(f.contracts) || 1;
   const totalOutlay = n(f.total_outlay) || premium * contracts;
   const dte = n(f.dte);
+  const target = n(f.target_price);
 
   const breakeven = strike + premium;
+  const chartMax = target > breakeven * 1.4 ? target * 1.1 : breakeven * 1.4;
   const minP = strike * 0.7;
-  const maxP = breakeven * 1.4;
+  const maxP = chartMax;
 
   const curve = buildCurve(minP, maxP, (p) => {
     if (p <= strike) return -totalOutlay;
     return ((p - strike) * contracts) - totalOutlay;
   });
 
+  // Key stats
+  const profitAtTarget = target > strike ? ((target - strike) * contracts) - totalOutlay : null;
+  const returnOnCapital = profitAtTarget !== null && totalOutlay > 0 ? (profitAtTarget / totalOutlay * 100) : null;
+  const leverageMultiple = price > 0 && premium > 0 ? (n(f.delta) * price / premium) : null;
+
+  const metrics = [
+    { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
+    { label: "Capital at Risk", value: fmt(totalOutlay), sub: `${contracts} contracts`, negative: true },
+    { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: `+${((breakeven / price - 1) * 100).toFixed(1)}%` },
+  ];
+
+  if (profitAtTarget !== null) {
+    metrics.push({ label: "Profit at Target", value: fmt(profitAtTarget), sub: `at ${fmtFull(target)}`, positive: true });
+    metrics.push({ label: "Return on Capital", value: `${returnOnCapital.toFixed(0)}%`, sub: `${(profitAtTarget / totalOutlay + 1).toFixed(1)}x capital`, positive: true });
+  }
+
+  metrics.push({ label: "Delta / Leverage", value: `${f.delta} / ${leverageMultiple ? leverageMultiple.toFixed(1) + "x" : "—"}`, sub: `${dte}d · ${f.expiry || ""}` });
+
   return {
     curve, spot: price, breakevens: [breakeven],
-    metrics: [
-      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
-      { label: "Capital at Risk", value: fmt(totalOutlay), sub: `${contracts} contracts`, negative: true },
-      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: `+${((breakeven / price - 1) * 100).toFixed(1)}%` },
-      { label: "Delta", value: f.delta, sub: `Leverage ~${(n(f.delta) * price / premium).toFixed(1)}x` },
-      { label: "DTE", value: `${dte}d`, sub: f.expiry || "" },
-    ],
+    ...(target ? { annotations: [{ price: target, label: "Target", color: "#4ADE80" }] } : {}),
+    metrics,
     legs: [
       { action: "BUY", type: "Call (Long-Dated)", strike, label: `${fmtFull(strike)} Call @ ${fmtFull(premium)}`, color: "#FB923C" },
     ],

@@ -11,7 +11,7 @@ const {
   CANVA_CLIENT_ID,
   CANVA_CLIENT_SECRET,
   CANVA_REDIRECT_URI,
-  PORT = 3002,
+  API_PORT = 3003,
 } = process.env;
 
 const CANVA_API = "https://api.canva.com/rest/v1";
@@ -252,8 +252,17 @@ app.post("/api/canva/export", async (req, res) => {
   }
 });
 
+// ─── Claude API — generate executive summary ───
+app.post("/api/generate", async (req, res) => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
+
+  const generateHandler = require("./api/generate");
+  return generateHandler(req, res);
+});
+
 // ─── Start ───
-app.listen(PORT, () => {
-  console.log(`SDM Trade Studio API running on http://localhost:${PORT}`);
-  console.log(`Connect Canva: http://localhost:${PORT}/auth/canva`);
+app.listen(API_PORT, () => {
+  console.log(`SDM Trade Studio API running on http://localhost:${API_PORT}`);
+  console.log(`Connect Canva: http://localhost:${API_PORT}/auth/canva`);
 });

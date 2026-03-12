@@ -1,5 +1,40 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { fmt, fmtInt } from "./lendingEngine";
+
+// ─── REPORT THEMES (mirrors TradeReport) ───
+const REPORT_THEMES = {
+  dark: {
+    "--bg": "#0a0a0f", "--bg2": "#111118", "--bg3": "#16161f", "--bg4": "#1c1c28",
+    "--border": "rgba(255,255,255,0.06)", "--border-light": "rgba(255,255,255,0.11)", "--border-gold": "rgba(255,195,44,0.20)",
+    "--text": "#f0f0f5", "--text-muted": "#8a8a9a", "--text-dim": "#55556a",
+    "--amber": "#FFC32C", "--amber-dark": "#D4910A", "--amber-glow": "rgba(255,195,44,0.15)",
+    "--gold": "#FFC32C", "--gold-dark": "#D4910A", "--gold-glow": "rgba(255,195,44,0.15)",
+    "--glass-surface": "rgba(255,255,255,0.03)", "--glass-card": "rgba(255,255,255,0.05)", "--glass-focus": "rgba(255,255,255,0.09)",
+    "--glass-border-1": "rgba(255,255,255,0.06)", "--glass-border-2": "rgba(255,255,255,0.10)", "--glass-border-3": "rgba(255,255,255,0.15)",
+    "--shadow-xs": "0 1px 2px rgba(0,0,0,0.40)",
+    "--shadow-sm": "0 2px 8px rgba(0,0,0,0.50), 0 1px 2px rgba(0,0,0,0.30)",
+    "--shadow-md": "0 4px 16px rgba(0,0,0,0.60), 0 2px 4px rgba(0,0,0,0.30)",
+    "--shadow-lg": "0 8px 32px rgba(0,0,0,0.70), 0 4px 8px rgba(0,0,0,0.30)",
+    "--shadow-gold": "0 4px 24px rgba(255,195,44,0.15), 0 2px 8px rgba(255,195,44,0.08)",
+    "--gradient-gold": "#FFC32C", "--gradient-gold-subtle": "linear-gradient(135deg, rgba(255,195,44,0.10), rgba(255,195,44,0.04))",
+  },
+  light: {
+    "--bg": "#F5F0E8", "--bg2": "#FAF7F2", "--bg3": "#F2EDE2", "--bg4": "#EAE4D8",
+    "--border": "rgba(0,0,0,0.08)", "--border-light": "rgba(0,0,0,0.13)", "--border-gold": "rgba(160,100,0,0.25)",
+    "--text": "#0d0d0d", "--text-muted": "#555555", "--text-dim": "#999999",
+    "--amber": "#B87000", "--amber-dark": "#7A4A00", "--amber-glow": "rgba(184,112,0,0.12)",
+    "--gold": "#B87000", "--gold-dark": "#7A4A00", "--gold-glow": "rgba(184,112,0,0.12)",
+    "--teal": "#007A52", "--teal-glow": "rgba(0,122,82,0.12)",
+    "--glass-surface": "rgba(0,0,0,0.025)", "--glass-card": "rgba(0,0,0,0.04)", "--glass-focus": "rgba(0,0,0,0.07)",
+    "--glass-border-1": "rgba(0,0,0,0.07)", "--glass-border-2": "rgba(0,0,0,0.10)", "--glass-border-3": "rgba(0,0,0,0.14)",
+    "--shadow-xs": "0 1px 3px rgba(0,0,0,0.07)",
+    "--shadow-sm": "0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)",
+    "--shadow-md": "0 4px 16px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06)",
+    "--shadow-lg": "0 8px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.07)",
+    "--shadow-gold": "0 4px 24px rgba(184,112,0,0.18), 0 2px 8px rgba(184,112,0,0.10)",
+    "--gradient-gold": "#B87000", "--gradient-gold-subtle": "linear-gradient(135deg, rgba(184,112,0,0.10), rgba(184,112,0,0.04))",
+  },
+};
 
 // ─── RICH TEXT TOOLBAR (same as TradeReport) ───
 function RichTextToolbar() {
@@ -33,7 +68,7 @@ function RichTextToolbar() {
 
 const SDM_LOGO_SVG = `data:image/svg+xml,${encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?><svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 600 231.11"><defs><style>.cls-1{fill:#fff;}.cls-1,.cls-2{stroke-width:0px;}.cls-2{fill:#eec13f;}.cls-3{filter:url(#outer-glow-1);}</style><filter id="outer-glow-1" filterUnits="userSpaceOnUse"><feOffset dx="0" dy="0"/><feGaussianBlur result="blur" stdDeviation="9.89"/><feFlood flood-color="#1851eb" flood-opacity=".28"/><feComposite in2="blur" operator="in"/><feComposite in="SourceGraphic"/></filter></defs><g class="cls-3"><path class="cls-2" d="M38.49,62.99v-12.32c55.08-23.68,103.1-23.66,158.16,0v39.04l-15.32-6.1v-20.36c-35.12-14.65-74.87-20.1-111-5.74l126.04,50.13c-.35,6.04-1.03,11.87-2.04,17.34L38.49,62.99Z"/><path class="cls-2" d="M113.53,203.69c-31.51-18.3-64.08-42.26-74.37-78.81l20.76,7.81c10.7,21.74,31.47,37.38,57.79,53.27,20.35-12.42,34.29-22.88,44.65-34.23l-123.57-49.15c-.36-5.44-.29-12.72-.29-18.27,11.62,4.64,143.04,56.81,149.86,59.74-15.41,27.83-43.18,46.57-70.64,61.69l-4.18-2.07Z"/></g><path class="cls-1" d="M295.28,159.49c-15.27,0-28-3.4-38.87-10.39l6.11-12.22c9.9,6.2,20.8,9.35,32.41,9.35,17.08,0,20.67-5.43,20.67-9.98,0-6.7-5.61-8.38-21.39-9.75-29-2.56-34.5-10.23-34.5-23.48,0-14.92,13.03-23.83,34.87-23.83,12.94,0,23.68,2.86,32.78,8.75l-5.56,11.72c-7.69-4.73-16.82-7.22-26.51-7.22-12.24,0-19.26,3.55-19.26,9.75,0,6.69,5.61,8.37,21.39,9.74,29,2.57,34.5,10.24,34.5,23.49,0,10.98-6.35,24.06-36.63,24.06Z"/><polygon class="cls-1" points="525.36 158.08 525.36 101.02 523.1 100.55 498.16 158.08 487.15 158.08 462.21 100.55 459.95 101.02 459.95 158.08 444.81 158.08 444.81 80.6 468.22 80.6 493.07 137.8 517.79 80.6 541.32 80.6 541.32 158.08 525.36 158.08"/><path class="cls-1" d="M389.06,80.59h-36.04v13.37h34.16c16.42,0,25.84,9.25,25.84,25.37s-9.42,25.37-25.84,25.37h-18.49v-39.9h-15.67v53.28h36.04c25.22,0,40.27-14.48,40.27-38.75s-15.06-38.74-40.27-38.74Z"/></svg>`)}`;
 
-function handleExportPDF(reportRef) {
+function handleExportPDF(reportRef, theme = "dark") {
   if (!reportRef.current) return;
 
   const styleSheets = Array.from(document.styleSheets);
@@ -48,6 +83,10 @@ function handleExportPDF(reportRef) {
   reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
                          .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
 
+  const themeVars = REPORT_THEMES[theme];
+  const rootVarsCss = Object.entries(themeVars).map(([k, v]) => `  ${k}: ${v};`).join("\n");
+  const bgColor = theme === "light" ? "#F5F0E8" : "#0a0a0f";
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,28 +96,22 @@ function handleExportPDF(reportRef) {
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
-  --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
-  --border-gold: rgba(255,195,44,0.20);
-  --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
-  --amber: #F5A623; --gold: var(--amber); --gold-dark: #D4910A; --accent: #4ade80;
+${rootVarsCss}
+  --accent: ${theme === "light" ? "#007A52" : "#4ade80"};
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-serif: 'Sora', -apple-system, sans-serif;
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --gradient-brand: linear-gradient(135deg, #FFC32C 0%, #D4A017 100%);
-  --gradient-gold: #FFC32C;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font-family: var(--font-body); -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+body { background: ${bgColor}; color: var(--text); font-family: var(--font-body); -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 ${cssText}
 @media print {
   @page { size: A4; margin: 0 !important; }
   *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-  html { background: #0a0a0f !important; }
+  html { background: ${bgColor} !important; }
   body {
-    background: #0a0a0f !important;
+    background: ${bgColor} !important;
     padding: 12mm !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -87,7 +120,7 @@ ${cssText}
   .report { max-width: 100% !important; gap: 28px !important; }
   .report-section { break-inside: avoid; }
   .lending-schedule-table { break-inside: avoid; }
-  .report-share-bar, .report-actions, .btn-edit-thesis, .btn-save-thesis, .btn-back, .btn-new-trade { display: none !important; }
+  .report-share-bar, .report-theme-bar, .report-actions, .btn-edit-thesis, .btn-save-thesis, .btn-back, .btn-new-trade { display: none !important; }
   .header, .footer, .breadcrumb { display: none !important; }
 }
 </style>
@@ -106,7 +139,7 @@ ${reportHtml}
   setTimeout(() => { printWindow.print(); }, 800);
 }
 
-function buildLendingStandaloneHtml(reportRef) {
+function buildLendingStandaloneHtml(reportRef, theme = "dark") {
   if (!reportRef.current) return '';
   const styleSheets = Array.from(document.styleSheets);
   let cssText = "";
@@ -116,6 +149,9 @@ function buildLendingStandaloneHtml(reportRef) {
   let reportHtml = reportRef.current.outerHTML;
   reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
                          .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
+  const themeVars = REPORT_THEMES[theme];
+  const rootVarsCss = Object.entries(themeVars).map(([k, v]) => `  ${k}: ${v};`).join("\n");
+  const bgColor = theme === "light" ? "#F5F0E8" : "#0a0a0f";
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/>
 <title>Lending Proposal — SDM</title>
@@ -123,26 +159,24 @@ function buildLendingStandaloneHtml(reportRef) {
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0a0a0f; --bg2: #111118; --bg3: #16161f; --bg4: #1c1c28;
-  --border: rgba(255,255,255,0.06); --border-light: rgba(255,255,255,0.12);
-  --text: #f0f0f5; --text-muted: #8a8a9a; --text-dim: #55556a;
-  --amber: #F5A623; --gold: var(--amber); --gold-dark: #D4910A;
+${rootVarsCss}
+  --accent: ${theme === "light" ? "#007A52" : "#4ade80"};
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-serif: 'Sora', -apple-system, sans-serif;
 }
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--text); font-family: var(--font-body); padding: 32px; }
-.report-share-bar, .report-actions, .btn-edit-thesis, .btn-save-thesis, .btn-back, .btn-new-trade { display: none !important; }
+body { background: ${bgColor}; color: var(--text); font-family: var(--font-body); padding: 32px; }
+.report-share-bar, .report-theme-bar, .report-actions, .btn-edit-thesis, .btn-save-thesis, .btn-back, .btn-new-trade { display: none !important; }
 ${cssText}
 </style></head>
 <body><div style="max-width:900px;margin:0 auto;padding:0 20px;">${reportHtml}</div></body></html>`;
 }
 
-async function handleLendingShareLink(reportRef, data, setLinkText) {
+async function handleLendingShareLink(reportRef, data, setLinkText, theme = "dark") {
   if (!reportRef.current) return;
   setLinkText("Saving...");
-  const fullHtml = buildLendingStandaloneHtml(reportRef);
+  const fullHtml = buildLendingStandaloneHtml(reportRef, theme);
   const filename = `SDM-Lending-${data.collateralAsset}-${new Date().toISOString().slice(0, 10)}.html`;
   try {
     const res = await fetch("/api/share", {
@@ -174,6 +208,18 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
   const [execHtml, setExecHtml] = useState(fieldValues?.executive_summary ? `<p>${fieldValues.executive_summary.replace(/\n/g, "</p><p>")}</p>` : "");
   const [execEditing, setExecEditing] = useState(false);
   const [linkText, setLinkText] = useState("Link");
+  const [reportTheme, setReportTheme] = useState("dark");
+
+  useEffect(() => {
+    const vars = REPORT_THEMES[reportTheme];
+    const root = document.documentElement;
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    root.setAttribute("data-theme", reportTheme);
+    return () => {
+      Object.keys(vars).forEach(k => root.style.removeProperty(k));
+      root.removeAttribute("data-theme");
+    };
+  }, [reportTheme]);
 
   const handleEditorSave = useCallback(() => {
     if (editorRef.current) {
@@ -191,6 +237,9 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
     );
   }
 
+  const isLight = reportTheme === "light";
+  const logoSrc = isLight ? "/sdm-logo-full-dark.svg" : "/sdm-logo-full.svg";
+
   const $ = (v) => `$${fmt(v)}`;
   // Compact format for KPI cards — no decimals for large numbers
   const $k = (v) => {
@@ -202,9 +251,28 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
   const timeStr = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <>
+    <div className="report-wrapper">
+      <div className="report-theme-bar">
+        <span className="report-theme-label">Theme</span>
+        <div className="report-theme-toggle">
+          <button
+            className={`theme-toggle-btn${reportTheme === "dark" ? " active" : ""}`}
+            onClick={() => setReportTheme("dark")}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </button>
+          <button
+            className={`theme-toggle-btn${reportTheme === "light" ? " active" : ""}`}
+            onClick={() => setReportTheme("light")}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Light
+          </button>
+        </div>
+      </div>
       {/* Report body — uses same .report class as TradeReport */}
-      <div className="report" ref={reportRef} style={{ "--accent": "#4ade80" }}>
+      <div className={`report theme-${reportTheme}`} ref={reportRef} style={{ "--accent": isLight ? "#007A52" : "#4ade80" }}>
 
         {/* Report Header */}
         <div className="report-header reveal-section reveal-delay-1">
@@ -213,7 +281,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
               <span className="report-icon">
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>
               </span>
-              <span className="report-tag" style={{ background: "rgba(74,222,128,0.10)", borderColor: "rgba(74,222,128,0.15)", color: "#4ade80" }}>LENDING PROPOSAL</span>
+              <span className="report-tag" style={{ background: isLight ? "rgba(0,122,82,0.10)" : "rgba(74,222,128,0.10)", borderColor: isLight ? "rgba(0,122,82,0.15)" : "rgba(74,222,128,0.15)", color: "var(--accent)" }}>LENDING PROPOSAL</span>
             </div>
             <h1 className="report-title">{data.collateralAsset}-Backed Loan Facility</h1>
             <p className="report-category">Prepared for {data.borrowerName} &mdash; {data.termMonths}-Month Secured Lending Arrangement</p>
@@ -222,9 +290,9 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
 
         {/* KPI Cards */}
         <div className="report-kpis reveal-section reveal-delay-2">
-          <div className="kpi-card" style={{ borderLeftColor: "#4ade80" }}>
+          <div className="kpi-card" style={{ borderLeftColor: "var(--accent)" }}>
             <div className="kpi-label">Net Loan Proceeds</div>
-            <div className="kpi-value" style={{ color: "#4ade80" }}>{$k(data.netLoanProceeds)}</div>
+            <div className="kpi-value" style={{ color: "var(--accent)" }}>{$k(data.netLoanProceeds)}</div>
             <div className="kpi-sub">{data.loanCurrency}</div>
           </div>
           <div className="kpi-card">
@@ -423,7 +491,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             </div>
             <div className="lending-risk-card">
               <div className="lending-risk-label">Price Buffer</div>
-              <div className="lending-risk-value" style={{ color: "#4ade80" }}>{((1 - data.marginCallPrice / data.pricePerUnit) * 100).toFixed(1)}%</div>
+              <div className="lending-risk-value" style={{ color: "var(--accent)" }}>{((1 - data.marginCallPrice / data.pricePerUnit) * 100).toFixed(1)}%</div>
               <div className="lending-risk-sub">Decline from {$(data.pricePerUnit)} before trigger</div>
             </div>
           </div>
@@ -493,7 +561,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         <div className="report-footer-cta">
           <div className="footer-cta-divider" />
           <div className="footer-cta-content">
-            <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="footer-cta-logo" />
+            <img src={logoSrc} alt="Secure Digital Markets" className="footer-cta-logo" />
             <p className="footer-cta-tagline">The Institutional Choice for <span className="tagline-gold">Digital</span> <span className="tagline-blue">Asset</span> Trading</p>
             <div className="footer-cta-contacts">
               <a href="mailto:sales@sdm.co" className="footer-cta-link">
@@ -515,7 +583,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
 
         {/* Share & Export Bar — identical to trade report */}
         <div className="report-share-bar">
-          <img src="/sdm-logo-full.svg" alt="SDM" className="share-bar-logo" />
+          <img src={logoSrc} alt="SDM" className="share-bar-logo" />
           <div className="share-group">
             <span className="share-label">Share</span>
             <button className="share-btn share-telegram" onClick={() => {
@@ -540,13 +608,13 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
               Email
             </button>
-            <button className="share-btn share-pdf" onClick={() => handleExportPDF(reportRef)}>
+            <button className="share-btn share-pdf" onClick={() => handleExportPDF(reportRef, reportTheme)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               PDF
             </button>
           </div>
           <div className="share-group">
-            <button className="btn-export-pdf" onClick={() => handleLendingShareLink(reportRef, data, setLinkText)}>
+            <button className="btn-export-pdf" onClick={() => handleLendingShareLink(reportRef, data, setLinkText, reportTheme)}>
               {linkText}
             </button>
           </div>
@@ -558,6 +626,6 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           <button className="btn-new-trade" onClick={onReset}>New Proposal</button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

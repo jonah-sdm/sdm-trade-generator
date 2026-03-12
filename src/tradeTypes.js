@@ -105,6 +105,7 @@ export const TRADE_TYPES = [
       { key: "iv_rank", label: "IV Rank (%)", type: "number", placeholder: "28", default: "28" },
       { key: "contracts", label: "Contracts", type: "number", placeholder: "10", default: "10" },
       { key: "total_outlay", label: "Total Capital at Risk ($)", type: "number", placeholder: "120000", default: "120000" },
+      { key: "target_price", label: "Price Target ($)", type: "number", placeholder: "120000", default: "120000" },
       { key: "executive_summary", label: "Executive Summary", type: "textarea", placeholder: "Provide market context, macro outlook, catalysts, and rationale for this trade..." },
     ]
   },

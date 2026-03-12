@@ -169,13 +169,11 @@ function computeLendingProposal(inputs) {
 function generateLendingSummary(d) {
   const $ = (v) => `$${fmt(v)}`;
 
-  return `SDM Lending proposes a collateralized loan facility for ${d.borrowerName}, secured against ${fmt(d.units)} ${d.collateralAsset} valued at ${$(d.price)} per unit (Fair Market Price based on 3-day pricing model).
+  return `Rather than liquidating your ${d.collateralAsset} position to access capital, this facility allows you to pledge your holdings as collateral and unlock ${$(d.netLoanProceeds)} ${d.loanCurrency} in liquidity — keeping your upside exposure intact while putting your capital to work.
 
-The total collateral value is ${$(d.collateralValue)}, supporting a gross loan of ${$(d.grossLoan)} at a ${d.ltvPct}% loan-to-value ratio. After deducting the ${d.feePct}% arrangement fee of ${$(d.arrangementFeeAmount)}, net loan proceeds of ${$(d.netLoanProceeds)} ${d.loanCurrency} will be distributed to the borrower at closing.
+Your ${fmt(d.units)} ${d.collateralAsset}, valued at ${$(d.price)} per unit, supports a gross loan of ${$(d.grossLoan)} at a ${d.ltvPct}% loan-to-value ratio. After a ${d.feePct}% arrangement fee of ${$(d.arrangementFeeAmount)}, net proceeds of ${$(d.netLoanProceeds)} are distributed at closing. Interest accrues at ${d.ratePct}% per annum, payable quarterly at ${$(d.quarterlyPayment)} per quarter over the ${d.term}-month term — total interest of ${$(d.totalInterest)}, bringing your all-in cost of borrowing to ${$(d.totalCost)}.
 
-The loan carries an annual interest rate of ${d.ratePct}%, payable quarterly in arrears at ${$(d.quarterlyPayment)} per quarter over ${d.totalQuarters} quarters (${d.term}-month term). Total interest over the life of the loan is ${$(d.totalInterest)}, bringing the all-in cost of borrowing to ${$(d.totalCost)}.
-
-A margin call is triggered if the ${d.collateralAsset} price falls below ${$(d.marginCallPrice)} (70% of FMP) for 3 consecutive business days. Upon notice, the borrower has 5 business days to cure via additional collateral, partial loan repayment, or forfeiture of collateral. There is no early repayment option and no collateral rebalancing on the upside.`;
+A margin call is triggered if ${d.collateralAsset} trades below ${$(d.marginCallPrice)} (70% of Fair Market Price) for three consecutive business days. You have a 5-business-day cure window to respond via additional collateral, partial repayment, or collateral forfeiture. There is no early repayment option and no collateral rebalancing on the upside — the structure is designed for investors with conviction in their holdings and a clear deployment plan for the capital released.`;
 }
 
 export { computeLendingProposal, SUPPORTED_ASSETS, TERMS, fmt, fmtInt };

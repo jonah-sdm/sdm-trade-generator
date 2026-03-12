@@ -16,6 +16,7 @@
     "server": "node server.js",
     "build": "react-scripts build"
   },
+  "proxy": "http://localhost:3003",
   "browserslist": {
     "production": [
       ">0.2%",
