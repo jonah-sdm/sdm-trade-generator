@@ -223,8 +223,6 @@ export default function App() {
   const [assumedFields, setAssumedFields] = useState([]);
   const [loanComponent, setLoanComponent] = useState(null);
   const [showLoanPanel, setShowLoanPanel] = useState(false);
-  const [anthropicKey, setAnthropicKey] = useState(() => localStorage.getItem("sdm_anthropic_key") || "");
-  const [showApiKey, setShowApiKey] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   const skipPushRef = useRef(false);
@@ -458,7 +456,6 @@ export default function App() {
       body: JSON.stringify({
         mode: "select_trade",
         userPrompt: aiPrompt,
-        apiKey: anthropicKey || undefined,
       }),
     })
       .then(r => r.ok ? r.json() : r.json().catch(() => ({})).then(body => Promise.reject({ status: r.status, body })))
@@ -647,7 +644,7 @@ export default function App() {
           <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
           <span className="pill-nav-label">Feedback</span>
         </button>
-        <button className={`pill-nav-item${anthropicKey && anthropicKey.startsWith("sk-ant-") ? " nav-key-set" : ""}`} onClick={() => setShowSettings(true)} title="Settings">
+        <button className="pill-nav-item" onClick={() => setShowSettings(true)} title="Settings">
           <span className="pill-nav-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </span>
@@ -872,12 +869,6 @@ export default function App() {
 
               {error && <div className="error-banner"><span className="error-icon">!</span> {error}</div>}
 
-              {!anthropicKey && (
-                <div className="ai-key-notice">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  <span>No API key set. <button className="ai-key-notice-link" onClick={() => setShowSettings(true)}>Add your Anthropic key in Settings</button> to use AI.</span>
-                </div>
-              )}
 
               <div className="ai-chat-examples">
                 <div className="ai-chat-examples-label">Try an example:</div>
@@ -1414,34 +1405,6 @@ export default function App() {
               </button>
             </div>
 
-            <div className="settings-section">
-              <div className="settings-section-label">Anthropic API Key</div>
-              <p className="settings-section-desc">Required for the Ask AI feature. Get your key from <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{color:"var(--gold)"}}>console.anthropic.com</a>.</p>
-              <div className="api-key-field" style={{marginTop: 10}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <input
-                  className="api-key-input"
-                  type={showApiKey ? "text" : "password"}
-                  placeholder="sk-ant-..."
-                  value={anthropicKey}
-                  onChange={e => {
-                    setAnthropicKey(e.target.value);
-                    localStorage.setItem("sdm_anthropic_key", e.target.value);
-                  }}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button className="api-key-toggle" type="button" onClick={() => setShowApiKey(v => !v)}>
-                  {showApiKey ? "Hide" : "Show"}
-                </button>
-              </div>
-              {anthropicKey && anthropicKey.startsWith("sk-ant-") && (
-                <div className="api-key-ok" style={{marginTop: 8}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  API key saved — Ask AI is ready
-                </div>
-              )}
-            </div>
 
             <div className="settings-footer">
               <button className="btn-generate" style={{width:"100%", justifyContent:"center"}} onClick={() => setShowSettings(false)}>
