@@ -9,7 +9,7 @@ import "./index.css";
 
 const ASK_AI_PRESETS = [
   { id: "strategy-selector", label: "Help me pick the right strategy", prompt: "Client is ready to act but unsure which strategy fits current market conditions. They want the AI to evaluate the setup and recommend the right structure \u2014 whether that\u2019s a cash-secured put, a LEAP, a combination of both, or no trade at all. Walk through the decision in order: IV environment first, then conviction level, then available capital. Do not force a strategy that doesn\u2019t fit the setup. If conditions don\u2019t justify a trade, say so." },
-  { id: "put-strike-optimizer", label: "I want to sell a put — where should I set the strike?", prompt: "Client is considering selling a cash-secured put and wants to find the right strike. Identify key support levels on both the daily and weekly chart based on historical price action. Recommend a strike at or below those levels that still offers meaningful premium, targeting roughly 80% probability of the premium being kept. Calculate the effective cost basis if assigned (strike minus premium). If no available strike offers a risk/reward worth taking, recommend skipping the trade entirely." },
+  { id: "put-strike-optimizer", label: "I want to sell a put \u2014 where should I set the strike?", prompt: "Client is considering selling a cash-secured put and wants to find the right strike. Identify key support levels on both the daily and weekly chart based on historical price action. Recommend a strike at or below those levels that still offers meaningful premium, targeting roughly 80% probability of the premium being kept. Calculate the effective cost basis if assigned (strike minus premium). If no available strike offers a risk/reward worth taking, recommend skipping the trade entirely." },
   { id: "covered-call-timing", label: "Should I sell a covered call right now?", prompt: "Client owns shares and wants to know if now is the right time to sell a covered call. Check RSI on both daily and weekly timeframes for overbought signals. Identify the nearest resistance levels where price has historically stalled. Recommend a strike above the client\u2019s cost basis that sits near a resistance level, targeting approximately 0.20 delta at 30 DTE. Calculate total profit including capital gains and all premium collected if shares are called away at that strike. If the trend is still strong and capping upside would be a mistake, recommend waiting rather than selling for the sake of activity." },
   { id: "leap-entry-check", label: "Is it a good time to buy a long-dated option?", prompt: "Client wants to buy a LEAP and needs confirmation that all entry conditions are aligned before committing capital. Check: daily and weekly RSI for oversold signals; whether price is at a meaningful support level with historical buyer activity; IV rank relative to its recent range (low IV preferred); and whether the options chain is liquid at the strikes being considered. For a 360+ day contract, recommend a strike that balances leverage with a realistic probability of profit. Return a clear go / no-go verdict. If conditions are not aligned, specify exactly what the client should be waiting for." },
   { id: "position-sizing", label: "How big should this position be?", prompt: "Client wants to open an options position and needs a position sizing stress test before entering. Calculate what percentage of the total portfolio would be locked into this position if assigned after a 30% adverse move. Flag any sector concentration or overlap with existing holdings. Determine how many contracts or shares at the strike price can be held while keeping sufficient capital available for other opportunities. Recommend a maximum allocation size where a worst-case outcome is painful but not catastrophic. Client has a known tendency to oversize when conviction is high \u2014 factor that in." },
@@ -21,10 +21,7 @@ const ASK_AI_PRESETS = [
 ];
 
 const AI_RESPONSE_THEMES = {
-  dark:     { bg: "#0d0d0d", surface: "#141414", card: "#1a1a1a", border: "#2a2a2a", accent: "#FFC32C", text: "#FFFFFF",   muted: "#7a7a7a" },
-  charcoal: { bg: "#111110", surface: "#191917", card: "#1f1f1c", border: "#303028", accent: "#FFC32C", text: "#F5F0E8", muted: "#7a7570" },
-  light:    { bg: "#F4F4F4", surface: "#FFFFFF",  card: "#FFFFFF",  border: "#E8E8E8", accent: "#FFC32C", text: "#0d0d0d", muted: "#888888" },
-  midnight: { bg: "#060a12", surface: "#0b1120", card: "#0f1828", border: "#1a2540", accent: "#FFC32C", text: "#E8F0FF", muted: "#4a6080" },
+  light: { bg: "#FFFFFF", surface: "#FAFAFA", card: "#FFFFFF", border: "#E8E8E8", accent: "#FFC32C", text: "#111111", muted: "#888888" },
 };
 
 const PHASES = {
@@ -34,13 +31,10 @@ const PHASES = {
   CONFIGURE: "configure",
   GENERATING: "generating",
   RESULT: "result",
-  // Lending phases
   LENDING_CONFIGURE: "lending_configure",
   LENDING_GENERATING: "lending_generating",
   LENDING_RESULT: "lending_result",
-  // Sales Library
   SALES_LIBRARY: "sales_library",
-  // AI Trade Advisor
   AI_CONFIGURE: "ai_configure",
   AI_GENERATING: "ai_generating",
   AI_REVIEW: "ai_review",
@@ -62,19 +56,70 @@ const PHASE_TITLES = {
   [PHASES.AI_REVIEW]: "Review AI Trade — Derivatives Studio",
 };
 
+// ─── SDM Logo ───
+function SDMLogo({ width = 140 }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+      <svg width={width * 0.18} height={width * 0.22} viewBox="0 0 40 48" fill="none">
+        <path d="M20 0L40 12V36L20 48L0 36V12L20 0Z" fill="#FFC32C"/>
+        <path d="M20 8L32 15V29L20 36L8 29V15L20 8Z" fill="#111"/>
+        <path d="M14 20L20 16L26 20V28L20 32L14 28V20Z" fill="#FFC32C"/>
+      </svg>
+      <div>
+        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: width * 0.11, letterSpacing: 2, color: "#111", lineHeight: 1 }}>SECURE</div>
+        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 400, fontSize: width * 0.055, letterSpacing: 3, color: "#888", lineHeight: 1, marginTop: 2 }}>DIGITAL MARKETS</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MarketBeat Header ───
+function AppHeader({ onReset }) {
+  return (
+    <header style={{ background: "#FFFFFF", borderBottom: "1px solid #E8E8E8" }}>
+      <div style={{ height: 3, background: "#111" }} />
+      <div style={{ height: 2, background: "#FFC32C" }} />
+      <div style={{ padding: "16px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div onClick={onReset}>
+          <SDMLogo width={140} />
+        </div>
+        <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>
+          Trade Idea Studio
+        </div>
+      </div>
+      <div style={{ height: 2, background: "#FFC32C" }} />
+      <div style={{ height: 3, background: "#111" }} />
+    </header>
+  );
+}
+
 function TradeCard({ trade, selected, onClick }) {
   return (
     <button
-      className={`trade-card ${selected ? "selected" : ""}`}
       onClick={onClick}
-      style={{ "--accent": trade.color }}
+      style={{
+        background: "#FFFFFF",
+        border: selected ? "2px solid #111" : "1px solid #E8E8E8",
+        borderTop: selected ? "3px solid #FFC32C" : "3px solid transparent",
+        borderRadius: 2,
+        padding: "24px 20px",
+        textAlign: "left",
+        cursor: "pointer",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+        boxShadow: selected ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+      onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.borderTopColor = "#FFC32C"; } }}
+      onMouseLeave={e => { if (!selected) { e.currentTarget.style.borderColor = "#E8E8E8"; e.currentTarget.style.borderTopColor = "transparent"; } }}
     >
-      <div className="trade-card-icon">{trade.icon}</div>
-      <div className="trade-card-tag">{trade.tag}</div>
-      <div className="trade-card-label">{trade.label}</div>
-      <div className="trade-card-category">{trade.category}</div>
-      <div className="trade-card-desc">{trade.description}</div>
-      <div className="trade-card-accent-bar" />
+      <div style={{ fontSize: 22, marginBottom: 4 }}>{trade.icon}</div>
+      <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 }}>{trade.tag}</div>
+      <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 15, color: "#111", lineHeight: 1.2 }}>{trade.label}</div>
+      <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", fontWeight: 400 }}>{trade.category}</div>
+      <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", lineHeight: 1.5, marginTop: 4 }}>{trade.description}</div>
+      {selected && <div style={{ marginTop: 8, height: 2, background: "#FFC32C", borderRadius: 1 }} />}
     </button>
   );
 }
@@ -107,10 +152,23 @@ function RichTextFieldToolbar() {
 function FieldInput({ field, value, onChange }) {
   const editorRef = useRef(null);
 
+  const inputStyle = {
+    width: "100%",
+    background: "#FFFFFF",
+    border: "1px solid #E8E8E8",
+    borderRadius: 2,
+    padding: "10px 12px",
+    fontSize: 13,
+    color: "#111",
+    fontFamily: "'Poppins',sans-serif",
+    outline: "none",
+    transition: "border-color 0.15s",
+  };
+
   if (field.type === "textarea") {
     return (
       <div className="field-group field-group-wide">
-        <label className="field-label">{field.label}</label>
+        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#888", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
         <RichTextFieldToolbar />
         <div
           ref={editorRef}
@@ -119,10 +177,9 @@ function FieldInput({ field, value, onChange }) {
           suppressContentEditableWarning
           dangerouslySetInnerHTML={{ __html: value ? `<p>${String(value).replace(/\n/g, "</p><p>")}</p>` : "" }}
           onBlur={() => {
-            if (editorRef.current) {
-              onChange(field.key, editorRef.current.innerHTML);
-            }
+            if (editorRef.current) onChange(field.key, editorRef.current.innerHTML);
           }}
+          style={{ ...inputStyle, minHeight: 100, padding: "10px 12px" }}
         />
       </div>
     );
@@ -130,16 +187,14 @@ function FieldInput({ field, value, onChange }) {
   if (field.type === "select") {
     return (
       <div className="field-group">
-        <label className="field-label">{field.label}</label>
+        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#888", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
         <select
-          className="field-select"
+          style={{ ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
           value={value || ""}
           onChange={e => onChange(field.key, e.target.value)}
         >
           <option value="">Select...</option>
-          {field.options.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
+          {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
       </div>
     );
@@ -150,13 +205,15 @@ function FieldInput({ field, value, onChange }) {
     : (value || "");
   return (
     <div className="field-group">
-      <label className="field-label">{field.label}</label>
+      <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#888", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
       <input
-        className="field-input"
+        style={inputStyle}
         type="text"
         inputMode={isNum ? "decimal" : undefined}
         placeholder={field.placeholder}
         value={displayValue}
+        onFocus={e => { e.target.style.borderColor = "#111"; e.target.style.outline = "none"; }}
+        onBlur={e => { e.target.style.borderColor = "#E8E8E8"; }}
         onChange={e => {
           const raw = isNum ? e.target.value.replace(/,/g, "") : e.target.value;
           if (isNum && raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
@@ -167,35 +224,33 @@ function FieldInput({ field, value, onChange }) {
   );
 }
 
-// ─── Sales Library: auto-detect doc type from name ───
 const DOC_TYPE_MAP = [
-  { match: /deck|pitch/i, type: "Pitch Deck", icon: "deck", color: "#60a5fa", desc: "Presentation deck for client meetings and pitches" },
-  { match: /1\s*pager|one.pager/i, type: "One-Pager", icon: "page", color: "#4ade80", desc: "Single-page product summary and key highlights" },
-  { match: /overview/i, type: "Overview", icon: "overview", color: "#a78bfa", desc: "Comprehensive product overview and terms" },
-  { match: /lending|loan/i, type: "Lending", icon: "lending", color: "#34d399", desc: "Lending product details, terms, and structures" },
-  { match: /corporate/i, type: "Corporate", icon: "corp", color: "#f59e0b", desc: "Company overview, structure, and capabilities" },
-  { match: /derivative|option|call|put|carry/i, type: "Derivatives", icon: "deriv", color: "#f472b6", desc: "Derivatives strategy breakdown and trade examples" },
-  { match: /algo|trading/i, type: "Trading", icon: "trade", color: "#38bdf8", desc: "Trading product details and execution strategies" },
-  { match: /tax|planning/i, type: "Tax", icon: "tax", color: "#fb923c", desc: "Tax planning strategies and compliance frameworks" },
-  { match: /payment/i, type: "Payments", icon: "pay", color: "#a3e635", desc: "Payment infrastructure and settlement solutions" },
-  { match: /miner|mining/i, type: "Mining", icon: "mine", color: "#facc15", desc: "Mining operations, treasury, and financing solutions" },
-  { match: /treasury|bitcoin/i, type: "Treasury", icon: "treasury", color: "#fbbf24", desc: "Bitcoin treasury strategy and corporate adoption" },
-  { match: /product/i, type: "Product", icon: "product", color: "#c084fc", desc: "Full product suite overview and service catalogue" },
-  { match: /welcome/i, type: "Welcome", icon: "welcome", color: "#67e8f9", desc: "Introduction to SDM and onboarding guide" },
-  { match: /spot/i, type: "Spot Trading", icon: "spot", color: "#22d3ee", desc: "Spot trading execution and OTC desk capabilities" },
-  { match: /auto.sell/i, type: "Auto Sell", icon: "auto", color: "#a78bfa", desc: "Automated selling strategies and DCA programs" },
-  { match: /ecosystem/i, type: "Ecosystem", icon: "eco", color: "#2dd4bf", desc: "SDM ecosystem map and integrated service overview" },
-  { match: /property|real.estate/i, type: "Real Estate", icon: "property", color: "#fb7185", desc: "Crypto-backed lending for property acquisitions" },
+  { match: /deck|pitch/i, type: "Pitch Deck", icon: "deck", color: "#2563eb", desc: "Presentation deck for client meetings and pitches" },
+  { match: /1\s*pager|one.pager/i, type: "One-Pager", icon: "page", color: "#16a34a", desc: "Single-page product summary and key highlights" },
+  { match: /overview/i, type: "Overview", icon: "overview", color: "#7c3aed", desc: "Comprehensive product overview and terms" },
+  { match: /lending|loan/i, type: "Lending", icon: "lending", color: "#059669", desc: "Lending product details, terms, and structures" },
+  { match: /corporate/i, type: "Corporate", icon: "corp", color: "#d97706", desc: "Company overview, structure, and capabilities" },
+  { match: /derivative|option|call|put|carry/i, type: "Derivatives", icon: "deriv", color: "#db2777", desc: "Derivatives strategy breakdown and trade examples" },
+  { match: /algo|trading/i, type: "Trading", icon: "trade", color: "#0891b2", desc: "Trading product details and execution strategies" },
+  { match: /tax|planning/i, type: "Tax", icon: "tax", color: "#ea580c", desc: "Tax planning strategies and compliance frameworks" },
+  { match: /payment/i, type: "Payments", icon: "pay", color: "#65a30d", desc: "Payment infrastructure and settlement solutions" },
+  { match: /miner|mining/i, type: "Mining", icon: "mine", color: "#ca8a04", desc: "Mining operations, treasury, and financing solutions" },
+  { match: /treasury|bitcoin/i, type: "Treasury", icon: "treasury", color: "#b45309", desc: "Bitcoin treasury strategy and corporate adoption" },
+  { match: /product/i, type: "Product", icon: "product", color: "#9333ea", desc: "Full product suite overview and service catalogue" },
+  { match: /welcome/i, type: "Welcome", icon: "welcome", color: "#0e7490", desc: "Introduction to SDM and onboarding guide" },
+  { match: /spot/i, type: "Spot Trading", icon: "spot", color: "#0284c7", desc: "Spot trading execution and OTC desk capabilities" },
+  { match: /auto.sell/i, type: "Auto Sell", icon: "auto", color: "#7c3aed", desc: "Automated selling strategies and DCA programs" },
+  { match: /ecosystem/i, type: "Ecosystem", icon: "eco", color: "#0f766e", desc: "SDM ecosystem map and integrated service overview" },
+  { match: /property|real.estate/i, type: "Real Estate", icon: "property", color: "#be123c", desc: "Crypto-backed lending for property acquisitions" },
 ];
 
 function getDocMeta(name) {
   for (const entry of DOC_TYPE_MAP) {
     if (entry.match.test(name)) return entry;
   }
-  return { type: "Document", icon: "doc", color: "#8b8b9a", desc: "SDM sales and marketing collateral" };
+  return { type: "Document", icon: "doc", color: "#888888", desc: "SDM sales and marketing collateral" };
 }
 
-// Lending form fields definition
 const LENDING_FIELDS = [
   { key: "borrowerName", label: "Borrower / Client Name", type: "text", placeholder: "e.g. Acme Capital" },
   { key: "collateralAsset", label: "Collateral Asset", type: "select", options: SUPPORTED_ASSETS },
@@ -208,6 +263,39 @@ const LENDING_FIELDS = [
   { key: "loanCurrency", label: "Loan Currency", type: "select", options: ["USD", "CAD", "EUR", "GBP"] },
   { key: "executive_summary", label: "Executive Summary (optional)", type: "textarea", placeholder: "Add custom notes, context, or override the auto-generated summary..." },
 ];
+
+// ─── Styles ───
+const S = {
+  page: { background: "#FFFFFF", minHeight: "100vh", fontFamily: "'Poppins',sans-serif" },
+  main: { maxWidth: 1100, margin: "0 auto", padding: "40px 48px" },
+  mainWide: { maxWidth: 1200, margin: "0 auto", padding: "40px 48px" },
+  sectionLabel: { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 },
+  heading1: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 28, color: "#111", letterSpacing: -0.5 },
+  heading2: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 20, color: "#111" },
+  subtext: { fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#888", fontWeight: 300, lineHeight: 1.6 },
+  card: { background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "24px" },
+  btnPrimary: {
+    background: "#111", color: "#FFFFFF", border: "none", borderRadius: 2,
+    padding: "12px 28px", fontFamily: "'Montserrat',sans-serif", fontWeight: 600,
+    fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
+    display: "inline-flex", alignItems: "center", gap: 8,
+  },
+  btnSecondary: {
+    background: "#FFFFFF", color: "#111", border: "1px solid #111", borderRadius: 2,
+    padding: "10px 20px", fontFamily: "'Montserrat',sans-serif", fontWeight: 600,
+    fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
+    display: "inline-flex", alignItems: "center", gap: 6,
+  },
+  btnBack: {
+    background: "#FFFFFF", color: "#888", border: "1px solid #E8E8E8", borderRadius: 2,
+    padding: "8px 16px", fontFamily: "'Poppins',sans-serif", fontWeight: 400,
+    fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+  },
+  divider: { height: 1, background: "#E8E8E8", margin: "32px 0" },
+  pill: { display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 2, fontSize: 10, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" },
+  genStep: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #E8E8E8", fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#888" },
+  genStepDone: { color: "#111" },
+};
 
 export default function App() {
   const [phase, setPhase] = useState(PHASES.HOME);
@@ -225,19 +313,15 @@ export default function App() {
   const [feedbackType, setFeedbackType] = useState("feedback");
   const [feedbackFiles, setFeedbackFiles] = useState([]);
   const [feedbackSent, setFeedbackSent] = useState(false);
-  // Lending state
   const [lendingValues, setLendingValues] = useState({ termMonths: "1", loanCurrency: "USD", collateralAsset: "BTC", ltv: "65", annualRate: "8", arrangementFee: "2" });
   const [lendingData, setLendingData] = useState(null);
   const [lendingError, setLendingError] = useState(null);
-  // Sales Library state
   const [salesDocs, setSalesDocs] = useState([]);
   const [salesLoading, setSalesLoading] = useState(false);
   const [salesFilter, setSalesFilter] = useState("");
   const [salesCategory, setSalesCategory] = useState("All");
-  // Loan component for combined trades
   const [loanComponent, setLoanComponent] = useState(null);
   const [showLoanPanel, setShowLoanPanel] = useState(false);
-  // AI Trade Advisor state
   const [aiForm, setAiForm] = useState({
     asset: "BTC", currentPrice: "", portfolioValue: "", expiryDate: "",
     riskTolerance: "Moderate", objective: "Not Sure — Detect from Notes", prompt: "",
@@ -247,18 +331,14 @@ export default function App() {
   const aiPromptRef = useRef(null);
   const [aiResponse, setAiResponse] = useState("");
   const [aiResponseLoading, setAiResponseLoading] = useState(false);
-  const [aiTheme, setAiTheme] = useState("dark");
 
   const skipPushRef = useRef(false);
-  const [navExpanded, setNavExpanded] = useState(false);
-
 
   const isLendingPhase = phase === PHASES.LENDING_CONFIGURE || phase === PHASES.LENDING_GENERATING || phase === PHASES.LENDING_RESULT;
   const isTradingPhase = [PHASES.SELECT, PHASES.UPLOAD, PHASES.CONFIGURE, PHASES.GENERATING, PHASES.RESULT, PHASES.AI_CONFIGURE, PHASES.AI_GENERATING, PHASES.AI_REVIEW].includes(phase);
   const isSalesPhase = phase === PHASES.SALES_LIBRARY;
 
-  // ─── Fetch Sales Library from Google Sheet ───
-  const SALES_SHEET_ID = "1dr-_tWxb1AS4RHbblugFs4KuTaNruep_viKwTjpqstA"; // Replace with actual Sheet ID
+  const SALES_SHEET_ID = "1dr-_tWxb1AS4RHbblugFs4KuTaNruep_viKwTjpqstA";
   const fetchSalesDocs = useCallback(async () => {
     setSalesLoading(true);
     try {
@@ -267,7 +347,6 @@ export default function App() {
       const text = await res.text();
       const json = JSON.parse(text.substring(47).slice(0, -2));
       const rows = json.table.rows;
-      // Skip header row (first row), columns: A=Name, B=URL, C=Category (optional), D=Description (optional)
       const docs = rows.slice(1).map(r => ({
         name: r.c[0]?.v || "",
         url: r.c[1]?.v || "",
@@ -282,7 +361,6 @@ export default function App() {
     setSalesLoading(false);
   }, [SALES_SHEET_ID]);
 
-  // ─── Phase history (browser back/forward) ───
   const navigateTo = useCallback((newPhase) => {
     setPhase(newPhase);
     setError(null);
@@ -315,9 +393,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, [selectedTrade, lendingData]);
 
-  useEffect(() => {
-    document.title = PHASE_TITLES[phase] || "SDM";
-  }, [phase]);
+  useEffect(() => { document.title = PHASE_TITLES[phase] || "SDM"; }, [phase]);
 
   useEffect(() => {
     checkCanvaStatus().then(setCanvaConnected).catch(() => {});
@@ -327,9 +403,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (phase === PHASES.SALES_LIBRARY && salesDocs.length === 0) {
-      fetchSalesDocs();
-    }
+    if (phase === PHASES.SALES_LIBRARY && salesDocs.length === 0) fetchSalesDocs();
   }, [phase, salesDocs.length, fetchSalesDocs]);
 
   const handleSelectTrade = (trade) => {
@@ -356,20 +430,14 @@ export default function App() {
     const interval = setInterval(() => {
       i++;
       setGeneratingStep(i);
-      if (i >= 3) {
-        clearInterval(interval);
-        setTimeout(() => navigateTo(PHASES.RESULT), 400);
-      }
+      if (i >= 3) { clearInterval(interval); setTimeout(() => navigateTo(PHASES.RESULT), 400); }
     }, 500);
   };
 
   const handleGenerateLending = () => {
     setLendingError(null);
     const result = computeLendingProposal(lendingValues);
-    if (result.error) {
-      setLendingError(result.error);
-      return;
-    }
+    if (result.error) { setLendingError(result.error); return; }
     setLendingData(result);
     navigateTo(PHASES.LENDING_GENERATING);
     setGeneratingStep(0);
@@ -377,14 +445,10 @@ export default function App() {
     const interval = setInterval(() => {
       i++;
       setGeneratingStep(i);
-      if (i >= 3) {
-        clearInterval(interval);
-        setTimeout(() => navigateTo(PHASES.LENDING_RESULT), 400);
-      }
+      if (i >= 3) { clearInterval(interval); setTimeout(() => navigateTo(PHASES.LENDING_RESULT), 400); }
     }, 500);
   };
 
-  // ─── AI Summary Generator: turns raw notes into polished copy ───
   const generateAiSummary = ({ tradeId, asset, price, pv, expiry, riskTolerance, objective, userPrompt, autoFields }) => {
     const $f = (n) => {
       const v = parseFloat(n || 0);
@@ -397,64 +461,30 @@ export default function App() {
     const riskAdj = riskTolerance === "Conservative" ? "capital preservation and downside protection" : riskTolerance === "Aggressive" ? "maximizing upside participation with defined risk" : "a balanced risk-reward profile with controlled downside";
 
     const summaries = {
-      collar: `<p>This trade is structured as a <strong>Protective Collar</strong> on ${asset}, designed for a client seeking ${riskAdj}. The client currently holds a position valued at approximately $${$f(pv)} and requires downside protection while maintaining participation in further upside.</p>
-<p>The collar is implemented by purchasing a put at the $${$f(autoFields.put_strike)} strike to establish a hard floor, funded in part by selling a call at $${$f(autoFields.call_strike)}, resulting in a near-zero net premium outlay. This creates a defined range of outcomes: losses are capped below the put strike, while gains are retained up to the call strike.</p>
-<p>With ${asset} currently trading at $${$f(price)}, this structure provides approximately ${Math.round((1 - parseFloat(autoFields.put_strike) / price) * 100)}% downside protection while allowing ${Math.round((parseFloat(autoFields.call_strike) / price - 1) * 100)}% of further upside. The position expires ${expiry}, at which point it can be rolled or allowed to settle. This is well-suited for clients with near-term liquidity concerns, tax events, or macro uncertainty who want to remain invested in ${asset} without bearing unlimited downside risk.</p>`,
-
-      covered_call: `<p>This trade implements a <strong>Covered Call</strong> strategy on the client's existing ${asset} position, targeting systematic income generation. With ${asset} at $${$f(price)}, the client sells calls at the $${$f(autoFields.strike)} strike — approximately ${Math.round((parseFloat(autoFields.strike) / price - 1) * 100)}% above current market — collecting premium of $${$f(autoFields.premium)} per unit.</p>
-<p>The strategy is designed for a client with a ${riskTolerance.toLowerCase()} risk profile who believes ${asset} will trade range-bound to modestly higher over the near term. Premium collected provides immediate yield and reduces the effective cost basis, while the short call caps upside above the strike price.</p>
-<p>This is an institutional-grade income overlay appropriate for holders seeking to monetize volatility without liquidating their core ${asset} position. The trade expires ${expiry} and can be systematically rolled at expiry for continued income generation.</p>`,
-
-      cash_secured_put: `<p>This trade deploys a <strong>Cash-Secured Put</strong> on ${asset}, allowing the client to either generate premium income or acquire ${asset} at a discount to current market price. The put is sold at the $${$f(autoFields.strike)} strike, approximately ${Math.round((1 - parseFloat(autoFields.strike) / price) * 100)}% below the current price of $${$f(price)}.</p>
-<p>If ${asset} remains above $${$f(autoFields.strike)} at expiry, the client retains the full premium of $${$f(autoFields.premium)} as income — representing an attractive annualized yield on committed capital. If assigned, the client acquires ${asset} at an effective cost basis of $${$f(autoFields.effective_basis)}, well below current market levels.</p>
-<p>This structure suits a ${riskTolerance.toLowerCase()} investor who is constructive on ${asset} at lower levels and comfortable with the obligation to purchase if the market corrects. The trade expires ${expiry}.</p>`,
-
-      wheel: `<p>This report outlines an active <strong>Wheel Strategy</strong> on ${asset}, a systematic premium-collection approach that cycles between selling puts and covered calls. The client has completed ${$n(autoFields.cycles_completed)} full cycles to date, collecting $${$f(autoFields.total_premium)} in cumulative premium.</p>
-<p>The strategy has reduced the client's effective cost basis to $${$f(autoFields.cost_basis)}, well below the current market price of $${$f(price)}. The current phase involves selling at the $${$f(autoFields.current_strike)} strike, generating $${$f(autoFields.current_premium)} in premium.</p>
-<p>With a ${riskTolerance.toLowerCase()} risk posture, the wheel is calibrated for consistency over aggressiveness — strike selection balances premium capture against assignment probability. This is a high-conviction strategy for long-term ${asset} holders seeking to compound returns through disciplined options selling.</p>`,
-
-      long_seagull: `<p>This trade is structured as a <strong>Long Seagull</strong> on ${asset} — a premium-neutral options strategy that provides leveraged upside exposure between $${$f(autoFields.lower_call)} and $${$f(autoFields.upper_call)}, with defined downside risk below $${$f(autoFields.lower_put)}.</p>
-<p>With ${asset} trading at $${$f(price)}, the structure is implemented at zero or near-zero net premium by selling a put at $${$f(autoFields.lower_put)} to fund the purchase of a call spread. This is well-suited for a client with a bullish near-term outlook who wants meaningful upside participation without committing significant capital.</p>
-<p>The maximum payoff of $${$f(autoFields.max_pnl)} is realized if ${asset} trades at or above the upper call strike at expiry (${expiry}). The ${riskTolerance.toLowerCase()} risk profile is reflected in the strike selection — the put floor is set at a level the client would be comfortable acquiring ${asset}.</p>`,
-
-      leap: `<p>This trade establishes a <strong>Long-Dated Call Option (LEAP)</strong> on ${asset}, providing leveraged directional exposure with strictly defined risk. The client pays $${$f(autoFields.premium)} per contract in premium for calls struck at $${$f(autoFields.strike)}, expiring ${expiry}.</p>
-<p>The total capital at risk is limited to the premium outlay of $${$f(autoFields.total_outlay)} across ${$n(autoFields.contracts)} contracts — significantly less than the equivalent spot exposure. If ${asset} appreciates materially, the option provides leveraged upside. If the trade moves against the client, losses are capped at the premium paid.</p>
-<p>This structure is appropriate for a client with a ${riskTolerance.toLowerCase()} risk posture who holds a high-conviction bullish view on ${asset} over the medium term and prefers to allocate a defined amount of capital rather than take full spot risk.</p>`,
-
-      reverse_cash_carry: `<p>This trade implements a <strong>Reverse Cash & Carry</strong> on the client's ${asset} holdings, unlocking approximately $${$f(parseFloat(autoFields.portfolio_value) * 0.85)} in immediate liquidity while maintaining full ${asset} price exposure via perpetual futures.</p>
-<p>The client sells their spot ${asset} position and simultaneously opens a long perpetual futures position with ${$n(autoFields.margin_pct)}% margin, releasing ${$n(autoFields.cash_released_pct)}% of the portfolio value as deployable capital. Execution is routed through ${autoFields.exchange}.</p>
-<p>This is an ideal structure for a client who needs near-term liquidity — whether for tax obligations, business operations, real estate purchases, or portfolio diversification — without triggering a taxable disposition or losing ${asset} upside. The estimated funding rate of ${$n(autoFields.funding_rate)}% APR represents the carry cost of maintaining the position.</p>`,
-
-      earnings_play: `<p>This report provides an <strong>Event Risk Analysis</strong> for ${asset} ahead of a significant catalyst on ${autoFields.event_date}. The market is currently pricing an expected move of ${$n(autoFields.expected_move_pct)}%, based on implied volatility levels and historical event reactions of ${autoFields.last_3_reactions}.</p>
-<p>With ${asset} trading at $${$f(price)}, the analysis evaluates the risk-reward of the client's positioning relative to the binary outcome. The recommendation is to <strong>${(autoFields.recommendation || "").toLowerCase()}</strong> based on the probability-weighted expected value and the client's ${riskTolerance.toLowerCase()} risk tolerance.</p>
-<p>Event-driven volatility in ${asset} has historically provided asymmetric opportunities for properly positioned portfolios. This analysis arms the client with the data needed to make an informed decision ahead of the event.</p>`,
+      collar: `<p>This trade is structured as a <strong>Protective Collar</strong> on ${asset}, designed for a client seeking ${riskAdj}. The client currently holds a position valued at approximately $${$f(pv)} and requires downside protection while maintaining participation in further upside.</p><p>The collar is implemented by purchasing a put at the $${$f(autoFields.put_strike)} strike to establish a hard floor, funded in part by selling a call at $${$f(autoFields.call_strike)}, resulting in a near-zero net premium outlay. This creates a defined range of outcomes: losses are capped below the put strike, while gains are retained up to the call strike.</p><p>With ${asset} currently trading at $${$f(price)}, this structure provides approximately ${Math.round((1 - parseFloat(autoFields.put_strike) / price) * 100)}% downside protection while allowing ${Math.round((parseFloat(autoFields.call_strike) / price - 1) * 100)}% of further upside. The position expires ${expiry}, at which point it can be rolled or allowed to settle.</p>`,
+      covered_call: `<p>This trade implements a <strong>Covered Call</strong> strategy on the client's existing ${asset} position, targeting systematic income generation. With ${asset} at $${$f(price)}, the client sells calls at the $${$f(autoFields.strike)} strike, collecting premium of $${$f(autoFields.premium)} per unit.</p><p>The strategy is designed for a client with a ${riskTolerance.toLowerCase()} risk profile who believes ${asset} will trade range-bound to modestly higher over the near term. Premium collected provides immediate yield and reduces the effective cost basis, while the short call caps upside above the strike price.</p><p>This is an institutional-grade income overlay appropriate for holders seeking to monetize volatility without liquidating their core ${asset} position. The trade expires ${expiry} and can be systematically rolled at expiry for continued income generation.</p>`,
+      cash_secured_put: `<p>This trade deploys a <strong>Cash-Secured Put</strong> on ${asset}, allowing the client to either generate premium income or acquire ${asset} at a discount to current market price. The put is sold at the $${$f(autoFields.strike)} strike, approximately ${Math.round((1 - parseFloat(autoFields.strike) / price) * 100)}% below the current price of $${$f(price)}.</p><p>If ${asset} remains above $${$f(autoFields.strike)} at expiry, the client retains the full premium of $${$f(autoFields.premium)} as income. If assigned, the client acquires ${asset} at an effective cost basis of $${$f(autoFields.effective_basis)}, well below current market levels.</p><p>This structure suits a ${riskTolerance.toLowerCase()} investor who is constructive on ${asset} at lower levels and comfortable with the obligation to purchase if the market corrects. The trade expires ${expiry}.</p>`,
+      wheel: `<p>This report outlines an active <strong>Wheel Strategy</strong> on ${asset}, a systematic premium-collection approach that cycles between selling puts and covered calls. The client has completed ${$n(autoFields.cycles_completed)} full cycles to date, collecting $${$f(autoFields.total_premium)} in cumulative premium.</p><p>The strategy has reduced the client's effective cost basis to $${$f(autoFields.cost_basis)}, well below the current market price of $${$f(price)}. The current phase involves selling at the $${$f(autoFields.current_strike)} strike, generating $${$f(autoFields.current_premium)} in premium.</p>`,
+      long_seagull: `<p>This trade is structured as a <strong>Long Seagull</strong> on ${asset} — a premium-neutral options strategy that provides leveraged upside exposure between $${$f(autoFields.lower_call)} and $${$f(autoFields.upper_call)}, with defined downside risk below $${$f(autoFields.lower_put)}.</p><p>With ${asset} trading at $${$f(price)}, the structure is implemented at zero or near-zero net premium by selling a put at $${$f(autoFields.lower_put)} to fund the purchase of a call spread. The maximum payoff of $${$f(autoFields.max_pnl)} is realized if ${asset} trades at or above the upper call strike at expiry (${expiry}).</p>`,
+      leap: `<p>This trade establishes a <strong>Long-Dated Call Option (LEAP)</strong> on ${asset}, providing leveraged directional exposure with strictly defined risk. The client pays $${$f(autoFields.premium)} per contract in premium for calls struck at $${$f(autoFields.strike)}, expiring ${expiry}.</p><p>The total capital at risk is limited to the premium outlay of $${$f(autoFields.total_outlay)} across ${$n(autoFields.contracts)} contracts — significantly less than the equivalent spot exposure.</p>`,
+      reverse_cash_carry: `<p>This trade implements a <strong>Reverse Cash &amp; Carry</strong> on the client's ${asset} holdings, unlocking approximately $${$f(parseFloat(autoFields.portfolio_value) * 0.85)} in immediate liquidity while maintaining full ${asset} price exposure via perpetual futures.</p><p>The client sells their spot ${asset} position and simultaneously opens a long perpetual futures position with ${$n(autoFields.margin_pct)}% margin, releasing ${$n(autoFields.cash_released_pct)}% of the portfolio value as deployable capital. Execution is routed through ${autoFields.exchange}.</p>`,
+      earnings_play: `<p>This report provides an <strong>Event Risk Analysis</strong> for ${asset} ahead of a significant catalyst on ${autoFields.event_date}. The market is currently pricing an expected move of ${$n(autoFields.expected_move_pct)}%, based on implied volatility levels and historical event reactions of ${autoFields.last_3_reactions}.</p><p>With ${asset} trading at $${$f(price)}, the recommendation is to <strong>${(autoFields.recommendation || "").toLowerCase()}</strong> based on the probability-weighted expected value and the client's ${riskTolerance.toLowerCase()} risk tolerance.</p>`,
     };
-
     return summaries[tradeId] || `<p>SDM proposes a derivatives structure on ${asset} based on the client's ${objective.toLowerCase()} objective and ${riskTolerance.toLowerCase()} risk profile. With ${asset} at $${$f(price)}, this trade is calibrated to deliver optimal risk-adjusted outcomes aligned with the client's stated goals.</p>`;
   };
 
-  // ─── Navigate to AI review phase with animation ───
   const proceedToAiReview = () => {
     navigateTo(PHASES.AI_GENERATING);
     setGeneratingStep(0);
-    const steps = [
-      "Analyzing client requirements",
-      "Matching optimal trade structure",
-      "Calculating strikes & premiums",
-      "Building executive summary",
-    ];
+    const steps = ["Analyzing client requirements", "Matching optimal trade structure", "Calculating strikes & premiums", "Building executive summary"];
     let i = 0;
     const interval = setInterval(() => {
       i++;
       setGeneratingStep(i);
-      if (i >= steps.length) {
-        clearInterval(interval);
-        setTimeout(() => navigateTo(PHASES.AI_REVIEW), 500);
-      }
+      if (i >= steps.length) { clearInterval(interval); setTimeout(() => navigateTo(PHASES.AI_REVIEW), 500); }
     }, 700);
   };
 
-  // ─── AI Trade Advisor: match client goal to trade type ───
   const handleAiGenerate = () => {
     const { asset, currentPrice, portfolioValue, expiryDate, riskTolerance, objective, prompt: userPrompt } = aiForm;
     if (!currentPrice) { setError("Please enter the current asset price."); return; }
@@ -465,7 +495,6 @@ export default function App() {
     const pv = parseFloat((portfolioValue || "0").replace(/,/g, "")) || price * 10;
     const expiry = expiryDate || "26 Jun 2026";
     const prompt = userPrompt.toLowerCase();
-    // Smart rounding: preserve decimals for small prices (e.g. DOGE $0.17)
     const R = (v) => {
       if (Math.abs(v) < 0.01) return v.toPrecision(2);
       if (Math.abs(v) < 1) return v.toFixed(4);
@@ -473,19 +502,13 @@ export default function App() {
       return String(Math.round(v));
     };
 
-    // Match objective + prompt keywords to best trade type
-    let tradeId = "covered_call"; // default
+    let tradeId = "covered_call";
     let autoFields = {};
     const autoDetect = objective === "Not Sure — Detect from Notes";
 
     if ((!autoDetect && objective === "Hedge") || /hedge|protect|downside|insurance|collar|floor/i.test(prompt)) {
-      if (/collar|zero.cost|fund/i.test(prompt)) {
-        tradeId = "collar";
-        autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.85), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
-      } else {
-        tradeId = "collar";
-        autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.8), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
-      }
+      tradeId = "collar";
+      autoFields = { asset, current_price: R(price), holdings: String(Math.round(pv / price)), cost_basis: R(price * 0.85), put_strike: R(price * 0.9), call_strike: R(price * 1.15), expiry, put_premium: R(price * 0.04), call_premium: R(price * 0.038), net_cost: R(price * 0.002), protected_value: R(pv) };
     } else if ((!autoDetect && objective === "Income") || /income|yield|premium|sell.*call|covered|wheel/i.test(prompt)) {
       if (/wheel|cycle|systematic/i.test(prompt)) {
         tradeId = "wheel";
@@ -513,21 +536,16 @@ export default function App() {
       autoFields = { asset, current_price: R(price), event_date: expiry, expected_move_pct: "8.5", position_type: "No Position", strike: R(price * 0.92), premium_collected: "0", last_3_reactions: "+10%, -5%, +8%", recommendation: "Hold Through Event" };
     }
 
-    // Add the user prompt as executive summary
-    // Generate polished executive summary from raw notes
     autoFields.executive_summary = generateAiSummary({ tradeId, asset, price, pv, expiry, riskTolerance, objective, userPrompt, autoFields });
 
-    // Select the trade and populate fields
     const trade = TRADE_TYPES.find(t => t.id === tradeId);
     if (!trade) return;
 
-    // Pre-populate trade fields from local matching
     setSelectedTrade(trade);
     const defaults = {};
     trade.fields.forEach(f => { if (f.default) defaults[f.key] = f.default; });
     setFieldValues({ ...defaults, ...autoFields });
 
-    // Call Claude API — show response inline, then let user proceed
     setAiResponseLoading(true);
     setAiResponse("");
     fetch("/api/ask-ai", {
@@ -536,14 +554,8 @@ export default function App() {
       body: JSON.stringify({ asset, currentPrice, portfolioValue, objective, riskTolerance, prompt: userPrompt }),
     })
       .then(r => r.json())
-      .then(d => {
-        setAiResponse(d.response || "");
-        setAiResponseLoading(false);
-      })
-      .catch(() => {
-        setAiResponseLoading(false);
-        proceedToAiReview();
-      });
+      .then(d => { setAiResponse(d.response || ""); setAiResponseLoading(false); })
+      .catch(() => { setAiResponseLoading(false); proceedToAiReview(); });
   };
 
   const AI_GENERATING_STEPS = [
@@ -597,987 +609,871 @@ export default function App() {
     navigateTo(PHASES.UPLOAD);
   };
 
-  // Breadcrumb for lending flow
-  const renderLendingBreadcrumb = () => (
-    <div className="breadcrumb">
-      <button className="crumb crumb-home" onClick={handleReset}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  // ─── Breadcrumb ───
+  const Breadcrumb = ({ items }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "1px solid #E8E8E8", background: "#FAFAFA" }}>
+      <button style={S.btnBack} onClick={handleReset}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </button>
-      <span className="crumb-sep">&rsaquo;</span>
-      <button className={`crumb ${phase === PHASES.LENDING_CONFIGURE ? "active" : ""}`}
-        onClick={phase !== PHASES.LENDING_CONFIGURE ? () => navigateTo(PHASES.LENDING_CONFIGURE) : undefined}
-        disabled={phase === PHASES.LENDING_CONFIGURE}>
-        01 — Configure Loan
-      </button>
-      <span className="crumb-sep">&rsaquo;</span>
-      <span className={`crumb ${phase === PHASES.LENDING_RESULT || phase === PHASES.LENDING_GENERATING ? "active" : ""}`}>
-        02 — Proposal
-      </span>
+      {items.map((item, i) => (
+        <span key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: "#E8E8E8", fontSize: 12 }}>&rsaquo;</span>
+          {item.onClick ? (
+            <button onClick={item.onClick} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#111" : "#888", fontWeight: item.active ? 500 : 400 }}>{item.label}</button>
+          ) : (
+            <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#111" : "#888", fontWeight: item.active ? 500 : 400 }}>{item.label}</span>
+          )}
+        </span>
+      ))}
     </div>
   );
 
-  // Breadcrumb for trading flow
+  const renderLendingBreadcrumb = () => (
+    <Breadcrumb items={[
+      { label: "Configure Loan", active: phase === PHASES.LENDING_CONFIGURE, onClick: phase !== PHASES.LENDING_CONFIGURE ? () => navigateTo(PHASES.LENDING_CONFIGURE) : undefined },
+      { label: "Proposal", active: phase === PHASES.LENDING_RESULT || phase === PHASES.LENDING_GENERATING },
+    ]} />
+  );
+
   const renderTradingBreadcrumb = () => (
-    <div className="breadcrumb">
-      <button className="crumb crumb-home" onClick={handleReset}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </button>
-      <span className="crumb-sep">&rsaquo;</span>
-      <button className={`crumb ${phase === PHASES.SELECT ? "active" : ""} ${phase === PHASES.UPLOAD ? "active" : ""}`}
-        onClick={phase !== PHASES.SELECT ? () => navigateTo(PHASES.SELECT) : undefined}
-        disabled={phase === PHASES.SELECT}>
-        01 — Select Trade
-      </button>
-      <span className="crumb-sep">&rsaquo;</span>
-      <button className={`crumb ${phase === PHASES.CONFIGURE ? "active" : ""}`}
-        onClick={phase === PHASES.RESULT || phase === PHASES.GENERATING ? () => navigateTo(PHASES.CONFIGURE) : undefined}
-        disabled={phase === PHASES.CONFIGURE || phase === PHASES.SELECT || phase === PHASES.UPLOAD}>
-        02 — Configure
-      </button>
-      <span className="crumb-sep">&rsaquo;</span>
-      <span className={`crumb ${phase === PHASES.RESULT || phase === PHASES.GENERATING ? "active" : ""}`}>
-        03 — Report
-      </span>
+    <Breadcrumb items={[
+      { label: "Select Trade", active: phase === PHASES.SELECT || phase === PHASES.UPLOAD, onClick: phase !== PHASES.SELECT ? () => navigateTo(PHASES.SELECT) : undefined },
+      { label: "Configure", active: phase === PHASES.CONFIGURE, onClick: (phase === PHASES.RESULT || phase === PHASES.GENERATING) ? () => navigateTo(PHASES.CONFIGURE) : undefined },
+      { label: "Report", active: phase === PHASES.RESULT || phase === PHASES.GENERATING },
+    ]} />
+  );
+
+  // ─── Sidebar (configure screens) ───
+  const ConfigureSidebar = ({ icon, tag, label, category, description, outputItems, backLabel, onBack }) => (
+    <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E8E8E8", padding: "32px 28px", background: "#FAFAFA" }}>
+      <div style={{ borderTop: "3px solid #FFC32C", paddingTop: 16, marginBottom: 20 }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
+        <div style={S.sectionLabel}>{tag}</div>
+        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 6 }}>{label}</div>
+        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", marginTop: 2 }}>{category}</div>
+      </div>
+      <p style={{ ...S.subtext, fontSize: 13, marginBottom: 24 }}>{description}</p>
+      {outputItems && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ ...S.sectionLabel, marginBottom: 10 }}>Report Includes</div>
+          {outputItems.map((item, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #F0F0F0", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555" }}>
+              <span style={{ width: 4, height: 4, background: "#FFC32C", borderRadius: "50%", flexShrink: 0 }} />
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+      {onBack && (
+        <button style={S.btnBack} onClick={onBack}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+          {backLabel || "Back"}
+        </button>
+      )}
     </div>
   );
+
+  // ─── Generating screen ───
+  const GeneratingScreen = ({ title, steps, currentStep }) => (
+    <div style={{ ...S.main, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center" }}>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ width: 60, height: 60, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="48" height="58" viewBox="0 0 40 48" fill="none">
+            <path d="M20 0L40 12V36L20 48L0 36V12L20 0Z" fill="#FFC32C"/>
+            <path d="M20 8L32 15V29L20 36L8 29V15L20 8Z" fill="#111"/>
+            <path d="M14 20L20 16L26 20V28L20 32L14 28V20Z" fill="#FFC32C"/>
+          </svg>
+        </div>
+        <h2 style={{ ...S.heading2, marginBottom: 8 }}>{title}</h2>
+      </div>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        {steps.map((step, i) => (
+          <div key={i} style={{ ...S.genStep, ...(currentStep > i ? S.genStepDone : {}), borderBottom: i < steps.length - 1 ? "1px solid #F0F0F0" : "none" }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+              background: currentStep > i ? "#111" : currentStep === i ? "#FFC32C" : "#F0F0F0",
+              color: currentStep > i ? "#fff" : "#111",
+              fontSize: 10, fontWeight: 700,
+            }}>
+              {currentStep > i ? "✓" : currentStep === i ? (
+                <span style={{ width: 8, height: 8, border: "2px solid #111", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+              ) : i + 1}
+            </div>
+            <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>{step}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const inputStyle = {
+    width: "100%", background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2,
+    padding: "10px 12px", fontSize: 13, color: "#111", fontFamily: "'Poppins',sans-serif", outline: "none",
+  };
 
   return (
-    <div className="app">
-      {/* Header */}
-      <header className="header">
-        <div className="header-inner">
-          <div className="header-brand" onClick={handleReset} style={{ cursor: "pointer" }}>
-            <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="header-logo-full" />
+    <div style={S.page}>
+      <AppHeader onReset={handleReset} />
+
+      {/* Breadcrumbs */}
+      {isTradingPhase && renderTradingBreadcrumb()}
+      {isLendingPhase && renderLendingBreadcrumb()}
+      {isSalesPhase && (
+        <Breadcrumb items={[{ label: "Sales Library", active: true }]} />
+      )}
+
+      {/* ═══ PHASE: HOME ═══ */}
+      {phase === PHASES.HOME && (
+        <div style={{ ...S.mainWide, paddingTop: 56 }}>
+          <div style={{ marginBottom: 48, textAlign: "center" }}>
+            <div style={{ ...S.sectionLabel, marginBottom: 12 }}>Institutional Digital Asset Structuring</div>
+            <h1 style={{ ...S.heading1, fontSize: 36, marginBottom: 12 }}>Trade Idea Studio</h1>
+            <p style={{ ...S.subtext, maxWidth: 520, margin: "0 auto" }}>Generate institutional-grade trade reports, lending proposals, and sales collateral in seconds.</p>
+          </div>
+
+          <div style={{ height: 1, background: "#E8E8E8", marginBottom: 40 }} />
+
+          <div style={{ ...S.sectionLabel, marginBottom: 24, textAlign: "center" }}>Select a Product</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+            {/* Ask AI */}
+            <button
+              onClick={() => navigateTo(PHASES.AI_CONFIGURE)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#FFC32C"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+                </div>
+                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>AI BETA</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Ask AI</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Paste meeting notes and let AI recommend the optimal trade structure, strikes, and summary.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+                Start AI analysis <span>&rarr;</span>
+              </div>
+            </button>
+
+            {/* Sales Library */}
+            <button
+              onClick={() => navigateTo(PHASES.SALES_LIBRARY)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
+                </div>
+                <span style={{ ...S.pill, background: "#FFC32C", color: "#111" }}>SALES</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Sales Library</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+                Browse documents <span>&rarr;</span>
+              </div>
+            </button>
+
+            {/* Derivatives */}
+            <button
+              onClick={() => navigateTo(PHASES.SELECT)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#FFC32C"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                </div>
+                <span style={{ ...S.pill, background: "#F0F0F0", color: "#111" }}>DERIVATIVES</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Derivatives Studio</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Generate institutional-grade trade reports with payoff diagrams, risk metrics, and executive summaries.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+                Create a trade report <span>&rarr;</span>
+              </div>
+            </button>
+
+            {/* Lending */}
+            <button
+              onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #16a34a", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>
+                </div>
+                <span style={{ ...S.pill, background: "#dcfce7", color: "#16a34a" }}>LENDING</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Lending Calculator</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Calculate collateralized loan terms, generate branded lending proposals with payment schedules and risk analysis.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#16a34a", letterSpacing: 1, textTransform: "uppercase" }}>
+                Build a lending proposal <span>&rarr;</span>
+              </div>
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Breadcrumb */}
-        {isTradingPhase && renderTradingBreadcrumb()}
-        {isLendingPhase && renderLendingBreadcrumb()}
-        {isSalesPhase && (
-          <div className="breadcrumb">
-            <button className="crumb crumb-home" onClick={handleReset}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      {/* ═══ PHASE: UPLOAD ═══ */}
+      {phase === PHASES.UPLOAD && (uploadedFile || uploadedUrl) && (
+        <div style={{ ...S.main, display: "flex", justifyContent: "center", paddingTop: 60 }}>
+          <div style={{ ...S.card, maxWidth: 480, width: "100%", textAlign: "center" }}>
+            <div style={{ marginBottom: 16 }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <h2 style={{ ...S.heading2, marginBottom: 8 }}>{uploadedFile ? uploadedFile.name : "Linked Document"}</h2>
+            {uploadedFile && <p style={{ ...S.subtext, marginBottom: 8 }}>{(uploadedFile.size / 1024).toFixed(1)} KB</p>}
+            <p style={{ ...S.subtext, marginBottom: 24 }}>Branded report generation for imported documents is coming soon.</p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button style={S.btnBack} onClick={handleReset}>Back to Home</button>
+              <button style={S.btnPrimary} onClick={() => navigateTo(PHASES.SELECT)}>
+                Create manually <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PHASE: SELECT ═══ */}
+      {phase === PHASES.SELECT && (
+        <div style={S.mainWide}>
+          <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+            <div>
+              <div style={{ ...S.sectionLabel, marginBottom: 8 }}>Step 01</div>
+              <h1 style={S.heading1}>Select a Trade Type</h1>
+              <p style={{ ...S.subtext, marginTop: 6 }}>Choose the structure you want to build. We'll generate a full trade analysis report with payoff diagrams and risk metrics.</p>
+            </div>
+            <button style={S.btnBack} onClick={handleReset}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Back to Home
             </button>
-            <span className="crumb-sep">&rsaquo;</span>
-            <span className="crumb active">Sales Library</span>
           </div>
-        )}
-      </header>
 
-      {/* Floating Pill Navigation */}
-      <nav className="pill-nav" onMouseEnter={() => setNavExpanded(true)} onMouseLeave={() => setNavExpanded(false)}>
-        <button className={`pill-nav-item ${phase === PHASES.HOME ? 'active' : ''}`} onClick={handleReset} title="Home">
-          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-          <span className="pill-nav-label">Home</span>
-        </button>
-        <button className={`pill-nav-item ${phase === PHASES.AI_CONFIGURE || phase === PHASES.AI_GENERATING || phase === PHASES.AI_REVIEW ? 'active' : ''}`} onClick={() => navigateTo(PHASES.AI_CONFIGURE)} title="Ask AI">
-          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg></span>
-          <span className="pill-nav-label">Ask AI</span>
-        </button>
-        <button className={`pill-nav-item ${isTradingPhase && phase !== PHASES.AI_CONFIGURE && phase !== PHASES.AI_GENERATING && phase !== PHASES.AI_REVIEW ? 'active' : ''}`} onClick={() => { setSelectedTrade(null); navigateTo(PHASES.SELECT); }} title="Derivatives">
-          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
-          <span className="pill-nav-label">Derivatives</span>
-        </button>
-        <button className={`pill-nav-item ${isLendingPhase ? 'active' : ''}`} onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)} title="Lending">
-          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
-          <span className="pill-nav-label">Lending</span>
-        </button>
-        <button className={`pill-nav-item ${isSalesPhase ? 'active' : ''}`} onClick={() => navigateTo(PHASES.SALES_LIBRARY)} title="Sales">
-          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
-          <span className="pill-nav-label">Sales Library</span>
-        </button>
-        <button className="pill-nav-item" onClick={() => setShowFeedback(true)} title="Feedback">
-          <span className="pill-nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-          <span className="pill-nav-label">Feedback</span>
-        </button>
-      </nav>
-
-      <main className="main">
-        {/* ═══ PHASE: HOME — Product Selection ═══ */}
-        {phase === PHASES.HOME && (
-          <div className="phase-home">
-            <div className="home-header">
-              <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="home-logo-full" />
-              <h1 className="home-title">Trade Idea Studio</h1>
-              <p className="home-sub">Upload a document or configure a trade to generate institutional-grade reports in seconds.</p>
-            </div>
-
-            <div className="home-cta-label">
-              <span className="home-cta-line" />
-              <span className="home-cta-text">Select a Product</span>
-              <span className="home-cta-line" />
-            </div>
-
-            <div className="bento-grid">
-              {/* Ask AI — Special branded */}
-              <div className="bento-ai product-card-ai-wrap">
-                <div className="ai-card-glow" />
-                <button className="product-card product-card-ai" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>
-                  <div className="product-card-icon-ring product-ring-violet">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
-                    </svg>
-                  </div>
-                  <span className="product-card-badge badge-violet">AI <span className="badge-beta">BETA</span></span>
-                  <h2 className="product-card-title">Ask AI</h2>
-                  <p className="product-card-desc">Paste meeting notes and let AI recommend the optimal trade structure, strikes, and summary.</p>
-                  <div className="product-card-cta">
-                    <span>Start AI analysis</span>
-                    <span className="product-card-arrow">&rarr;</span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Sales Library */}
-              <div className="bento-sales card-wrap card-wrap-amber">
-                <div className="card-border-glow" />
-                <button className="product-card product-card-sales" onClick={() => navigateTo(PHASES.SALES_LIBRARY)}>
-                  <div className="product-card-icon-ring product-ring-amber">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                      <line x1="9" y1="7" x2="16" y2="7"/>
-                      <line x1="9" y1="11" x2="14" y2="11"/>
-                    </svg>
-                  </div>
-                  <span className="product-card-badge badge-amber">SALES</span>
-                  <h2 className="product-card-title">Sales Library</h2>
-                  <p className="product-card-desc">Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
-                  <div className="product-card-cta">
-                    <span>Browse documents</span>
-                    <span className="product-card-arrow">&rarr;</span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Derivatives */}
-              <div className="bento-deriv card-wrap card-wrap-blue">
-                <div className="card-border-glow" />
-                <button className="product-card product-card-blue" onClick={() => navigateTo(PHASES.SELECT)}>
-                  <div className="product-card-icon-ring product-ring-blue">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-                      <polyline points="16 7 22 7 22 13"/>
-                    </svg>
-                  </div>
-                  <span className="product-card-badge badge-blue">DERIVATIVES</span>
-                  <h2 className="product-card-title">Derivatives Studio</h2>
-                  <p className="product-card-desc">Generate institutional-grade trade reports with payoff diagrams, risk metrics, and executive summaries.</p>
-                  <div className="product-card-cta">
-                    <span>Create a trade report</span>
-                    <span className="product-card-arrow">&rarr;</span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Lending */}
-              <div className="bento-lending card-wrap card-wrap-green">
-                <div className="card-border-glow" />
-                <button className="product-card product-card-lending" onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}>
-                  <div className="product-card-icon-ring product-ring-green">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="2" y="6" width="20" height="14" rx="2"/>
-                      <path d="M2 10h20"/>
-                      <circle cx="12" cy="16" r="2"/>
-                    </svg>
-                  </div>
-                  <span className="product-card-badge badge-green">LENDING</span>
-                  <h2 className="product-card-title">Lending Calculator</h2>
-                  <p className="product-card-desc">Calculate collateralized loan terms, generate branded lending proposals with payment schedules and risk analysis.</p>
-                  <div className="product-card-cta">
-                    <span>Build a lending proposal</span>
-                    <span className="product-card-arrow">&rarr;</span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Trading Desk — Coming Soon */}
-              <div className="bento-trading card-wrap card-wrap-purple">
-                <div className="card-border-glow" />
-                <div className="product-card product-card-disabled">
-                  <div className="product-card-icon-ring product-ring-purple">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                      <path d="M2 17l10 5 10-5"/>
-                      <path d="M2 12l10 5 10-5"/>
-                    </svg>
-                  </div>
-                  <span className="product-card-badge badge-purple">TRADING</span>
-                  <h2 className="product-card-title">Trading Desk</h2>
-                  <p className="product-card-desc">Spot and OTC execution, block trades, and institutional order routing for digital assets.</p>
-                  <div className="product-card-coming-soon">Coming Soon</div>
+          {/* Ask AI Banner */}
+          <button
+            onClick={() => navigateTo(PHASES.AI_CONFIGURE)}
+            style={{
+              width: "100%", background: "#111", border: "none", borderRadius: 2,
+              padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
+              cursor: "pointer", marginBottom: 32, color: "#FFFFFF",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 14, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 10 }}>
+                  Ask AI
+                  <span style={{ ...S.pill, background: "#FFC32C", color: "#111", fontSize: 9 }}>BETA</span>
                 </div>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Describe what your client needs and let AI suggest the best trade structure</div>
               </div>
             </div>
-          </div>
-        )}
+            <span style={{ color: "#FFC32C", fontSize: 18 }}>&rarr;</span>
+          </button>
 
-        {/* ═══ PHASE: UPLOAD ═══ */}
-        {phase === PHASES.UPLOAD && (uploadedFile || uploadedUrl) && (
-          <div className="phase-upload">
-            <div className="upload-card">
-              {uploadedFile ? (
-                <>
-                  <div className="upload-file-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  </div>
-                  <h2 className="upload-title">{uploadedFile.name}</h2>
-                  <p className="upload-meta">{(uploadedFile.size / 1024).toFixed(1)} KB — {uploadedFile.type || "document"}</p>
-                </>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+            {TRADE_TYPES.map(trade => (
+              <TradeCard
+                key={trade.id}
+                trade={trade}
+                selected={selectedTrade?.id === trade.id}
+                onClick={() => handleSelectTrade(trade)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PHASE: AI CONFIGURE ═══ */}
+      {phase === PHASES.AI_CONFIGURE && (
+        <div style={S.main}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
+            <div>
+              <div style={{ ...S.sectionLabel, marginBottom: 8 }}>AI Trade Advisor</div>
+              <h1 style={{ ...S.heading1, display: "flex", alignItems: "center", gap: 12 }}>
+                Ask AI
+                <span style={{ ...S.pill, background: "#111", color: "#FFC32C", fontSize: 9 }}>BETA</span>
+              </h1>
+              <p style={{ ...S.subtext, marginTop: 6 }}>Tell us about your client and what they're looking for. AI will suggest the best derivatives structure and pre-fill the report.</p>
+            </div>
+            <button style={S.btnBack} onClick={() => navigateTo(PHASES.SELECT)}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Back to Trade Types
+            </button>
+          </div>
+
+          {error && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 2, padding: "12px 16px", marginBottom: 20, color: "#dc2626", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
+            {[
+              { key: "asset", label: "Asset / Underlying", type: "select", options: ["BTC","ETH","SOL","XRP","ADA","AVAX","DOT","MATIC","LINK","UNI","LTC","DOGE","AAVE","ARB","OP"], value: aiForm.asset },
+              { key: "currentPrice", label: "Current Price ($)", type: "text", placeholder: "e.g. 95000", value: aiForm.currentPrice },
+              { key: "portfolioValue", label: "Portfolio / Position Value ($)", type: "text", placeholder: "e.g. 5000000", value: aiForm.portfolioValue },
+              { key: "expiryDate", label: "Target Expiry Date", type: "text", placeholder: "e.g. 26 Jun 2026", value: aiForm.expiryDate },
+              { key: "objective", label: "Client Objective", type: "select", options: ["Not Sure — Detect from Notes","Hedge","Income","Go Long","Liquidity","Event"], value: aiForm.objective },
+              { key: "riskTolerance", label: "Risk Tolerance", type: "select", options: ["Conservative","Moderate","Aggressive"], value: aiForm.riskTolerance },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ ...S.sectionLabel, display: "block", marginBottom: 6 }}>{f.label}</label>
+                {f.type === "select" ? (
+                  <select style={{ ...inputStyle, appearance: "none" }} value={f.value} onChange={e => setAiForm(p => ({ ...p, [f.key]: e.target.value }))}>
+                    {f.options.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input style={inputStyle} type="text" placeholder={f.placeholder} value={f.value} onChange={e => setAiForm(p => ({ ...p, [f.key]: e.target.value }))} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Presets */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ ...S.sectionLabel, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+              Start from a template
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              {(presetsExpanded ? ASK_AI_PRESETS : ASK_AI_PRESETS.slice(0, 3)).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    if (activePreset === p.id) {
+                      setActivePreset(null);
+                      setAiForm(f => ({ ...f, prompt: "" }));
+                      if (aiPromptRef.current) aiPromptRef.current.innerHTML = "";
+                    } else {
+                      setActivePreset(p.id);
+                      setAiForm(f => ({ ...f, prompt: p.prompt }));
+                      if (aiPromptRef.current) aiPromptRef.current.innerHTML = `<p>${p.prompt}</p>`;
+                    }
+                  }}
+                  style={{
+                    background: activePreset === p.id ? "#111" : "#FAFAFA",
+                    color: activePreset === p.id ? "#FFFFFF" : "#555",
+                    border: activePreset === p.id ? "1px solid #111" : "1px solid #E8E8E8",
+                    borderRadius: 2, padding: "7px 14px",
+                    fontFamily: "'Poppins',sans-serif", fontSize: 12,
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setPresetsExpanded(v => !v)}
+              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", display: "flex", alignItems: "center", gap: 6 }}
+            >
+              {presetsExpanded ? "Show less" : "More templates"}
+              <svg style={{ transform: presetsExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} width="12" height="12" viewBox="0 0 12 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 1.5l5 5 5-5"/></svg>
+            </button>
+          </div>
+
+          <div style={{ ...S.divider }} />
+
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ ...S.sectionLabel, display: "block", marginBottom: 8 }}>Describe what the client is looking for</label>
+            <RichTextFieldToolbar />
+            <div
+              ref={aiPromptRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-placeholder="e.g. Client holds 50 BTC and wants to protect against a 15% drawdown over the next 3 months while keeping upside exposure..."
+              onInput={() => { if (aiPromptRef.current) setAiForm(p => ({ ...p, prompt: aiPromptRef.current.innerText })); setActivePreset(null); }}
+              style={{
+                ...inputStyle, minHeight: 120, padding: "12px", lineHeight: 1.6,
+                border: "1px solid #E8E8E8", outline: "none",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button style={{ ...S.btnPrimary, padding: "14px 32px", fontSize: 13 }} onClick={handleAiGenerate}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+              Generate Trade Idea
+              <span>&rarr;</span>
+            </button>
+          </div>
+
+          {/* AI Response */}
+          {(aiResponseLoading || aiResponse) && (
+            <div style={{ marginTop: 28, border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2, background: "#FAFAFA" }}>
+              {aiResponseLoading ? (
+                <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: 12, color: "#888", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+                  <span style={{ width: 16, height: 16, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+                  Analyzing your brief with Claude AI...
+                </div>
               ) : (
-                <>
-                  <div className="upload-file-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <div style={{ padding: "24px" }}>
+                  <div style={{ ...S.sectionLabel, marginBottom: 12 }}>AI Analysis</div>
+                  <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", lineHeight: 1.7 }}>
+                    {aiResponse.split("\n").filter(Boolean).map((para, i) => <p key={i} style={{ marginBottom: 10 }}>{para}</p>)}
                   </div>
-                  <h2 className="upload-title">
-                    {uploadedUrl.includes("docs.google.com") ? "Google Document" :
-                     uploadedUrl.includes("sheets.google.com") ? "Google Sheet" :
-                     uploadedUrl.includes("slides.google.com") ? "Google Slides" :
-                     uploadedUrl.includes("drive.google.com") ? "Google Drive File" :
-                     "Linked Document"}
-                  </h2>
-                  <p className="upload-meta upload-url-preview">{uploadedUrl}</p>
-                </>
+                  <button style={{ ...S.btnPrimary, marginTop: 16 }} onClick={proceedToAiReview}>
+                    Review Trade &rarr;
+                  </button>
+                </div>
               )}
-              <p className="upload-status">
-                {uploadedFile ? "File uploaded successfully." : "Link attached successfully."} Branded report generation for imported documents is coming soon.
-              </p>
-              <div className="upload-actions">
-                <button className="btn-back" onClick={handleReset}>&larr; Back to Home</button>
-                <button className="btn-generate" style={{ "--accent": "var(--blue)" }} onClick={() => navigateTo(PHASES.SELECT)}>
-                  <span>Create manually instead</span>
-                  <span className="btn-arrow">&rarr;</span>
-                </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ PHASE: AI GENERATING ═══ */}
+      {phase === PHASES.AI_GENERATING && (
+        <GeneratingScreen
+          title="AI is Structuring Your Trade"
+          steps={AI_GENERATING_STEPS}
+          currentStep={generatingStep}
+        />
+      )}
+
+      {/* ═══ PHASE: AI REVIEW ═══ */}
+      {phase === PHASES.AI_REVIEW && selectedTrade && (
+        <div style={{ display: "flex", minHeight: "calc(100vh - 120px)" }}>
+          <ConfigureSidebar
+            icon={selectedTrade.icon}
+            tag={selectedTrade.tag}
+            label={selectedTrade.label}
+            category={selectedTrade.category}
+            description={selectedTrade.description}
+            outputItems={["Payoff Diagram", "Risk/Reward KPIs", "Trade Structure Breakdown", "AI Executive Summary"]}
+            backLabel="Back to Ask AI"
+            onBack={() => navigateTo(PHASES.AI_CONFIGURE)}
+          />
+          <div style={{ flex: 1, padding: "40px 48px", overflowY: "auto" }}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>AI GENERATED</span>
               </div>
+              <h2 style={S.heading2}>Review & Confirm Trade</h2>
+              <p style={{ ...S.subtext, marginTop: 6 }}>AI has suggested a <strong>{selectedTrade.label}</strong> based on your client brief. Review the parameters below — edit anything that needs adjusting, then generate your report.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+              {selectedTrade.fields.map(field => (
+                <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} />
+              ))}
+            </div>
+
+            {/* Loan Component Panel */}
+            <div style={{ marginBottom: 28, padding: 20, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2 }}>
+              <button
+                onClick={() => {
+                  const next = !showLoanPanel;
+                  setShowLoanPanel(next);
+                  if (next && !loanComponent) {
+                    setLoanComponent({
+                      collateralAsset: fieldValues.asset || "BTC",
+                      collateralUnits: "",
+                      pricePerUnit: fieldValues.current_price || fieldValues.spot || fieldValues.spot_price || "",
+                      termMonths: "24", ltv: "65", annualRate: "8", arrangementFee: "2", useOfProceeds: "",
+                    });
+                  } else if (!next) { setLoanComponent(null); }
+                }}
+                style={{ ...S.btnSecondary, marginBottom: showLoanPanel ? 16 : 0 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+                {showLoanPanel ? "Remove Loan Component" : "Add Loan Component"}
+              </button>
+              {!showLoanPanel && <p style={{ ...S.subtext, fontSize: 12, marginTop: 6 }}>Combine with an SDM crypto-backed loan</p>}
+              {showLoanPanel && loanComponent && (
+                <div>
+                  <div style={{ ...S.sectionLabel, marginBottom: 12 }}>Loan Parameters</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                    {[
+                      { key: "collateralAsset", label: "Collateral Asset" },
+                      { key: "collateralUnits", label: "Collateral Units" },
+                      { key: "pricePerUnit", label: "Price Per Unit ($)" },
+                      { key: "termMonths", label: "Term (months)" },
+                      { key: "ltv", label: "LTV (%)" },
+                      { key: "annualRate", label: "Annual Rate (%)" },
+                      { key: "arrangementFee", label: "Arrangement Fee (%)" },
+                    ].map(({ key, label }) => (
+                      <div key={key}>
+                        <label style={{ ...S.sectionLabel, display: "block", marginBottom: 6 }}>{label}</label>
+                        <input
+                          style={inputStyle}
+                          value={loanComponent[key] || ""}
+                          onChange={e => setLoanComponent(prev => ({ ...prev, [key]: e.target.value }))}
+                          placeholder={key === "ltv" ? "65" : key === "annualRate" ? "8" : key === "arrangementFee" ? "2" : ""}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {(() => {
+                    const units = parseFloat(loanComponent.collateralUnits);
+                    const price = parseFloat(loanComponent.pricePerUnit);
+                    const ltv = parseFloat(loanComponent.ltv) / 100 || 0.65;
+                    const fee = parseFloat(loanComponent.arrangementFee) / 100 || 0.02;
+                    if (!isNaN(units) && !isNaN(price) && units > 0 && price > 0) {
+                      const gross = units * price * ltv;
+                      const net = gross * (1 - fee);
+                      return (
+                        <div style={{ display: "flex", gap: 24, marginTop: 12, padding: "12px 16px", background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2 }}>
+                          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555" }}>Gross Loan: <strong style={{ color: "#111" }}>${gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+                          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555" }}>Net Proceeds: <strong style={{ color: "#111" }}>${net.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button style={{ ...S.btnPrimary, padding: "14px 32px" }} onClick={handleGenerate}>
+                Generate Report <span>&rarr;</span>
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ═══ PHASE: SELECT (Trading) ═══ */}
-        {phase === PHASES.SELECT && (
-          <div className="phase-select">
-            <div className="phase-header">
-              <button className="btn-back" onClick={handleReset}>&larr; Back to Home</button>
-              <h1 className="phase-title">Select a Trade Type</h1>
-              <p className="phase-sub">Choose the structure you want to build. We'll generate a full trade analysis report with payoff diagrams and risk metrics.</p>
+      {/* ═══ PHASE: CONFIGURE ═══ */}
+      {phase === PHASES.CONFIGURE && selectedTrade && (
+        <div style={{ display: "flex", minHeight: "calc(100vh - 120px)" }}>
+          <ConfigureSidebar
+            icon={selectedTrade.icon}
+            tag={selectedTrade.tag}
+            label={selectedTrade.label}
+            category={selectedTrade.category}
+            description={selectedTrade.description}
+            outputItems={["Payoff Diagram", "Risk/Reward KPIs", "Trade Structure Breakdown", "Canva Export (optional)"]}
+            backLabel="Back to Trade Types"
+            onBack={() => navigateTo(PHASES.SELECT)}
+          />
+          <div style={{ flex: 1, padding: "40px 48px", overflowY: "auto" }}>
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ ...S.sectionLabel, marginBottom: 8 }}>Step 02</div>
+              <h2 style={S.heading2}>Configure Trade Details</h2>
+              <p style={{ ...S.subtext, marginTop: 6 }}>Fill in the deal-specific inputs. These power the payoff calculations and report generation.</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+              {selectedTrade.fields.map(field => (
+                <FieldInput key={field.key} field={field} value={fieldValues[field.key]} onChange={handleFieldChange} />
+              ))}
+            </div>
+            {error && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 2, padding: "12px 16px", marginBottom: 20, color: "#dc2626", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+                {error}
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button style={{ ...S.btnPrimary, padding: "14px 32px" }} onClick={handleGenerate}>
+                Generate Report <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PHASE: GENERATING ═══ */}
+      {phase === PHASES.GENERATING && selectedTrade && (
+        <GeneratingScreen
+          title="Building your report"
+          steps={["Analyzing trade structure", "Computing payoff matrix", "Building risk profile", "Rendering report"]}
+          currentStep={generatingStep}
+        />
+      )}
+
+      {/* ═══ PHASE: RESULT ═══ */}
+      {phase === PHASES.RESULT && selectedTrade && (
+        <TradeReport
+          trade={selectedTrade}
+          fieldValues={fieldValues}
+          loanComponent={loanComponent}
+          onBack={() => navigateTo(PHASES.CONFIGURE)}
+          onReset={handleReset}
+        />
+      )}
+
+      {/* ═══ PHASE: LENDING CONFIGURE ═══ */}
+      {phase === PHASES.LENDING_CONFIGURE && (
+        <div style={{ display: "flex", minHeight: "calc(100vh - 120px)" }}>
+          <ConfigureSidebar
+            icon={<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>}
+            tag="LENDING"
+            label="Lending Calculator"
+            category="Collateralized Loans"
+            description="SDM Lending offers collateralized borrowing against the top 50 digital assets. Customizable LTV, interest rate, and term length."
+            outputItems={["Loan Structure & Pricing", "Payment Schedule", "Risk & Margin Analysis", "Executive Summary"]}
+            backLabel="Back to Home"
+            onBack={handleReset}
+          />
+          <div style={{ flex: 1, padding: "40px 48px", overflowY: "auto" }}>
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ ...S.sectionLabel, marginBottom: 8 }}>Step 01</div>
+              <h2 style={S.heading2}>Configure Loan Parameters</h2>
+              <p style={{ ...S.subtext, marginTop: 6 }}>Enter the collateral details and loan terms. We'll generate a complete lending proposal with payment schedule and risk analysis.</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+              {LENDING_FIELDS.map(field => (
+                <FieldInput key={field.key} field={field} value={lendingValues[field.key]} onChange={handleLendingFieldChange} />
+              ))}
             </div>
 
-            {/* Ask AI Banner */}
-            <button className="ai-banner" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>
-              <div className="ai-banner-left">
-                <div className="ai-banner-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                </div>
+            {lendingValues.collateralUnits && lendingValues.pricePerUnit && (
+              <div style={{ display: "flex", gap: 24, padding: "16px 20px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, marginBottom: 20 }}>
                 <div>
-                  <div className="ai-banner-title">
-                    Ask AI
-                    <span className="ai-beta-badge">BETA</span>
+                  <div style={S.sectionLabel}>Collateral Value</div>
+                  <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 4 }}>
+                    ${(parseFloat(lendingValues.collateralUnits.replace(/,/g,"")) * parseFloat(lendingValues.pricePerUnit.replace(/,/g,""))).toLocaleString(undefined, {maximumFractionDigits: 0})}
                   </div>
-                  <div className="ai-banner-desc">Describe what your client needs and let AI suggest the best trade structure</div>
+                </div>
+                <div style={{ width: 1, background: "#E8E8E8" }} />
+                <div>
+                  <div style={S.sectionLabel}>Est. Net Proceeds</div>
+                  <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#16a34a", marginTop: 4 }}>
+                    ${(parseFloat(lendingValues.collateralUnits.replace(/,/g,"")) * parseFloat(lendingValues.pricePerUnit.replace(/,/g,"")) * 0.65 * 0.98).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                  </div>
                 </div>
               </div>
-              <span className="ai-banner-arrow">&rarr;</span>
-            </button>
+            )}
 
-            <div className="trade-grid">
-              {TRADE_TYPES.map(trade => (
-                <TradeCard
-                  key={trade.id}
-                  trade={trade}
-                  selected={selectedTrade?.id === trade.id}
-                  onClick={() => handleSelectTrade(trade)}
-                />
+            {lendingError && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 2, padding: "12px 16px", marginBottom: 20, color: "#dc2626", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+                {lendingError}
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button style={{ ...S.btnPrimary, background: "#16a34a", padding: "14px 32px" }} onClick={handleGenerateLending}>
+                Generate Proposal <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PHASE: LENDING GENERATING ═══ */}
+      {phase === PHASES.LENDING_GENERATING && (
+        <GeneratingScreen
+          title="Building your lending proposal"
+          steps={["Validating collateral parameters", "Computing loan structure", "Building payment schedule", "Rendering proposal"]}
+          currentStep={generatingStep}
+        />
+      )}
+
+      {/* ═══ PHASE: LENDING RESULT ═══ */}
+      {phase === PHASES.LENDING_RESULT && lendingData && (
+        <LendingReport
+          data={lendingData}
+          fieldValues={lendingValues}
+          onBack={() => navigateTo(PHASES.LENDING_CONFIGURE)}
+          onReset={handleReset}
+        />
+      )}
+
+      {/* ═══ PHASE: SALES LIBRARY ═══ */}
+      {phase === PHASES.SALES_LIBRARY && (
+        <div style={S.mainWide}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
+            <div>
+              <div style={{ ...S.sectionLabel, marginBottom: 8 }}>SDM Document Vault</div>
+              <h1 style={S.heading1}>Sales Library</h1>
+              <p style={{ ...S.subtext, marginTop: 6 }}>Browse and share SDM sales collateral. Documents sync live from the team sheet.</p>
+            </div>
+            <button style={S.btnBack} onClick={handleReset}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Back to Home
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+            <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+              <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                style={{ ...inputStyle, paddingLeft: 40 }}
+                type="text"
+                placeholder="Search documents..."
+                value={salesFilter}
+                onChange={e => setSalesFilter(e.target.value)}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {["All", ...Array.from(new Set(salesDocs.map(d => d.category)))].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSalesCategory(cat)}
+                  style={{
+                    background: salesCategory === cat ? "#111" : "#FAFAFA",
+                    color: salesCategory === cat ? "#FFFFFF" : "#555",
+                    border: salesCategory === cat ? "1px solid #111" : "1px solid #E8E8E8",
+                    borderRadius: 2, padding: "8px 16px",
+                    fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600,
+                    letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
+                  }}
+                >
+                  {cat}
+                </button>
               ))}
             </div>
           </div>
-        )}
 
-        {/* ═══ PHASE: AI CONFIGURE ═══ */}
-        {phase === PHASES.AI_CONFIGURE && (
-          <div className="phase-ai">
-            <div className="ai-header">
-              <div>
-                <h1 className="phase-title">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{verticalAlign: "middle", marginRight: 10}}><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                  Ask AI
-                  <span className="ai-beta-badge" style={{marginLeft: 12, verticalAlign: "middle"}}>BETA</span>
-                </h1>
-                <p className="phase-sub">Tell us about your client and what they're looking for. AI will suggest the best derivatives structure and pre-fill the report.</p>
-              </div>
-              <button className="btn-back" onClick={() => navigateTo(PHASES.SELECT)}>&larr; Back to Trade Types</button>
+          {salesLoading ? (
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <span style={{ width: 24, height: 24, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+              <p style={{ color: "#888", marginTop: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>Loading documents...</p>
             </div>
-
-            {error && <div className="error-banner"><span className="error-icon">!</span> {error}</div>}
-
-            <div className="ai-form">
-              <div className="ai-fields-grid">
-                <div className="field-group">
-                  <label className="field-label">Asset / Underlying</label>
-                  <select className="field-select" value={aiForm.asset} onChange={e => setAiForm(p => ({...p, asset: e.target.value}))}>
-                    {["BTC","ETH","SOL","XRP","ADA","AVAX","DOT","MATIC","LINK","UNI","LTC","DOGE","AAVE","ARB","OP"].map(a => <option key={a}>{a}</option>)}
-                  </select>
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Current Price ($)</label>
-                  <input className="field-input" type="text" placeholder="e.g. 95000" value={aiForm.currentPrice} onChange={e => setAiForm(p => ({...p, currentPrice: e.target.value}))} />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Portfolio / Position Value ($)</label>
-                  <input className="field-input" type="text" placeholder="e.g. 5000000" value={aiForm.portfolioValue} onChange={e => setAiForm(p => ({...p, portfolioValue: e.target.value}))} />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Target Expiry Date <span style={{fontWeight: 400, color: "var(--text-dim)", fontSize: "0.75em"}}>(Can leave blank if not sure)</span></label>
-                  <input className="field-input" type="text" placeholder="e.g. 26 Jun 2026" value={aiForm.expiryDate} onChange={e => setAiForm(p => ({...p, expiryDate: e.target.value}))} />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Client Objective</label>
-                  <select className="field-select" value={aiForm.objective} onChange={e => setAiForm(p => ({...p, objective: e.target.value}))}>
-                    {["Not Sure — Detect from Notes","Hedge","Income","Go Long","Liquidity","Event"].map(o => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Risk Tolerance</label>
-                  <select className="field-select" value={aiForm.riskTolerance} onChange={e => setAiForm(p => ({...p, riskTolerance: e.target.value}))}>
-                    {["Conservative","Moderate","Aggressive"].map(r => <option key={r}>{r}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="ai-presets-section">
-                <div className="ai-presets-label">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                  <span>Start from a template</span>
-                </div>
-                <div className="ai-presets-grid">
-                  {(presetsExpanded ? ASK_AI_PRESETS : ASK_AI_PRESETS.slice(0, 3)).map(p => (
-                    <button
-                      key={p.id}
-                      className={`ai-preset-chip${activePreset === p.id ? " active" : ""}`}
-                      onClick={() => {
-                        if (activePreset === p.id) {
-                          setActivePreset(null);
-                          setAiForm(f => ({...f, prompt: ""}));
-                          if (aiPromptRef.current) aiPromptRef.current.innerHTML = "";
-                        } else {
-                          setActivePreset(p.id);
-                          setAiForm(f => ({...f, prompt: p.prompt}));
-                          if (aiPromptRef.current) aiPromptRef.current.innerHTML = `<p>${p.prompt}</p>`;
-                        }
-                      }}
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
+              {salesDocs
+                .filter(d => salesCategory === "All" || d.category === salesCategory)
+                .filter(d => !salesFilter || d.name.toLowerCase().includes(salesFilter.toLowerCase()) || (d.description || getDocMeta(d.name).desc).toLowerCase().includes(salesFilter.toLowerCase()))
+                .map((doc, i) => {
+                  const meta = getDocMeta(doc.name);
+                  const desc = doc.description || meta.desc;
+                  return (
+                    <a key={i} href={doc.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", flexDirection: "column", background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: `3px solid ${meta.color}`, borderRadius: 2, overflow: "hidden", transition: "box-shadow 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
                     >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-                <button className="ai-presets-toggle" onClick={() => setPresetsExpanded(v => !v)}>
-                  <span>{presetsExpanded ? "Show less" : "More templates"}</span>
-                  <svg className={`ai-presets-chevron${presetsExpanded ? " open" : ""}`} width="12" height="12" viewBox="0 0 12 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1.5l5 5 5-5"/></svg>
-                </button>
-              </div>
-
-              <div className="ai-prompt-divider">
-                <span className="ai-prompt-divider-line" />
-                <span className="ai-prompt-divider-text">or write your own</span>
-                <span className="ai-prompt-divider-line" />
-              </div>
-
-              <div className="ai-prompt-section">
-                <label className="field-label">Describe what the client is looking for</label>
-                <div className="ai-prompt-box">
-                  <div className="ai-prompt-header">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                    <span>AI Prompt</span>
-                  </div>
-                  <RichTextFieldToolbar />
-                  <div
-                    ref={aiPromptRef}
-                    className="rt-editor ai-prompt-editor"
-                    contentEditable
-                    suppressContentEditableWarning
-                    data-placeholder="e.g. Client holds 50 BTC and wants to protect against a 15% drawdown over the next 3 months while keeping upside exposure. They'd prefer a zero-cost structure if possible..."
-                    onInput={() => {
-                      if (aiPromptRef.current) {
-                        setAiForm(p => ({...p, prompt: aiPromptRef.current.innerText}));
-                        setActivePreset(null);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <div className="form-action-note">
-                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>AI will suggest a trade type and pre-fill all parameters. You can review and edit before generating.</span>
-                </div>
-                <button className="btn-generate ai-generate-btn" onClick={handleAiGenerate}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                  Generate Trade Idea
-                  <span className="btn-arrow">&rarr;</span>
-                </button>
-              </div>
-
-              {/* ─── AI Response Box ─── */}
-              {(aiResponseLoading || aiResponse) && (
-                <div className="ai-response-section">
-                  {aiResponse && (
-                    <div className="ai-theme-picker">
-                      {["dark", "charcoal", "light", "midnight"].map(t => (
-                        <button
-                          key={t}
-                          className={`ai-theme-btn${aiTheme === t ? " active" : ""}`}
-                          onClick={() => setAiTheme(t)}
-                        >
-                          <span className="ai-theme-swatch" style={{ background: AI_RESPONSE_THEMES[t].bg, borderColor: AI_RESPONSE_THEMES[t].border }} />
-                          {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div
-                    className="ai-response-box"
-                    style={{
-                      background: AI_RESPONSE_THEMES[aiTheme].surface,
-                      border: `1px solid ${AI_RESPONSE_THEMES[aiTheme].border}`,
-                      color: AI_RESPONSE_THEMES[aiTheme].text,
-                    }}
-                  >
-                    {aiResponseLoading ? (
-                      <div className="ai-response-loading" style={{ color: AI_RESPONSE_THEMES[aiTheme].muted }}>
-                        <div className="gen-spinner" style={{ width: 20, height: 20, flexShrink: 0 }} />
-                        <span>Analyzing your brief with Claude AI...</span>
+                      <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid #F0F0F0" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                          <div style={{ color: meta.color }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          </div>
+                          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: meta.color }}>{meta.type}</span>
+                        </div>
+                        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, fontSize: 14, color: "#111", marginBottom: 6 }}>{doc.name}</div>
+                        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", lineHeight: 1.5 }}>{desc}</div>
                       </div>
-                    ) : (
-                      <>
-                        <div className="ai-response-label" style={{ color: AI_RESPONSE_THEMES[aiTheme].accent }}>AI Analysis</div>
-                        <div className="ai-response-text" style={{ color: AI_RESPONSE_THEMES[aiTheme].text }}>
-                          {aiResponse.split("\n").filter(Boolean).map((para, i) => (
-                            <p key={i}>{para}</p>
-                          ))}
-                        </div>
-                        <button
-                          className="ai-response-proceed"
-                          onClick={proceedToAiReview}
-                          style={{ background: AI_RESPONSE_THEMES[aiTheme].accent, color: AI_RESPONSE_THEMES[aiTheme].bg === "#F4F4F4" ? "#0d0d0d" : "#0d0d0d" }}
-                        >
-                          Review Trade →
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888" }}>docsend.com</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      </div>
+                    </a>
+                  );
+                })
+              }
+              {salesDocs.length === 0 && !salesLoading && (
+                <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: "#888", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+                  No documents found. Make sure the Google Sheet is shared publicly and the Sheet ID is configured.
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* ═══ PHASE: AI GENERATING ═══ */}
-        {phase === PHASES.AI_GENERATING && (
-          <div className="phase-generating phase-ai-generating">
-            <div className="generating-inner">
-              <div className="generating-glyph">
-                <img src="/sdm-logo-full.svg" alt="SDM" className="generating-logo" />
-              </div>
-              <h2 className="generating-title"><span className="typewriter-title">AI is Structuring Your Trade</span></h2>
-              <div className="generating-steps">
-                {AI_GENERATING_STEPS.map((step, idx) => (
-                  <div key={idx} className={`gen-step ${generatingStep > idx ? "done" : generatingStep === idx ? "active" : ""}`}>
-                    <div className="gen-step-dot" />
-                    {step}
-                    {generatingStep > idx && <span className="gen-check">{"\u2713"}</span>}
-                    {generatingStep === idx && <div className="gen-spinner" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ PHASE: AI REVIEW ═══ */}
-        {phase === PHASES.AI_REVIEW && selectedTrade && (
-          <div className="phase-configure phase-ai-review">
-            <div className="configure-sidebar">
-              {/* AI Review header */}
-              <div className="ai-review-card">
-                <div className="ai-review-card-header">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                  <span>AI-Suggested Trade</span>
-                  <span className="ai-beta-badge">BETA</span>
-                </div>
-                <div className="ai-review-card-body">
-                  <div className="sidebar-icon" style={{ "--accent": selectedTrade.color }}>{selectedTrade.icon}</div>
-                  <div className="sidebar-tag" style={{ color: selectedTrade.color }}>{selectedTrade.tag}</div>
-                  <div className="sidebar-label">{selectedTrade.label}</div>
-                  <div className="sidebar-category">{selectedTrade.category}</div>
-                </div>
-              </div>
-
-              <div className="sidebar-desc">
-                {selectedTrade.description}
-              </div>
-
-              <div className="sidebar-output-preview">
-                <div className="output-preview-label">Report Includes</div>
-                <div className="output-preview-item"><span className="output-icon">✦</span> Payoff Diagram</div>
-                <div className="output-preview-item"><span className="output-icon">◼</span> Risk/Reward KPIs</div>
-                <div className="output-preview-item"><span className="output-icon">◫</span> Trade Structure Breakdown</div>
-                {showLoanPanel && <div className="output-preview-item" style={{ color: "#4ade80" }}><span className="output-icon">⬡</span> Loan Structure</div>}
-                <div className="output-preview-item"><span className="output-icon">⊡</span> AI Executive Summary</div>
-              </div>
-
-              <button className="btn-back" onClick={() => navigateTo(PHASES.AI_CONFIGURE)}>&larr; Back to Ask AI</button>
-            </div>
-
-            <div className="configure-form">
-              <div className="ai-review-header">
-                <div className="ai-review-badge-row">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                  <span className="ai-beta-badge">AI GENERATED</span>
-                </div>
-                <h2 className="form-title">Review & Confirm Trade</h2>
-                <p className="form-sub">AI has suggested a <strong>{selectedTrade.label}</strong> based on your client brief. Review the parameters below — edit anything that needs adjusting, then generate your report.</p>
-              </div>
-
-              <div className="fields-grid">
-                {selectedTrade.fields.map(field => (
-                  <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} />
-                ))}
-              </div>
-
-              {/* ─── Loan Component Panel ─── */}
-              <div className="loan-panel-section">
-                <div className="loan-panel-toggle-row">
-                  <button
-                    className={`loan-panel-toggle${showLoanPanel ? " active" : ""}`}
-                    onClick={() => {
-                      const next = !showLoanPanel;
-                      setShowLoanPanel(next);
-                      if (next && !loanComponent) {
-                        setLoanComponent({
-                          collateralAsset: fieldValues.asset || "BTC",
-                          collateralUnits: "",
-                          pricePerUnit: fieldValues.current_price || fieldValues.spot || fieldValues.spot_price || "",
-                          termMonths: "24",
-                          ltv: "65",
-                          annualRate: "8",
-                          arrangementFee: "2",
-                          useOfProceeds: "",
-                        });
-                      } else if (!next) {
-                        setLoanComponent(null);
-                      }
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-                    {showLoanPanel ? "Remove Loan Component" : "Add Loan Component"}
-                  </button>
-                  {!showLoanPanel && <span className="loan-panel-hint">Combine with an SDM crypto-backed loan</span>}
-                </div>
-
-                {showLoanPanel && loanComponent && (
-                  <div className="loan-panel-fields">
-                    <div className="loan-panel-label">Loan Parameters</div>
-                    <div className="loan-panel-grid">
-                      {[
-                        { key: "collateralAsset", label: "Collateral Asset" },
-                        { key: "collateralUnits", label: "Collateral Units" },
-                        { key: "pricePerUnit", label: "Price Per Unit ($)" },
-                        { key: "termMonths", label: "Term (months)" },
-                        { key: "ltv", label: "LTV (%)" },
-                        { key: "annualRate", label: "Annual Rate (%)" },
-                        { key: "arrangementFee", label: "Arrangement Fee (%)" },
-                      ].map(({ key, label }) => (
-                        <div key={key} className="loan-panel-field">
-                          <label className="loan-panel-field-label">{label}</label>
-                          <input
-                            className="loan-panel-input"
-                            value={loanComponent[key] || ""}
-                            onChange={e => setLoanComponent(prev => ({ ...prev, [key]: e.target.value }))}
-                            placeholder={key === "ltv" ? "65" : key === "annualRate" ? "8" : key === "arrangementFee" ? "2" : ""}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {(() => {
-                      const units = parseFloat(loanComponent.collateralUnits);
-                      const price = parseFloat(loanComponent.pricePerUnit);
-                      const ltv = parseFloat(loanComponent.ltv) / 100 || 0.65;
-                      const fee = parseFloat(loanComponent.arrangementFee) / 100 || 0.02;
-                      if (!isNaN(units) && !isNaN(price) && units > 0 && price > 0) {
-                        const gross = units * price * ltv;
-                        const net = gross * (1 - fee);
-                        return (
-                          <div className="loan-panel-preview">
-                            <span>Gross Loan: <strong>${gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
-                            <span>Net Proceeds: <strong>${net.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                )}
-              </div>
-
-              <div className="form-actions">
-                <div className="form-action-note">
-                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>You can edit any field before generating. The AI suggestion is a starting point.</span>
-                </div>
-                <button className="btn-generate" onClick={handleGenerate} style={{ "--accent": selectedTrade.color }}>
-                  Generate Report
-                  <span className="btn-arrow">&rarr;</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ PHASE: CONFIGURE (Trading) ═══ */}
-        {phase === PHASES.CONFIGURE && selectedTrade && (
-          <div className="phase-configure">
-            <div className="configure-sidebar">
-              <div className="sidebar-trade-badge" style={{ "--accent": selectedTrade.color }}>
-                <div className="sidebar-icon">{selectedTrade.icon}</div>
-                <div className="sidebar-tag">{selectedTrade.tag}</div>
-                <div className="sidebar-label">{selectedTrade.label}</div>
-                <div className="sidebar-category">{selectedTrade.category}</div>
-              </div>
-              <div className="sidebar-desc">{selectedTrade.description}</div>
-              <div className="sidebar-output-preview">
-                <div className="output-preview-label">Report Includes</div>
-                <div className="output-preview-item"><span className="output-icon">&#x25C8;</span><span>Payoff Diagram</span></div>
-                <div className="output-preview-item"><span className="output-icon">&#x25A3;</span><span>Risk/Reward KPIs</span></div>
-                <div className="output-preview-item"><span className="output-icon">&#x29C9;</span><span>Trade Structure Breakdown</span></div>
-                <div className="output-preview-item"><span className="output-icon">{"\u2197"}</span><span>Canva Export (optional)</span></div>
-              </div>
-              <button className="btn-back" onClick={() => navigateTo(PHASES.SELECT)}>&larr; Back to Trade Types</button>
-            </div>
-            <div className="configure-form">
-              <div className="form-header">
-                <h2 className="form-title">Configure Trade Details</h2>
-                <p className="form-sub">Fill in the deal-specific inputs. These power the payoff calculations and report generation.</p>
-              </div>
-              <div className="fields-grid">
-                {selectedTrade.fields.map(field => (
-                  <FieldInput key={field.key} field={field} value={fieldValues[field.key]} onChange={handleFieldChange} />
-                ))}
-              </div>
-              {error && (
-                <div className="error-banner"><span className="error-icon">&#x26A0;</span>{error}</div>
-              )}
-              <div className="form-actions">
-                <div className="form-action-note" />
-                <button className="btn-generate" onClick={handleGenerate} style={{ "--accent": selectedTrade.color }}>
-                  <span>Generate Report</span>
-                  <span className="btn-arrow">&rarr;</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ PHASE: GENERATING (Trading) ═══ */}
-        {phase === PHASES.GENERATING && selectedTrade && (
-          <div className="phase-generating">
-            <div className="generating-inner">
-              <div className="generating-glyph">
-                <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="generating-logo" />
-              </div>
-              <h2 className="generating-title"><span className="typewriter-title">Building your report</span></h2>
-              <div className="generating-steps">
-                {["Analyzing trade structure", "Computing payoff matrix", "Building risk profile", "Rendering report"].map((step, i) => (
-                  <div key={i} className={`gen-step ${i <= generatingStep ? "done" : ""} ${i === generatingStep ? "active" : ""}`}>
-                    <div className="gen-step-dot" />
-                    <span>{step}</span>
-                    {i < generatingStep && <span className="gen-check">{"\u2713"}</span>}
-                    {i === generatingStep && <span className="gen-spinner" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ PHASE: RESULT (Trading) ═══ */}
-        {phase === PHASES.RESULT && selectedTrade && (
-          <TradeReport
-            trade={selectedTrade}
-            fieldValues={fieldValues}
-            loanComponent={loanComponent}
-            onBack={() => navigateTo(PHASES.CONFIGURE)}
-            onReset={handleReset}
-          />
-        )}
-
-        {/* ═══ PHASE: LENDING CONFIGURE ═══ */}
-        {phase === PHASES.LENDING_CONFIGURE && (
-          <div className="phase-configure">
-            <div className="configure-sidebar">
-              <div className="sidebar-trade-badge" style={{ "--accent": "#4ade80" }}>
-                <div className="sidebar-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="6" width="20" height="14" rx="2"/>
-                    <path d="M2 10h20"/>
-                    <circle cx="12" cy="16" r="2"/>
-                  </svg>
-                </div>
-                <div className="sidebar-tag">LENDING</div>
-                <div className="sidebar-label">Lending Calculator</div>
-                <div className="sidebar-category">Collateralized Loans</div>
-              </div>
-              <div className="sidebar-desc">
-                SDM Lending offers collateralized borrowing against the top 50 digital assets. Customizable LTV, interest rate, and term length.
-              </div>
-              <div className="sidebar-output-preview">
-                <div className="output-preview-label">Proposal Includes</div>
-                <div className="output-preview-item"><span className="output-icon">&#x25C8;</span><span>Loan Structure & Pricing</span></div>
-                <div className="output-preview-item"><span className="output-icon">&#x25A3;</span><span>Payment Schedule</span></div>
-                <div className="output-preview-item"><span className="output-icon">&#x29C9;</span><span>Risk & Margin Analysis</span></div>
-                <div className="output-preview-item"><span className="output-icon">{"\u2197"}</span><span>Executive Summary</span></div>
-              </div>
-              <button className="btn-back" onClick={handleReset}>&larr; Back to Home</button>
-            </div>
-            <div className="configure-form">
-              <div className="form-header">
-                <h2 className="form-title">Configure Loan Parameters</h2>
-                <p className="form-sub">Enter the collateral details and loan terms. We'll generate a complete lending proposal with payment schedule and risk analysis.</p>
-              </div>
-              <div className="fields-grid">
-                {LENDING_FIELDS.map(field => (
-                  <FieldInput key={field.key} field={field} value={lendingValues[field.key]} onChange={handleLendingFieldChange} />
-                ))}
-              </div>
-
-              {/* Quick summary preview */}
-              {lendingValues.collateralUnits && lendingValues.pricePerUnit && (
-                <div className="lending-preview-strip">
-                  <div className="lending-preview-item">
-                    <span className="lending-preview-label">Collateral Value</span>
-                    <span className="lending-preview-value">${(parseFloat(lendingValues.collateralUnits.replace(/,/g,"")) * parseFloat(lendingValues.pricePerUnit.replace(/,/g,""))).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                  </div>
-                  <div className="lending-preview-item">
-                    <span className="lending-preview-label">Est. Net Proceeds</span>
-                    <span className="lending-preview-value">${(parseFloat(lendingValues.collateralUnits.replace(/,/g,"")) * parseFloat(lendingValues.pricePerUnit.replace(/,/g,"")) * 0.65 * 0.98).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                  </div>
-                </div>
-              )}
-
-              {lendingError && (
-                <div className="error-banner"><span className="error-icon">&#x26A0;</span>{lendingError}</div>
-              )}
-              <div className="form-actions">
-                <div className="form-action-note" />
-                <button className="btn-generate" onClick={handleGenerateLending} style={{ "--accent": "#4ade80" }}>
-                  <span>Generate Proposal</span>
-                  <span className="btn-arrow">&rarr;</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ PHASE: LENDING GENERATING ═══ */}
-        {phase === PHASES.LENDING_GENERATING && (
-          <div className="phase-generating">
-            <div className="generating-inner">
-              <div className="generating-glyph">
-                <img src="/sdm-logo-full.svg" alt="Secure Digital Markets" className="generating-logo" />
-              </div>
-              <h2 className="generating-title"><span className="typewriter-title">Building your lending proposal</span></h2>
-              <div className="generating-steps">
-                {["Validating collateral parameters", "Computing loan structure", "Building payment schedule", "Rendering proposal"].map((step, i) => (
-                  <div key={i} className={`gen-step ${i <= generatingStep ? "done" : ""} ${i === generatingStep ? "active" : ""}`}>
-                    <div className="gen-step-dot" />
-                    <span>{step}</span>
-                    {i < generatingStep && <span className="gen-check">{"\u2713"}</span>}
-                    {i === generatingStep && <span className="gen-spinner" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ PHASE: LENDING RESULT ═══ */}
-        {phase === PHASES.LENDING_RESULT && lendingData && (
-          <LendingReport
-            data={lendingData}
-            fieldValues={lendingValues}
-            onBack={() => navigateTo(PHASES.LENDING_CONFIGURE)}
-            onReset={handleReset}
-          />
-        )}
-
-        {/* ═══ PHASE: SALES LIBRARY ═══ */}
-        {phase === PHASES.SALES_LIBRARY && (
-          <div className="phase-sales-library">
-            <div className="sales-header">
-              <div className="sales-header-left">
-                <h1 className="phase-title">Sales Library</h1>
-                <p className="phase-sub">Browse and share SDM sales collateral. Documents sync live from the team sheet.</p>
-              </div>
-              <button className="btn-back" onClick={handleReset}>{"\u2190"} Back to Home</button>
-            </div>
-
-            <div className="sales-controls">
-              <div className="sales-search-wrap">
-                <svg className="sales-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input
-                  className="sales-search"
-                  type="text"
-                  placeholder="Search documents..."
-                  value={salesFilter}
-                  onChange={e => setSalesFilter(e.target.value)}
-                />
-              </div>
-              <div className="sales-category-pills">
-                {["All", ...Array.from(new Set(salesDocs.map(d => d.category)))].map(cat => (
-                  <button
-                    key={cat}
-                    className={`sales-pill ${salesCategory === cat ? "active" : ""}`}
-                    onClick={() => setSalesCategory(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {salesLoading ? (
-              <div className="sales-loading">
-                <div className="gen-spinner" style={{ width: 24, height: 24, margin: "0 auto" }} />
-                <p style={{ color: "var(--text-muted)", marginTop: 12, fontSize: 13 }}>Loading documents...</p>
-              </div>
-            ) : (
-              <div className="sales-doc-grid">
-                {salesDocs
-                  .filter(d => salesCategory === "All" || d.category === salesCategory)
-                  .filter(d => !salesFilter || d.name.toLowerCase().includes(salesFilter.toLowerCase()) || (d.description || getDocMeta(d.name).desc).toLowerCase().includes(salesFilter.toLowerCase()))
-                  .map((doc, i) => {
-                    const meta = getDocMeta(doc.name);
-                    const desc = doc.description || meta.desc;
-                    return (
-                      <a key={i} href={doc.url} target="_blank" rel="noreferrer" className="sales-doc-card">
-                        <div className="sales-doc-thumb" style={{ background: `linear-gradient(135deg, ${meta.color}18, ${meta.color}08)`, borderColor: `${meta.color}25` }}>
-                          <div className="sales-doc-thumb-icon" style={{ color: meta.color }}>
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
-                          </div>
-                          <span className="sales-doc-type-badge" style={{ background: `${meta.color}20`, color: meta.color, borderColor: `${meta.color}30` }}>{meta.type}</span>
-                        </div>
-                        <div className="sales-doc-card-body">
-                          <span className="sales-doc-name">{doc.name}</span>
-                          <span className="sales-doc-desc">{desc}</span>
-                        </div>
-                        <div className="sales-doc-card-footer">
-                          <span className="sales-doc-domain">docsend.com</span>
-                          <svg className="sales-doc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                        </div>
-                      </a>
-                    );
-                  })
-                }
-                {salesDocs.length > 0 && salesDocs
-                  .filter(d => salesCategory === "All" || d.category === salesCategory)
-                  .filter(d => !salesFilter || d.name.toLowerCase().includes(salesFilter.toLowerCase()))
-                  .length === 0 && (
-                  <div className="sales-empty">No documents match your search.</div>
-                )}
-                {salesDocs.length === 0 && !salesLoading && (
-                  <div className="sales-empty">
-                    No documents found. Make sure the Google Sheet is shared publicly and the Sheet ID is configured.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* Canva Exporting Overlay */}
+      {/* ─── Canva Exporting Overlay ─── */}
       {canvaExporting && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ textAlign: "center" }}>
-            <div className="gen-spinner" style={{ margin: "0 auto 16px", width: 28, height: 28 }} />
-            <h3 className="modal-title">Exporting to Canva</h3>
-            <p className="modal-sub">Cloning template and injecting trade data...</p>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "40px", textAlign: "center", minWidth: 280 }}>
+            <span style={{ width: 28, height: 28, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
+            <h3 style={{ ...S.heading2, fontSize: 16, marginBottom: 8 }}>Exporting to Canva</h3>
+            <p style={{ ...S.subtext, fontSize: 13 }}>Cloning template and injecting trade data...</p>
           </div>
         </div>
       )}
 
-      {/* Canva Result Toast */}
+      {/* ─── Canva Result Toast ─── */}
       {canvaResult && (
-        <div className="canva-toast">
-          <div className="canva-toast-inner">
-            <span className="canva-toast-check">{"\u2713"}</span>
+        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000 }}>
+          <div style={{ background: "#111", color: "#FFFFFF", borderRadius: 2, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+            <span style={{ color: "#16a34a" }}>&#10003;</span>
             <span>Exported to Canva</span>
-            <a href={canvaResult.editUrl} target="_blank" rel="noreferrer" className="canva-toast-link">Open &rarr;</a>
-            <button className="canva-toast-close" onClick={() => setCanvaResult(null)}>&times;</button>
+            <a href={canvaResult.editUrl} target="_blank" rel="noreferrer" style={{ color: "#FFC32C", textDecoration: "none", fontWeight: 600 }}>Open &rarr;</a>
+            <button onClick={() => setCanvaResult(null)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>&times;</button>
           </div>
         </div>
       )}
 
-      <footer className="footer">
-        <div className="footer-meta">
-          <span>SDM &mdash; Internal Use Only</span>
-          <span className="footer-dot">&middot;</span>
-          <span>SDM Studio v2.0</span>
+      {/* ─── Footer ─── */}
+      <footer style={{ borderTop: "1px solid #E8E8E8", padding: "20px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FAFAFA" }}>
+        <div style={{ height: 2, background: "#FFC32C", width: 24 }} />
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>SDM — Internal Use Only</span>
+          <span style={{ color: "#E8E8E8" }}>&middot;</span>
+          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>SDM Studio v2.0</span>
         </div>
+        <div style={{ height: 2, background: "#111", width: 24 }} />
       </footer>
 
-      {/* Feedback Modal */}
+      {/* ─── Feedback Modal ─── */}
       {showFeedback && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowFeedback(false)}>
-          <div className="feedback-modal">
-            <div className="feedback-header">
-              <h3 className="feedback-title">Feedback & Bug Reports</h3>
-              <button className="feedback-close" onClick={() => { setShowFeedback(false); setFeedbackSent(false); setFeedbackText(""); setFeedbackFiles([]); }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+          onClick={(e) => e.target === e.currentTarget && setShowFeedback(false)}
+        >
+          <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "32px", width: 480, maxWidth: "90vw" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+              <h3 style={{ ...S.heading2, fontSize: 16 }}>Feedback & Bug Reports</h3>
+              <button onClick={() => { setShowFeedback(false); setFeedbackSent(false); setFeedbackText(""); setFeedbackFiles([]); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#888" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
             {feedbackSent ? (
-              <div className="feedback-success">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <p>Thank you for your feedback!</p>
-                <button className="feedback-done-btn" onClick={() => { setShowFeedback(false); setFeedbackSent(false); setFeedbackText(""); setFeedbackFiles([]); }}>Done</button>
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" style={{ marginBottom: 16 }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <p style={{ ...S.subtext, marginBottom: 20 }}>Thank you for your feedback!</p>
+                <button style={S.btnPrimary} onClick={() => { setShowFeedback(false); setFeedbackSent(false); setFeedbackText(""); setFeedbackFiles([]); }}>Done</button>
               </div>
             ) : (
               <>
-                <div className="feedback-type-row">
-                  <button className={`feedback-type-btn ${feedbackType === "feedback" ? "active" : ""}`} onClick={() => setFeedbackType("feedback")}>Feedback</button>
-                  <button className={`feedback-type-btn ${feedbackType === "bug" ? "active" : ""}`} onClick={() => setFeedbackType("bug")}>Bug Report</button>
-                  <button className={`feedback-type-btn ${feedbackType === "feature" ? "active" : ""}`} onClick={() => setFeedbackType("feature")}>Feature Request</button>
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                  {["feedback", "bug", "feature"].map(type => (
+                    <button key={type} onClick={() => setFeedbackType(type)}
+                      style={{
+                        padding: "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", borderRadius: 2,
+                        background: feedbackType === type ? "#111" : "#FAFAFA",
+                        color: feedbackType === type ? "#FFFFFF" : "#555",
+                        border: feedbackType === type ? "1px solid #111" : "1px solid #E8E8E8",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {type === "bug" ? "Bug Report" : type === "feature" ? "Feature Request" : "Feedback"}
+                    </button>
+                  ))}
                 </div>
                 <textarea
-                  className="feedback-textarea"
+                  style={{ ...inputStyle, minHeight: 120, resize: "vertical", marginBottom: 12 }}
                   placeholder={feedbackType === "bug" ? "Describe the bug..." : feedbackType === "feature" ? "Describe the feature you'd like to see..." : "Share your thoughts..."}
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   rows={5}
                 />
-                <div className="feedback-attach">
-                  <label className="feedback-attach-btn">
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                  <label style={{ ...S.btnSecondary, cursor: "pointer" }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                     Attach files
                     <input type="file" multiple hidden onChange={(e) => setFeedbackFiles(prev => [...prev, ...Array.from(e.target.files)])} />
                   </label>
-                  {feedbackFiles.length > 0 && (
-                    <div className="feedback-file-list">
-                      {feedbackFiles.map((f, i) => (
-                        <span key={i} className="feedback-file-tag">
-                          {f.name}
-                          <button onClick={() => setFeedbackFiles(prev => prev.filter((_, j) => j !== i))}>&times;</button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {feedbackFiles.map((f, i) => (
+                    <span key={i} style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555", display: "flex", alignItems: "center", gap: 4, background: "#F0F0F0", padding: "4px 10px", borderRadius: 2 }}>
+                      {f.name}
+                      <button onClick={() => setFeedbackFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14 }}>&times;</button>
+                    </span>
+                  ))}
                 </div>
                 <button
-                  className="feedback-submit-btn"
+                  style={{ ...S.btnPrimary, width: "100%", justifyContent: "center", opacity: !feedbackText.trim() ? 0.5 : 1 }}
                   disabled={!feedbackText.trim()}
-                  onClick={() => {
-                    console.log("Feedback submitted:", { type: feedbackType, text: feedbackText, files: feedbackFiles.map(f => f.name) });
-                    setFeedbackSent(true);
-                  }}
+                  onClick={() => { console.log("Feedback submitted:", { type: feedbackType, text: feedbackText, files: feedbackFiles.map(f => f.name) }); setFeedbackSent(true); }}
                 >
                   Submit {feedbackType === "bug" ? "Bug Report" : feedbackType === "feature" ? "Feature Request" : "Feedback"}
                 </button>
