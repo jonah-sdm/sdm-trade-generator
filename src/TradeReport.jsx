@@ -437,7 +437,12 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
   const [execHtml, setExecHtml] = useState(() => {
     const raw = fieldValues.executive_summary;
     if (!raw) return "";
-    if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+    if (/<[a-z][\s\S]*>/i.test(raw)) {
+      // Strip all tags/whitespace — if nothing left, treat as empty
+      const text = raw.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "").trim();
+      if (!text) return "";
+      return raw;
+    }
     return `<p>${raw.replace(/\n/g, "</p><p>")}</p>`;
   });
   const [execEditing, setExecEditing] = useState(false);
@@ -580,8 +585,10 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                 <div dangerouslySetInnerHTML={{ __html: execHtml }} />
               ) : (
                 <>
-                  <p>{execSummary}</p>
-                  <p style={{ color: "#AAAAAA", fontSize: 12, marginTop: 10 }}>Click "Edit" to write your own executive summary...</p>
+                  <div dangerouslySetInnerHTML={{ __html: typeof execSummary === "string"
+                    ? execSummary.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>")
+                    : execSummary }} />
+                  <p style={{ color: "#AAAAAA", fontSize: 12, marginTop: 10 }}>Click "Edit" to customise this summary.</p>
                 </>
               )}
             </div>
