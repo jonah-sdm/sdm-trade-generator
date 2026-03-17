@@ -38,6 +38,7 @@ const PHASES = {
   AI_CONFIGURE: "ai_configure",
   AI_GENERATING: "ai_generating",
   AI_REVIEW: "ai_review",
+  MARKET_BRIEF: "market_brief",
 };
 
 const PHASE_TITLES = {
@@ -54,6 +55,7 @@ const PHASE_TITLES = {
   [PHASES.AI_CONFIGURE]: "Ask AI — Derivatives Studio",
   [PHASES.AI_GENERATING]: "Analyzing — Ask AI",
   [PHASES.AI_REVIEW]: "Review AI Trade — Derivatives Studio",
+  [PHASES.MARKET_BRIEF]: "Daily Market Brief — SDM",
 };
 
 // ─── SDM Logo ───
@@ -304,6 +306,1251 @@ const S = {
   genStep: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #E8E8E8", fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#888" },
   genStepDone: { color: "#111" },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── MARKET BRIEF (MarketBeat) — embedded module ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── MB Design tokens ──────────────────────────────────────────────────────────
+const MB_INK        = "#000000";
+const MB_MID        = "#4D4D4D";
+const MB_MUTED      = "#888888";
+const MB_RULE       = "#E8E8E8";
+const MB_RULEG      = "#F2F2F2";
+const MB_BG         = "#FFFFFF";
+const MB_BGOFF      = "#F7F7F7";
+const MB_GOLD       = "#FFC32C";
+const MB_GOLD_TEXT  = "#7a5c10";
+const MB_BLUE       = "#1851EB";
+const MB_POS        = "#16a34a";
+const MB_NEG        = "#dc2626";
+const MB_POSL       = "#dcfce7";
+const MB_HEAD       = "'Montserrat','Helvetica Neue',Arial,sans-serif";
+const MB_BODY       = "'Poppins','Helvetica Neue',Arial,sans-serif";
+const MB_MONO       = "'Courier New','Lucida Console',monospace";
+const MB_CAT_BG     = { FED:"#1851EB", CPI:"#6b2d1f", NFP:"#1a3528", GDP:"#1c1f38", SEC:"#38182c" };
+
+// ── MB ETF tickers ────────────────────────────────────────────────────────────
+const MB_ETF_BTC = ["IBIT","FBTC","BITB","ARKB","BTCO","EZBC","BRRR","HODL","BTCW","GBTC","BTC"];
+const MB_ETF_ETH = ["ETHA","FETH","ETHW","CETH","ETHV","QETH","EZET","ETHE","ETH"];
+const MB_ETF_SOL = ["GSOL","SOLZ","SOLT"];
+
+const MB_POLY = [
+  { id:"sol",   label:"SOL ETF Approval (2025)",     slug:"will-the-sec-approve-a-spot-solana-etf-in-2025",          fb:72 },
+  { id:"xrp",   label:"XRP ETF Approval (2025)",     slug:"will-the-sec-approve-a-spot-xrp-etf-in-2025",            fb:81 },
+  { id:"multi", label:"Multi-Coin Index ETF (2025)", slug:"will-a-multi-coin-crypto-index-etf-be-approved-in-2025", fb:54 },
+];
+
+// ── MB Economic calendar ──────────────────────────────────────────────────────
+function mbFirstFriday(year, month) {
+  const d = new Date(year, month, 1);
+  return new Date(year, month, 1 + ((5 - d.getDay() + 7) % 7));
+}
+function mbIsoDate(d)   { return d.toISOString().slice(0, 10); }
+function mbDue(dateStr) { return Math.round((new Date(dateStr) - new Date(new Date().toDateString())) / 86400000); }
+
+function mbBuildEconCalendar() {
+  const events = [];
+  const MOS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  for (let m = 0; m < 12; m++)
+    events.push({ date: mbIsoDate(mbFirstFriday(2026, m)), ev:`Non-Farm Payrolls — ${MOS[m]}`, cat:"NFP", time:"8:30 AM ET" });
+  ["2026-01-28","2026-03-19","2026-05-06","2026-06-17","2026-07-29","2026-09-16","2026-10-28","2026-12-09"]
+    .forEach(d => {
+      events.push({ date:d, ev:"FOMC Rate Decision",         cat:"FED", time:"2:00 PM ET" });
+      events.push({ date:d, ev:"Fed Chair Press Conference", cat:"FED", time:"2:30 PM ET" });
+    });
+  [["2026-01-15","Jan"],["2026-02-11","Feb"],["2026-03-11","Mar"],["2026-04-10","Apr"],
+   ["2026-05-13","May"],["2026-06-10","Jun"],["2026-07-15","Jul"],["2026-08-12","Aug"],
+   ["2026-09-09","Sep"],["2026-10-14","Oct"],["2026-11-12","Nov"],["2026-12-09","Dec"]]
+    .forEach(([d,mo]) => events.push({ date:d, ev:`CPI YoY — ${mo}`, cat:"CPI", time:"8:30 AM ET" }));
+  [["2026-01-30","Dec PCE"],["2026-02-27","Jan PCE"],["2026-03-27","Feb PCE"],
+   ["2026-04-30","Mar PCE"],["2026-05-29","Apr PCE"],["2026-06-26","May PCE"],
+   ["2026-07-31","Jun PCE"],["2026-08-28","Jul PCE"],["2026-09-25","Aug PCE"],
+   ["2026-10-30","Sep PCE"],["2026-11-25","Oct PCE"],["2026-12-18","Nov PCE"]]
+    .forEach(([d,label]) => events.push({ date:d, ev:`Core PCE — ${label}`, cat:"CPI", time:"8:30 AM ET" }));
+  [["2026-01-29","Q4 2025 Adv."],["2026-04-30","Q1 2026 Adv."],
+   ["2026-07-30","Q2 2026 Adv."],["2026-10-29","Q3 2026 Adv."]]
+    .forEach(([d,label]) => events.push({ date:d, ev:`GDP Growth Rate ${label}`, cat:"GDP", time:"8:30 AM ET" }));
+  events.push({ date:"2026-03-21", ev:"SEC ETF Deadline — XRP", cat:"SEC", time:"EOD" });
+  events.push({ date:"2026-04-15", ev:"SEC ETF Deadline — SOL", cat:"SEC", time:"EOD" });
+  return events;
+}
+const MB_ECON = mbBuildEconCalendar();
+
+// ── MB Formatters ─────────────────────────────────────────────────────────────
+const mbF   = (n, d=2) => (n==null||isNaN(n)) ? "—" : Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const mbPct = (n) => (n==null||isNaN(n)) ? "—" : (n>=0?"+":"")+mbF(n,2)+"%";
+const mbFT  = (n) => n==null ? "—" : `$${mbF(n,2)}T`;
+const mbFmtLong = (iso) => new Date(iso+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+const mbTodayISO = () => new Date().toISOString().slice(0,10);
+
+// ── MB Data fetchers ──────────────────────────────────────────────────────────
+const MB_STABLE_IDS = new Set([
+  "tether","usd-coin","binance-usd","dai","first-digital-usd","true-usd","paypal-usd",
+  "pax-dollar","usdd","frax","crvusd","ethena-usde","mountain-protocol-usdm",
+  "stasis-eurs","tether-eurt","usds","sky-usds","binance-peg-usd","usdc","usdp","tusd",
+  "busd","gusd","susd","husd","eurs","xsgd","cadc","usd0","usual-usd0","aave-v3-usdc",
+  "bridged-usdc","reserve-rights-token","fei-usd","magic-internet-money",
+  "liquity-usd","alchemix-usd","dola-borrowing-right","usdk","usdn","usdb",
+]);
+const MB_SKIP_ASSET_IDS = new Set([
+  "figure-heloc","whitebit","leo-token","cronos","okb","kucoin-shares",
+  "huobi-token","gate","nexo","crypto-com-chain","bitget-token","bingx",
+  "wbtc","wrapped-bitcoin","wrapped-ether","staked-ether","rocket-pool-eth",
+  "coinbase-wrapped-staked-eth","mantle-staked-ether","lido-dao",
+]);
+const mbFmcap = (n) => n >= 1e12 ? `$${(n/1e12).toFixed(2)}T` : n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(0)}M` : "—";
+
+const MB_MOCK_MKT = {
+  coins:[
+    {rank:1, name:"Bitcoin",   symbol:"BTC", price:83241,  change24h:-2.34, mcap:1.64e12},
+    {rank:2, name:"Ethereum",  symbol:"ETH", price:1842,   change24h:-3.12, mcap:2.22e11},
+    {rank:3, name:"BNB",       symbol:"BNB", price:598,    change24h:-1.1,  mcap:8.67e10},
+    {rank:4, name:"Solana",    symbol:"SOL", price:131,    change24h:-4.2,  mcap:6.41e10},
+    {rank:5, name:"XRP",       symbol:"XRP", price:0.509,  change24h:-1.8,  mcap:2.91e10},
+    {rank:6, name:"Cardano",   symbol:"ADA", price:0.41,   change24h:-2.9,  mcap:1.45e10},
+    {rank:7, name:"Avalanche", symbol:"AVAX",price:21.4,   change24h:-3.4,  mcap:8.79e9},
+    {rank:8, name:"Dogecoin",  symbol:"DOGE",price:0.142,  change24h:-2.1,  mcap:2.07e10},
+    {rank:9, name:"Chainlink", symbol:"LINK",price:13.8,   change24h:-2.7,  mcap:8.12e9},
+    {rank:10,name:"Polkadot",  symbol:"DOT", price:6.21,   change24h:-3.0,  mcap:8.98e9},
+  ],
+  stables:[
+    {rank:3,  name:"Tether",       symbol:"USDT", price:1.000, mcap:1.44e11, dev:0.00},
+    {rank:5,  name:"USD Coin",     symbol:"USDC", price:1.000, mcap:5.78e10, dev:0.00},
+    {rank:7,  name:"Dai",          symbol:"DAI",  price:1.000, mcap:5.12e9,  dev:0.00},
+    {rank:9,  name:"First Digital",symbol:"FDUSD",price:1.000, mcap:2.29e9,  dev:0.00},
+    {rank:11, name:"USDS",         symbol:"USDS", price:0.999, mcap:8.11e8,  dev:0.10},
+  ],
+  dominance:61.2,
+  totalMarketCap:2.71,
+};
+const MB_MOCK_DRV = { btcFunding:0.0082, ethFunding:0.0061, cmeBasis:4.2, cmeAnnualized:6.8, btcOI:18.4, ethOI:5.2 };
+
+const mbTimeout = (ms) => new Promise((_,rej) => setTimeout(()=>rej(new Error("timeout")), ms));
+
+async function mbFetchMarket() {
+  const BASE = "https://api.coingecko.com/api/v3";
+  const [markets, stableMarkets, global] = await Promise.all([
+    fetch(`${BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h`).then(r=>r.json()),
+    fetch(`${BASE}/coins/markets?vs_currency=usd&category=stablecoins&order=market_cap_desc&per_page=5&page=1&sparkline=false`).then(r=>r.json()),
+    fetch(`${BASE}/global`).then(r=>r.json()),
+  ]);
+  const coins = markets
+    .filter(c => {
+      if (MB_STABLE_IDS.has(c.id)) return false;
+      if (MB_SKIP_ASSET_IDS.has(c.id)) return false;
+      if (c.current_price >= 0.96 && c.current_price <= 1.04) return false;
+      return true;
+    })
+    .slice(0, 10)
+    .map(c => ({
+      rank: c.market_cap_rank,
+      name: c.name,
+      symbol: c.symbol.toUpperCase(),
+      price: c.current_price,
+      change24h: c.price_change_percentage_24h,
+      mcap: c.market_cap,
+    }));
+  const stables = stableMarkets.slice(0, 5).map(c => ({
+    rank: c.market_cap_rank,
+    name: c.name,
+    symbol: c.symbol.toUpperCase(),
+    price: c.current_price,
+    mcap: c.market_cap,
+    dev: Math.abs((c.current_price - 1) * 100),
+  }));
+  return {
+    coins,
+    stables,
+    dominance: global.data.market_cap_percentage.btc,
+    totalMarketCap: global.data.total_market_cap.usd / 1e12,
+  };
+}
+
+async function mbFetchDerivatives() {
+  const r = await fetch("https://open-api.coinglass.com/public/v2/funding?symbol=BTC");
+  const d = await r.json();
+  const rate = d?.data?.[0]?.fundingRate;
+  return { ...MB_MOCK_DRV, btcFunding: rate ? parseFloat(rate)*100 : MB_MOCK_DRV.btcFunding };
+}
+
+async function mbFetchPoly() {
+  const out = {};
+  await Promise.allSettled(MB_POLY.map(async mk => {
+    try {
+      const r = await fetch(`https://gamma-api.polymarket.com/markets?slug=${mk.slug}`);
+      const d = await r.json();
+      out[mk.id] = d?.[0]?.outcomePrices ? Math.round(parseFloat(JSON.parse(d[0].outcomePrices)[0])*100) : mk.fb;
+    } catch { out[mk.id] = mk.fb; }
+  }));
+  return out;
+}
+
+// ── MB News feeds ─────────────────────────────────────────────────────────────
+const NEWS_FEEDS = [
+  { url:"https://www.theblock.co/rss.xml",                           src:"The Block" },
+  { url:"https://www.coindesk.com/arc/outboundfeeds/rss/",           src:"CoinDesk" },
+  { url:"https://cointelegraph.com/rss",                             src:"Cointelegraph" },
+  { url:"https://blockworks.co/feed",                                src:"Blockworks" },
+  { url:"https://decrypt.co/feed",                                   src:"Decrypt" },
+  { url:"https://cryptoslate.com/feed/",                             src:"CryptoSlate" },
+];
+
+const GEO_FEEDS = [
+  { url:"https://www.theguardian.com/world/rss",                    src:"The Guardian" },
+  { url:"https://www.economist.com/international/rss.xml",          src:"The Economist" },
+  { url:"https://www.economist.com/the-world-this-week/rss.xml",   src:"The Economist" },
+  { url:"https://www.scmp.com/rss/2/feed",                          src:"SCMP" },
+  { url:"https://foreignpolicy.com/feed/",                          src:"Foreign Policy" },
+];
+
+function parseRSS(xmlStr, srcName) {
+  try {
+    const xml = new DOMParser().parseFromString(xmlStr || "", "text/xml");
+    return [...xml.querySelectorAll("item")].slice(0, 12).map(el => ({
+      title:       el.querySelector("title")?.textContent?.trim() || "",
+      description: (el.querySelector("description")?.textContent || "").replace(/<[^>]*>/g,"").trim().slice(0,600),
+      pubDate:     el.querySelector("pubDate")?.textContent || "",
+      time: el.querySelector("pubDate")?.textContent
+        ? new Date(el.querySelector("pubDate").textContent).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})+" ET"
+        : "Today",
+      src: srcName,
+    })).filter(a => a.title.length > 10);
+  } catch { return []; }
+}
+
+const MB_NEWS_STOPWORDS = new Set([
+  "the","a","an","is","are","of","in","on","at","to","for","and","or","as","by",
+  "with","from","that","this","it","its","be","was","were","has","have","will",
+  "says","said","report","reports","new","after","amid","over","under","back",
+  "more","just","also","gets","what","when","how","why","who","their","they",
+  "about","into","than","then","been","being","would","could","should","while",
+]);
+
+function mbExtractKeywords(title) {
+  return title.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !MB_NEWS_STOPWORDS.has(w));
+}
+
+function clusterAndRank(articles, n) {
+  const clusters = [];
+  for (const article of articles) {
+    const kw = new Set(mbExtractKeywords(article.title));
+    const match = clusters.find(c => {
+      const repKw = mbExtractKeywords(c[0].title);
+      return repKw.filter(k => kw.has(k)).length >= 2;
+    });
+    if (match) match.push(article);
+    else clusters.push([article]);
+  }
+  const scored = clusters.map(cluster => {
+    const uniqueSources = new Set(cluster.map(a => a.src)).size;
+    const now = Date.now();
+    const recencyBonus = cluster.filter(a => {
+      const pd = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      return pd && (now - pd) < 2 * 60 * 60 * 1000;
+    }).length * 3;
+    const score = (uniqueSources * 10) + (cluster.length * 2) + recencyBonus;
+    const PRIORITY = ["The Block","CoinDesk","Cointelegraph","Blockworks","Decrypt","CryptoSlate"];
+    const rep = cluster.slice().sort((a,b) => {
+      const ai = PRIORITY.indexOf(a.src), bi = PRIORITY.indexOf(b.src);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    })[0];
+    return { ...rep, sources: [...new Set(cluster.map(a => a.src))], coverageCount: uniqueSources, score };
+  });
+  const shuffled = scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return Math.random() - 0.5;
+  });
+  const selected = [];
+  const srcCounts = {};
+  for (const article of shuffled) {
+    if (selected.length >= n) break;
+    const s = article.src;
+    if ((srcCounts[s] || 0) < 2) {
+      selected.push(article);
+      srcCounts[s] = (srcCounts[s] || 0) + 1;
+    }
+  }
+  return selected;
+}
+
+async function fetchRSS() {
+  const results = await Promise.allSettled(
+    NEWS_FEEDS.map(feed =>
+      Promise.race([
+        fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`),
+        mbTimeout(5000),
+      ]).then(r => r.json()).then(d => parseRSS(d.contents, feed.src))
+    )
+  );
+  const all = results.flatMap(r => r.status === "fulfilled" ? r.value : []);
+  return clusterAndRank(all, 7);
+}
+
+async function fetchGeoNews() {
+  const results = await Promise.allSettled(
+    GEO_FEEDS.map(feed =>
+      Promise.race([
+        fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`),
+        mbTimeout(5000),
+      ]).then(r => r.json()).then(d => {
+        let xml = d.contents || "";
+        if (xml.startsWith("data:") && xml.includes("base64,")) {
+          try { xml = atob(xml.split("base64,")[1]); } catch { xml = ""; }
+        }
+        return parseRSS(xml, feed.src);
+      })
+    )
+  );
+  const all = results.flatMap(r => r.status === "fulfilled" ? r.value : []);
+  return clusterAndRank(all, 5);
+}
+
+// ── MB Commentary generator ────────────────────────────────────────────────────
+async function generateCommentary({ date, mkt, drv, btcF, ethF, solF, polyD, news, customArticles=[], geoNews=[] }) {
+  const btcNet = MB_ETF_BTC.reduce((s,k) => s+(parseFloat(btcF[k])||0), 0);
+  const ethNet = MB_ETF_ETH.reduce((s,k) => s+(parseFloat(ethF[k])||0), 0);
+  const solNet = MB_ETF_SOL.reduce((s,k) => s+(parseFloat(solF[k])||0), 0);
+  const allNet = btcNet + ethNet + solNet;
+  const upcoming = MB_ECON.filter(e=>{ const d=mbDue(e.date); return d>=0&&d<=14; })
+    .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,6);
+  const totalNews = news.length + customArticles.length;
+
+  const prompt = `You are writing SDM MarketBeat, a premium institutional crypto daily brief for OTC derivatives desk clients. Tone: Goldman Sachs research note — precise, measured, data-driven. No markdown. No bullet points in prose fields.
+
+Return ONLY a valid JSON object (no code fences, no extra text) with exactly this structure:
+{
+  "executive_summary": ["bullet 1 — tight, declarative, 15-20 words", "bullet 2", "bullet 3", "bullet 4", "bullet 5"],
+  "market": { "intro": "2 sentences on price action and market structure" },
+  "derivatives": { "intro": "2 sentences on funding regime and CME basis" },
+  "etf": { "intro": "2 sentences on ETF flows and institutional demand signal" },
+  "calendar": { "intro": "1 sentence on upcoming macro catalysts" },
+  "news": { "intro": "1 sentence on dominant narrative theme" },
+  "news_summaries": [
+    { "headline": "insight headline 1", "summary": "1-2 sentences: content + implication", "source": "Source name" },
+    { "headline": "insight headline 2", "summary": "1-2 sentences: content + implication", "source": "Source name" },
+    { "headline": "insight headline 3", "summary": "1-2 sentences: content + implication", "source": "Source name" }
+  ],
+  "geo_bullets": ["bullet 1 — geopolitical event + crypto/market implication, 15-20 words", "bullet 2", "bullet 3", "bullet 4", "bullet 5"]
+}
+
+CRITICAL: news_summaries MUST contain exactly ${totalNews} entries — one per article listed below.
+CRITICAL: geo_bullets MUST contain exactly 5 tight declarative bullets drawn from the geopolitical news below.
+
+DATA FOR ${date}:
+TOP COINS: ${(mkt.coins||[]).map(c=>`${c.symbol} $${c.price>=1000?mbF(c.price,0):mbF(c.price,2)} (${mbPct(c.change24h)})`).join(" | ")}
+BTC Dominance ${mbF(mkt.dominance,1)}% | Total Mkt Cap ${mbFT(mkt.totalMarketCap)}
+STABLECOINS: ${(mkt.stables||[]).map(c=>`${c.symbol} $${mbF(c.price,4)} mcap ${mbFmcap(c.mcap)}`).join(" | ")}
+
+DERIVATIVES:
+BTC Funding ${mbF(drv.btcFunding,4)}% | ETH Funding ${mbF(drv.ethFunding,4)}% | CME Basis ${mbF(drv.cmeBasis,2)}% (${mbF(drv.cmeAnnualized,2)}% ann.) | BTC OI $${mbF(drv.btcOI,1)}B | ETH OI $${mbF(drv.ethOI,1)}B
+
+ETF FLOWS ($M): BTC ${btcNet>=0?"+":""}${btcNet.toFixed(0)} | ETH ${ethNet>=0?"+":""}${ethNet.toFixed(0)} | SOL ${solNet>=0?"+":""}${solNet.toFixed(0)} | Combined ${allNet>=0?"+":""}${allNet.toFixed(0)}
+
+ETF APPROVAL ODDS: ${MB_POLY.map(p=>`${p.label}: ${polyD[p.id]||p.fb}%`).join(" | ")}
+
+UPCOMING MACRO (14d): ${upcoming.length ? upcoming.map(e=>`${e.date} ${e.ev}`).join(" | ") : "None in window"}
+
+NEWS TO SUMMARIZE:
+${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]).join(", ")}\nDESCRIPTION: ${n.description||n.title}`).join("\n\n")}${customArticles.length?`\n\nADDITIONAL ARTICLES:\n${customArticles.map((a,i)=>`[CUSTOM ${i+1}] SOURCE: ${a.name}\n${a.text.slice(0,3000)}`).join("\n\n---\n\n")}`:""} ${geoNews.length?`\n\nGEOPOLITICAL NEWS:\n${geoNews.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]).join(", ")}\nDESCRIPTION: ${n.description||n.title}`).join("\n\n")}`:""}`;
+
+  let resp;
+  try {
+    resp = await Promise.race([
+      fetch("/api/generate", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ prompt }),
+      }),
+      mbTimeout(28000),
+    ]);
+  } catch(e) {
+    return { _err:"api_error", msg:`Request failed: ${e.message}` };
+  }
+
+  let data;
+  try { data = await resp.json(); }
+  catch(e) { return { _err:"api_error", msg:`HTTP ${resp.status} — server returned non-JSON response` }; }
+
+  if (data?.error) {
+    const errType = data.error?.type || "";
+    const errMsg  = data.error?.message || JSON.stringify(data.error);
+    return { _err:"api_error", msg: `${errType}: ${errMsg}` };
+  }
+  const text = data?.content?.[0]?.text || "";
+  try { return JSON.parse(text.replace(/^```json\s*/,"").replace(/\s*```$/,"").trim()); }
+  catch(e) {
+    return { _err:"parse_failed", msg:`stop=${data?.stop_reason}` };
+  }
+}
+
+// ── MB Export helpers ─────────────────────────────────────────────────────────
+function buildExportHTML(rootEl, date) {
+  const clone = rootEl.cloneNode(true);
+  clone.querySelectorAll(".noprint").forEach(el => el.remove());
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SDM MarketBeat — ${mbFmtLong(date)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#fff;font-family:'Poppins',sans-serif;}</style>
+</head><body>${clone.outerHTML}</body></html>`;
+}
+
+async function createShareLink(html, date) {
+  const resp = await fetch("/api/share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html, date }),
+  });
+  if (!resp.ok) return null;
+  const { url } = await resp.json();
+  return url || null;
+}
+
+// ── MB ETF data from GitHub ────────────────────────────────────────────────────
+const MB_ETF_DATA_URL = "https://raw.githubusercontent.com/jonah-sdm/sdm-marketbeat/data/etf-data.json";
+
+async function mbFetchCachedETF() {
+  try {
+    const r = await Promise.race([
+      fetch(`${MB_ETF_DATA_URL}?_=${Date.now()}`),
+      new Promise((_,rej) => setTimeout(()=>rej(new Error("timeout")), 6000)),
+    ]);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+// ── MB Rich-text block ─────────────────────────────────────────────────────────
+const MB_RTBTN_S = {
+  background:"none", border:"none", color:"rgba(255,255,255,0.88)",
+  fontFamily:MB_HEAD, fontSize:11, fontWeight:600,
+  padding:"3px 7px", cursor:"pointer", borderRadius:3, lineHeight:1.2,
+};
+function MBRichTextBlock({ children, style, blockStyle }) {
+  const [active, setActive] = useState(false);
+  const ref = useRef(null);
+  const exec = (cmd, val=null) => { ref.current?.focus(); document.execCommand(cmd, false, val); };
+  const Sep = () => <div style={{width:1,height:14,background:"rgba(255,255,255,0.2)",margin:"0 2px",flexShrink:0}}/>;
+  const Btn = ({ cmd, val, title, label, extraStyle }) => (
+    <button title={title} style={{...MB_RTBTN_S,...extraStyle}}
+      onMouseDown={e=>{e.preventDefault();exec(cmd,val)}}>{label}</button>
+  );
+  return (
+    <div style={{position:"relative",...blockStyle}}
+      onMouseEnter={()=>setActive(true)}
+      onMouseLeave={()=>{ if(!ref.current?.contains(document.activeElement)) setActive(false); }}>
+      <div className="noprint" style={{
+        position:"absolute", top:-40, left:0, zIndex:500,
+        background:MB_INK, borderRadius:5, padding:"5px 8px",
+        display:"flex", gap:1, alignItems:"center",
+        boxShadow:"0 4px 24px rgba(0,0,0,0.55)",
+        opacity:active?1:0, pointerEvents:active?"auto":"none",
+        transition:"opacity 0.15s ease", whiteSpace:"nowrap",
+        border:"1px solid rgba(255,255,255,0.08)",
+      }}>
+        <Btn cmd="bold"          label="B"  title="Bold"        extraStyle={{fontWeight:700}}/>
+        <Btn cmd="italic"        label="I"  title="Italic"      extraStyle={{fontStyle:"italic"}}/>
+        <Btn cmd="underline"     label="U"  title="Underline"   extraStyle={{textDecoration:"underline"}}/>
+        <Sep/>
+        <Btn cmd="fontSize" val="2" label="A−" title="Smaller"/>
+        <Btn cmd="fontSize" val="5" label="A+" title="Larger"/>
+        <Sep/>
+        <Btn cmd="removeFormat"  label="✕" title="Clear formatting" extraStyle={{color:"rgba(255,255,255,0.35)",fontSize:10}}/>
+      </div>
+      <div ref={ref} contentEditable suppressContentEditableWarning
+        onFocus={()=>setActive(true)}
+        onBlur={()=>setActive(false)}
+        style={{...style, outline:"none", cursor:"text", borderRadius:3,
+          transition:"box-shadow 0.15s",
+          boxShadow:active?`0 0 0 1.5px ${MB_GOLD}55`:"none",
+        }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── MB Report sub-components ───────────────────────────────────────────────────
+function MBReportSection({ number, title, intro, children }) {
+  const W = "0 64px";
+  return (
+    <div style={{marginBottom:0}}>
+      <div style={{padding:W,paddingTop:32,paddingBottom:0}}>
+        <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:10}}>
+          <span style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,letterSpacing:2}}>{"0"+number}</span>
+          <span style={{fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_INK,letterSpacing:0.3,textTransform:"uppercase"}}>{title}</span>
+        </div>
+        <div style={{height:2,background:MB_GOLD,marginBottom:16}}/>
+        {intro && (
+          <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,color:MB_INK,lineHeight:1.75,marginBottom:20}}>
+            {intro}
+          </MBRichTextBlock>
+        )}
+      </div>
+      <div style={{padding:W}}>{children}</div>
+    </div>
+  );
+}
+
+function MBDataTable({ headers, rows, footer }) {
+  const thStyle = { fontFamily:MB_HEAD, fontSize:10, fontWeight:700, color:MB_BG, letterSpacing:1.2,
+    textTransform:"uppercase", padding:"9px 14px", textAlign:"left", background:MB_INK, whiteSpace:"nowrap" };
+  const tdStyle = { fontFamily:MB_BODY, fontSize:12.5, fontWeight:400, color:MB_INK, padding:"9px 14px",
+    borderBottom:`0.5px solid ${MB_RULEG}` };
+  const tdNum  = { ...tdStyle, textAlign:"right" };
+  return (
+    <div style={{overflowX:"auto",marginBottom:4}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead>
+          <tr>{headers.map((h,i)=><th key={i} style={{...thStyle,textAlign:i>0?"right":"left"}}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((row,i)=>(
+            <tr key={i} style={{background:i%2===0?MB_BG:MB_BGOFF}}>
+              {row.map((cell,j)=>(
+                <td key={j} style={j===0?tdStyle:{...tdNum,...(cell?.style||{})}}>
+                  {cell?.value ?? cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        {footer && (
+          <tfoot>
+            <tr style={{background:MB_BGOFF,borderTop:`1px solid ${MB_INK}`}}>
+              {footer.map((cell,j)=>(
+                <td key={j} style={{...tdStyle,fontWeight:"bold",textAlign:j===0?"left":"right"}}>
+                  {cell?.value ?? cell}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
+function MBArticleItem({ item, index, onDelete }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}
+      style={{position:"relative", marginBottom:20, paddingBottom:20,
+        borderBottom:`0.5px solid ${MB_RULEG}`,
+        background:hovered?`${MB_GOLD}06`:"transparent",
+        borderRadius:4, transition:"background 0.15s",
+      }}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+        <span style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,marginTop:3,flexShrink:0}}>
+          {String(index+1).padStart(2,"0")}
+        </span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
+            <MBRichTextBlock style={{fontFamily:MB_HEAD,fontSize:13,fontWeight:600,color:MB_INK,lineHeight:1.4,flex:1,minWidth:0}}>
+              {item.headline}
+            </MBRichTextBlock>
+            <button className="noprint" onClick={onDelete}
+              style={{flexShrink:0, background:"none", border:`1px solid ${MB_NEG}44`,
+                color:MB_NEG, fontFamily:MB_BODY, fontSize:10, fontWeight:600,
+                padding:"2px 9px", borderRadius:3, cursor:"pointer",
+                opacity:hovered?1:0, transition:"opacity 0.12s", lineHeight:1.6, marginTop:1,
+              }}>
+              ✕ Remove
+            </button>
+          </div>
+          {item.source && (
+            <div style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,marginBottom:5,letterSpacing:"0.03em"}}>
+              {item.source}
+            </div>
+          )}
+          <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:12,color:MB_MID,lineHeight:1.7}}>
+            {item.summary}
+          </MBRichTextBlock>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MarketBriefHome component ─────────────────────────────────────────────────
+function MarketBriefHome({ onGenerate }) {
+  const [date, setDate]         = useState(mbTodayISO());
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [btcF, setBtcF] = useState(()=>Object.fromEntries(MB_ETF_BTC.map(k=>[k,""])));
+  const [ethF, setEthF] = useState(()=>Object.fromEntries(MB_ETF_ETH.map(k=>[k,""])));
+  const [solF, setSolF] = useState(()=>Object.fromEntries(MB_ETF_SOL.map(k=>[k,""])));
+  const [etfStatus, setEtfStatus] = useState("loading");
+  const [customArticles, setCustomArticles] = useState([]);
+  const [pasteText, setPasteText]   = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    mbFetchCachedETF().then(d => {
+      if (!d) { setEtfStatus("unavailable"); return; }
+      const merge = (tickers, fetched, setter) =>
+        setter(prev => {
+          const next = { ...prev };
+          tickers.forEach(k => {
+            const v = fetched?.[k];
+            if (v !== null && v !== undefined && prev[k] === "") next[k] = String(v);
+          });
+          return next;
+        });
+      merge(MB_ETF_BTC, d.btc, setBtcF);
+      merge(MB_ETF_ETH, d.eth, setEthF);
+      merge(MB_ETF_SOL, d.sol, setSolF);
+      const diffDays = (Date.now() - new Date(d.date+"T12:00:00").getTime()) / 86400000;
+      setEtfStatus(diffDays > 2 ? "stale" : "ok");
+    });
+  }, []);
+
+  const processFile = (file) => {
+    const reader = new FileReader();
+    if (file.name.endsWith(".pdf")) {
+      reader.readAsText(file, "latin1");
+      reader.onload = () => {
+        const raw = reader.result;
+        const chunks = raw.match(/\(([^\)]{4,300})\)/g) || [];
+        const text = chunks.map(c=>c.slice(1,-1).replace(/\\[rnt\\()]/g," ")).join(" ").replace(/\s+/g," ").trim();
+        setCustomArticles(p=>[...p,{ name:file.name, text: text.slice(0,8000)||"(PDF text extraction limited)" }]);
+      };
+    } else {
+      reader.readAsText(file);
+      reader.onload = () => setCustomArticles(p=>[...p,{ name:file.name, text: String(reader.result).slice(0,8000) }]);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setIsDragging(false);
+    Array.from(e.dataTransfer.files).forEach(processFile);
+  };
+
+  const handlePasteAdd = () => {
+    const t = pasteText.trim();
+    if (!t) return;
+    setCustomArticles(p=>[...p,{ name:`Pasted article ${p.length+1}`, text:t.slice(0,8000) }]);
+    setPasteText("");
+  };
+
+  const inputStyle = { fontFamily:MB_MONO, fontSize:12, color:MB_INK, background:MB_BG,
+    border:`1px solid ${MB_RULE}`, borderRadius:2, padding:"6px 10px", outline:"none",
+    width:90, textAlign:"right" };
+
+  const FlowTable = ({ tickers, flows, setFlows, label }) => (
+    <div style={{flex:1,minWidth:160}}>
+      <div style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{label}</div>
+      {tickers.map(k=>(
+        <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+          padding:"5px 0",borderBottom:`0.5px solid ${MB_RULEG}`}}>
+          <span style={{fontFamily:MB_MONO,fontSize:12,color:MB_INK}}>{k}</span>
+          <div style={{display:"flex",alignItems:"center",gap:4}}>
+            <span style={{fontFamily:MB_MONO,fontSize:11,color:MB_MUTED}}>$</span>
+            <input type="number" step="any" placeholder="—" value={flows[k]}
+              onChange={e=>setFlows(p=>({...p,[k]:e.target.value}))}
+              style={inputStyle}/>
+            <span style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED}}>M</span>
+          </div>
+        </div>
+      ))}
+      <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderTop:`1px solid ${MB_INK}`}}>
+        <span style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_INK}}>Net Total</span>
+        <span style={{fontFamily:MB_MONO,fontSize:12,fontWeight:"bold",
+          color:tickers.reduce((s,k)=>s+(parseFloat(flows[k])||0),0)>=0?MB_POS:MB_NEG}}>
+          {(net=>( (net>=0?"+$":"-$") + Math.abs(net).toLocaleString("en-US",{maximumFractionDigits:0}) + "M" ))(tickers.reduce((s,k)=>s+(parseFloat(flows[k])||0),0))}
+        </span>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:MB_BGOFF,display:"flex",flexDirection:"column",
+      alignItems:"center",justifyContent:"center",padding:32}}>
+      <style>{`input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}`}</style>
+
+      <div style={{width:"100%",maxWidth:680,background:MB_BG,boxShadow:"0 2px 24px rgba(0,0,0,0.08)"}}>
+        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
+        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
+
+        <div style={{padding:"40px 48px"}}>
+          <div style={{marginBottom:36}}>
+            <SDMLogo width={140}/>
+          </div>
+
+          <div style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>
+            MarketBeat
+          </div>
+          <h1 style={{fontFamily:MB_HEAD,fontSize:32,fontWeight:700,color:MB_INK,letterSpacing:-0.5,lineHeight:1.1,marginBottom:8}}>
+            Daily Market Brief
+          </h1>
+          <p style={{fontFamily:MB_BODY,fontSize:14,color:MB_MID,lineHeight:1.6,marginBottom:32}}>
+            Generates a full institutional crypto brief with live market data, AI-written analysis,
+            ETF flows, derivatives, and news summaries.
+          </p>
+
+          <div style={{marginBottom:28}}>
+            <label style={{display:"block",fontFamily:MB_BODY,fontSize:11,fontWeight:600,
+              color:MB_MUTED,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>
+              Report Date
+            </label>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+              style={{fontFamily:MB_MONO,fontSize:14,color:MB_INK,background:MB_BG,
+                border:`1px solid ${MB_RULE}`,borderRadius:2,padding:"10px 14px",outline:"none",
+                cursor:"pointer"}}/>
+            {date !== mbTodayISO() && (
+              <div style={{fontFamily:MB_BODY,fontSize:11,color:MB_GOLD_TEXT,marginTop:6}}>
+                Note: market data will be fetched live — back-dated reports use current prices.
+              </div>
+            )}
+          </div>
+
+          <div style={{marginBottom:32}}>
+            <button onClick={()=>setShowCustomize(v=>!v)}
+              style={{display:"flex",alignItems:"center",gap:8,fontFamily:MB_BODY,fontSize:12,
+                fontWeight:600,color:MB_INK,background:"none",border:`1px solid ${MB_RULE}`,
+                borderRadius:2,padding:"10px 16px",cursor:"pointer",width:"100%",textAlign:"left"}}>
+              <span style={{fontFamily:MB_MONO,fontSize:11,color:MB_MUTED}}>{showCustomize?"▼":"▶"}</span>
+              Customize
+              <span style={{fontFamily:MB_BODY,fontSize:11,color:MB_MUTED,fontWeight:400,marginLeft:"auto"}}>
+                Optional · add articles, docs &amp; PDFs
+              </span>
+              {customArticles.length > 0 && (
+                <span style={{fontFamily:MB_MONO,fontSize:10,fontWeight:700,color:MB_GOLD_TEXT,
+                  background:MB_GOLD+"22",border:`1px solid ${MB_GOLD}55`,
+                  borderRadius:10,padding:"1px 7px",marginLeft:4}}>
+                  {customArticles.length}
+                </span>
+              )}
+            </button>
+
+            {showCustomize && (
+              <div style={{border:`1px solid ${MB_RULE}`,borderTop:"none",padding:"20px 16px"}}>
+                <div style={{fontFamily:MB_BODY,fontSize:11,color:MB_MUTED,marginBottom:16,lineHeight:1.6}}>
+                  Upload articles, research notes, or documents to include in the brief.
+                </div>
+                <div
+                  onDragOver={e=>{e.preventDefault();setIsDragging(true)}}
+                  onDragLeave={()=>setIsDragging(false)}
+                  onDrop={handleDrop}
+                  onClick={()=>fileInputRef.current?.click()}
+                  style={{
+                    border:`2px dashed ${isDragging?MB_GOLD:MB_RULE}`,
+                    borderRadius:4,padding:"22px 16px",textAlign:"center",
+                    background:isDragging?MB_GOLD+"0a":MB_BGOFF,
+                    cursor:"pointer",marginBottom:14,transition:"all 0.15s",
+                  }}>
+                  <div style={{fontFamily:MB_MONO,fontSize:18,color:isDragging?MB_GOLD:MB_RULE,marginBottom:6}}>↑</div>
+                  <div style={{fontFamily:MB_BODY,fontSize:12,color:isDragging?MB_GOLD_TEXT:MB_MUTED}}>
+                    Drop files here or <span style={{color:MB_BLUE,textDecoration:"underline"}}>browse</span>
+                  </div>
+                  <div style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,marginTop:4,letterSpacing:1}}>
+                    .TXT · .MD · .PDF
+                  </div>
+                  <input ref={fileInputRef} type="file" multiple accept=".txt,.md,.pdf,.csv"
+                    style={{display:"none"}}
+                    onChange={e=>{Array.from(e.target.files).forEach(processFile);e.target.value="";}}/>
+                </div>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,letterSpacing:2,
+                    textTransform:"uppercase",marginBottom:6}}>Or paste article text</div>
+                  <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)}
+                    placeholder="Paste an article, excerpt, or research note here…"
+                    rows={4}
+                    style={{width:"100%",fontFamily:MB_BODY,fontSize:12,color:MB_INK,background:MB_BG,
+                      border:`1px solid ${MB_RULE}`,borderRadius:2,padding:"10px 12px",
+                      outline:"none",resize:"vertical",lineHeight:1.6}}/>
+                  <button onClick={handlePasteAdd} disabled={!pasteText.trim()}
+                    style={{marginTop:6,fontFamily:MB_BODY,fontSize:11,fontWeight:600,
+                      color:pasteText.trim()?MB_BG:MB_MUTED,
+                      background:pasteText.trim()?MB_INK:MB_RULE,
+                      border:"none",borderRadius:2,padding:"7px 16px",cursor:pasteText.trim()?"pointer":"default"}}>
+                    Add Article
+                  </button>
+                </div>
+                {customArticles.length > 0 && (
+                  <div>
+                    <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,letterSpacing:2,
+                      textTransform:"uppercase",marginBottom:8}}>Added ({customArticles.length})</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {customArticles.map((a,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:10,
+                          background:MB_BGOFF,border:`1px solid ${MB_RULE}`,borderRadius:3,
+                          padding:"8px 12px"}}>
+                          <span style={{fontFamily:MB_MONO,fontSize:11,color:MB_GOLD_TEXT}}>◆</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_INK,
+                              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                              {a.name}
+                            </div>
+                            <div style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,marginTop:1}}>
+                              {a.text.slice(0,80).trim()}…
+                            </div>
+                          </div>
+                          <button onClick={()=>setCustomArticles(p=>p.filter((_,j)=>j!==i))}
+                            style={{fontFamily:MB_MONO,fontSize:12,color:MB_MUTED,background:"none",
+                              border:"none",cursor:"pointer",padding:"2px 6px",flexShrink:0}}
+                            title="Remove">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button onClick={()=>onGenerate({date,btcF,ethF,solF,customArticles})}
+            style={{width:"100%",fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_BG,
+              background:MB_INK,border:"none",borderRadius:2,padding:"16px 24px",
+              cursor:"pointer",letterSpacing:0.5,transition:"opacity 0.2s"}}
+            onMouseEnter={e=>e.target.style.opacity=0.85}
+            onMouseLeave={e=>e.target.style.opacity=1}>
+            Generate Report →
+          </button>
+        </div>
+
+        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
+        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
+      </div>
+    </div>
+  );
+}
+
+// ── MB Generating screen ───────────────────────────────────────────────────────
+function MBGeneratingScreen({ steps }) {
+  return (
+    <div style={{minHeight:"100vh",background:MB_BGOFF,display:"flex",flexDirection:"column",
+      alignItems:"center",justifyContent:"center",padding:32}}>
+      <style>{`@keyframes mbpulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+      <div style={{width:"100%",maxWidth:480,background:MB_BG,boxShadow:"0 2px 24px rgba(0,0,0,0.08)"}}>
+        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
+        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
+        <div style={{padding:"40px 48px"}}>
+          <SDMLogo width={120}/>
+          <div style={{fontFamily:MB_HEAD,fontSize:22,fontWeight:700,color:MB_INK,marginTop:24,marginBottom:8}}>
+            Generating your brief
+          </div>
+          <div style={{fontFamily:MB_BODY,fontSize:13,color:MB_MUTED,marginBottom:32}}>This takes about 15–20 seconds</div>
+          {steps.map((step,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",
+              borderBottom:i<steps.length-1?`0.5px solid ${MB_RULEG}`:"none"}}>
+              <span style={{fontFamily:MB_MONO,fontSize:14,width:20,textAlign:"center",
+                animation:step.status==="loading"?"mbpulse 1.2s ease-in-out infinite":"none"}}>
+                {step.status==="done" ? "✓" : step.status==="loading" ? "…" : "○"}
+              </span>
+              <span style={{fontFamily:MB_BODY,fontSize:13,
+                color:step.status==="done"?MB_POS:step.status==="loading"?MB_INK:MB_MUTED}}>
+                {step.label}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
+        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
+      </div>
+    </div>
+  );
+}
+
+// ── MarketBriefReport component ────────────────────────────────────────────────
+function MarketBriefReport({ data, onBack }) {
+  const { date, mkt, drv, btcF, ethF, solF, polyD, news, commentary, geoNews=[] } = data;
+  const rootRef = useRef(null);
+  const [shareMsg, setShareMsg] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [hiddenSections, setHiddenSections] = useState(new Set());
+  const hideSection = n => setHiddenSections(s => new Set([...s, n]));
+  const [hiddenArticles, setHiddenArticles] = useState(new Set());
+  const hideArticle = i => setHiddenArticles(s => new Set([...s, i]));
+
+  const btcNet = MB_ETF_BTC.reduce((s,k)=>s+(parseFloat(btcF[k])||0),0);
+  const ethNet = MB_ETF_ETH.reduce((s,k)=>s+(parseFloat(ethF[k])||0),0);
+  const solNet = MB_ETF_SOL.reduce((s,k)=>s+(parseFloat(solF[k])||0),0);
+  const allNet = btcNet+ethNet+solNet;
+  const upcoming = MB_ECON.filter(e=>{const d=mbDue(e.date);return d>=0&&d<=30;})
+    .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,8);
+
+  const handleExportHTML = () => {
+    if(!rootRef.current) return;
+    const html = buildExportHTML(rootRef.current, date);
+    const blob = new Blob([html],{type:"text/html;charset=utf-8"});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href=url; a.download=`sdm-marketbeat-${date}.html`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const handleShare = async () => {
+    if(!rootRef.current) return;
+    setExporting(true); setShareMsg("Creating link…");
+    const html  = buildExportHTML(rootRef.current, date);
+    const url   = await createShareLink(html, date);
+    setExporting(false);
+    if(url) {
+      await navigator.clipboard.writeText(url).catch(()=>{});
+      setShareMsg("Link copied to clipboard ✓");
+    } else {
+      setShareMsg("Failed to create share link");
+    }
+    setTimeout(()=>setShareMsg(""), 4000);
+  };
+
+  const netColor = n => n >= 0 ? MB_POS : MB_NEG;
+  const fFlowVal = v => (v>=0?"+$":"-$") + Math.abs(v).toLocaleString("en-US",{maximumFractionDigits:0});
+  const fFlow = n => { const v=parseFloat(n); return isNaN(v) ? "—" : fFlowVal(v); };
+
+  const etfRows = (tickers, flows) => tickers.map(k => {
+    const v = parseFloat(flows[k]);
+    return [k, isNaN(v) ? "—" : { value:fFlowVal(v), style:{color:netColor(v)} }];
+  });
+
+  const W = "0 64px";
+  const divider = <div style={{height:"0.5px",background:MB_RULE,margin:"28px 64px 0"}}/>;
+
+  return (
+    <div style={{background:MB_BGOFF,minHeight:"100vh"}}>
+      <style>{`@media print{.noprint{display:none!important;}body{background:#fff!important;}}`}</style>
+
+      <div className="noprint" style={{position:"sticky",top:0,zIndex:100,background:MB_INK,
+        padding:"10px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <button onClick={onBack} style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
+          border:`1px solid rgba(255,255,255,0.2)`,borderRadius:2,padding:"6px 14px",cursor:"pointer"}}>
+          ← Back to Studio
+        </button>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          {shareMsg && <span style={{fontFamily:MB_BODY,fontSize:11,color:MB_GOLD}}>{shareMsg}</span>}
+          <button onClick={handleShare} disabled={exporting}
+            style={{fontFamily:MB_BODY,fontSize:12,color:MB_INK,background:MB_GOLD,border:"none",
+              borderRadius:2,padding:"7px 16px",cursor:"pointer",fontWeight:600}}>
+            Share Link
+          </button>
+          <button onClick={handleExportHTML}
+            style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
+              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:2,padding:"7px 16px",cursor:"pointer"}}>
+            Export HTML
+          </button>
+          <button onClick={()=>window.print()}
+            style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
+              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:2,padding:"7px 16px",cursor:"pointer"}}>
+            Export PDF
+          </button>
+        </div>
+      </div>
+
+      <div ref={rootRef} id="mb-report-root"
+        style={{maxWidth:860,margin:"0 auto",background:MB_BG,boxShadow:"0 2px 40px rgba(0,0,0,0.08)",
+          paddingBottom:48}}>
+
+        <div style={{padding:"40px 64px 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+            <SDMLogo width={150}/>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:MB_HEAD,fontSize:18,fontWeight:700,color:MB_INK,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
+                MarketBeat
+              </div>
+              <div style={{fontFamily:MB_HEAD,fontSize:13,fontWeight:600,color:MB_INK}}>{mbFmtLong(date)}</div>
+            </div>
+          </div>
+          <div style={{borderTop:`3px solid ${MB_INK}`}}/>
+          <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3,marginBottom:20}}/>
+          <h1 style={{fontFamily:MB_HEAD,fontSize:28,fontWeight:700,color:MB_INK,letterSpacing:-0.3,marginBottom:4}}>
+            Daily Market Brief
+          </h1>
+          <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MUTED,marginBottom:24}}>
+            Secure Digital Markets · Institutional Research · For internal distribution only
+          </div>
+        </div>
+
+        {/* Executive Summary */}
+        <div style={{padding:W,paddingBottom:0,paddingTop:32}}>
+          <div style={{marginBottom:24}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:10}}>
+              <span style={{fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_INK,letterSpacing:0.3,textTransform:"uppercase"}}>
+                Daily Market Brief
+              </span>
+            </div>
+            <div style={{height:2,background:MB_GOLD,marginBottom:16}}/>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {commentary?._err && (
+                <div style={{background:"#fee2e2", border:`1px solid ${MB_NEG}`, borderRadius:4, padding:"14px 18px"}}>
+                  <div style={{fontFamily:MB_BODY,fontSize:13,fontWeight:600,color:MB_INK,marginBottom:4}}>
+                    AI commentary failed
+                  </div>
+                  <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MID,lineHeight:1.5}}>
+                    {commentary._err === "api_error" ? `API error: ${commentary.msg}` : `Error: ${commentary.msg || commentary._err}`}
+                  </div>
+                </div>
+              )}
+              {(Array.isArray(commentary?.executive_summary) ? commentary.executive_summary : []).map((bullet, i) => (
+                <div key={i} style={{
+                  display:"flex",alignItems:"flex-start",gap:12,
+                  background:i===0?MB_GOLD+"14":MB_BGOFF,
+                  border:`1px solid ${i===0?MB_GOLD+"55":MB_RULE}`,
+                  borderRadius:6,padding:"11px 14px",
+                }}>
+                  <span style={{fontFamily:MB_MONO,fontSize:9,fontWeight:700,color:i===0?MB_GOLD_TEXT:MB_MUTED,marginTop:2,flexShrink:0,letterSpacing:1}}>◆</span>
+                  <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:12.5,color:MB_INK,lineHeight:1.65,fontWeight:i===0?600:400}}>
+                    {bullet}
+                  </MBRichTextBlock>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Geopolitics Bullets */}
+        {Array.isArray(commentary?.geo_bullets) && commentary.geo_bullets.length > 0 && (
+          <div style={{padding:W, paddingBottom:0, paddingTop:32}}>
+            <div style={{marginBottom:24}}>
+              <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:10}}>
+                <span style={{fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_INK,letterSpacing:0.3,textTransform:"uppercase"}}>
+                  Geopolitics — Market Implications
+                </span>
+              </div>
+              <div style={{height:2,background:MB_GOLD,marginBottom:16}}/>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {commentary.geo_bullets.map((bullet, i) => (
+                  <div key={i} style={{
+                    display:"flex",alignItems:"flex-start",gap:12,
+                    background:MB_BGOFF, border:`1px solid ${MB_RULE}`,
+                    borderRadius:6,padding:"11px 14px",
+                  }}>
+                    <span style={{fontFamily:MB_MONO,fontSize:9,fontWeight:700,color:MB_MUTED,marginTop:2,flexShrink:0,letterSpacing:1}}>◆</span>
+                    <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:12.5,color:MB_INK,lineHeight:1.65,fontWeight:400}}>
+                      {bullet}
+                    </MBRichTextBlock>
+                  </div>
+                ))}
+                <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:4}}>
+                  Source: Reuters · Foreign Policy · BBC World · The Guardian · CFR · Summarized by Claude (Anthropic)
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {divider}
+
+        {/* 01 — Market Snapshot */}
+        {!hiddenSections.has(1) && <MBReportSection number={1} title="Market Snapshot" intro={commentary?.market?.intro}>
+          <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
+            Top 10 by Market Cap
+          </div>
+          <MBDataTable
+            headers={["#","Asset","Price (USD)","24h Change","Market Cap"]}
+            rows={(mkt.coins||[]).map(c=>[
+              {value:String(c.rank), style:{color:MB_MUTED}},
+              `${c.name} (${c.symbol})`,
+              `$${c.price >= 1000 ? mbF(c.price,0) : c.price >= 1 ? mbF(c.price,2) : mbF(c.price,4)}`,
+              { value:mbPct(c.change24h), style:{color:c.change24h>=0?MB_POS:MB_NEG, fontWeight:600} },
+              mbFmcap(c.mcap),
+            ])}
+            footer={["","Total Market Cap", mbFT(mkt.totalMarketCap), "—", "—"]}
+          />
+          <div style={{height:20}}/>
+          <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
+            Stablecoins — Top 5 by Market Cap
+          </div>
+          <MBDataTable
+            headers={["#","Asset","Price (USD)","Market Cap","Peg Dev."]}
+            rows={(mkt.stables||[]).map(c=>[
+              {value:String(c.rank), style:{color:MB_MUTED}},
+              `${c.name} (${c.symbol})`,
+              {value:`$${mbF(c.price,4)}`, style:{color: c.dev > 0.05 ? MB_NEG : MB_INK}},
+              mbFmcap(c.mcap),
+              {value: c.dev < 0.01 ? "—" : `${c.dev.toFixed(2)}%`,
+               style:{color: c.dev > 0.1 ? MB_NEG : c.dev > 0.05 ? MB_GOLD_TEXT : MB_MUTED}},
+            ])}
+          />
+        </MBReportSection>}
+
+        {divider}
+
+        {/* 02 — Derivatives */}
+        {!hiddenSections.has(2) && <MBReportSection number={2} title="Derivatives — Funding, CME Basis & Open Interest" intro={commentary?.derivatives?.intro}>
+          <MBDataTable
+            headers={["Metric","Value","Context"]}
+            rows={[
+              ["BTC Perp Funding (8h)", `${mbF(drv.btcFunding,4)}%`,
+                drv.btcFunding>0.01?"Elevated — longs paying premium":drv.btcFunding<0?"Negative — shorts paying":"Neutral"],
+              ["ETH Perp Funding (8h)", `${mbF(drv.ethFunding,4)}%`,
+                drv.ethFunding>0.01?"Elevated":drv.ethFunding<0?"Negative":"Neutral"],
+              ["CME Front-Month Basis",  `${mbF(drv.cmeBasis,2)}%`, "vs. spot"],
+              ["CME Annualised Premium", `${mbF(drv.cmeAnnualized,2)}%`, "carry equivalent"],
+              ["BTC Open Interest", `$${mbF(drv.btcOI,1)}B`, "perpetual + futures"],
+              ["ETH Open Interest", `$${mbF(drv.ethOI,1)}B`, "perpetual + futures"],
+            ]}
+          />
+        </MBReportSection>}
+
+        {divider}
+
+        {/* 03 — ETF Flows */}
+        {!hiddenSections.has(3) && <MBReportSection number={3} title="ETF Flows & Approval Odds" intro={commentary?.etf?.intro}>
+          <div style={{marginBottom:20}}>
+            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
+              Combined Net Flow Today
+            </div>
+            <span style={{fontFamily:MB_HEAD,fontSize:26,fontWeight:700,color:netColor(allNet)}}>
+              {fFlowVal(allNet)}M
+            </span>
+            <span style={{fontFamily:MB_BODY,fontSize:12,color:MB_MUTED,marginLeft:8}}>USD · BTC + ETH + SOL</span>
+          </div>
+          <div style={{display:"flex",gap:20,flexWrap:"wrap",marginBottom:20}}>
+            {[
+              {label:"BTC Spot ETFs", tickers:MB_ETF_BTC, flows:btcF, net:btcNet},
+              {label:"ETH Spot ETFs", tickers:MB_ETF_ETH, flows:ethF, net:ethNet},
+              {label:"SOL Spot ETFs", tickers:MB_ETF_SOL, flows:solF, net:solNet},
+            ].map(({label,tickers,flows,net})=>(
+              <div key={label} style={{flex:"1 1 180px"}}>
+                <MBDataTable
+                  headers={[label, "Flow ($M)"]}
+                  rows={etfRows(tickers, flows)}
+                  footer={["Net Total", { value:fFlowVal(net)+"M", style:{color:netColor(net)} }]}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:8}}>
+            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
+              Polymarket — ETF Approval Probability
+            </div>
+            <MBDataTable
+              headers={["Market","Approval Odds","Source"]}
+              rows={MB_POLY.map(p=>[
+                p.label,
+                { value:`${polyD[p.id]||p.fb}%`, style:{
+                  color: (polyD[p.id]||p.fb) >= 75 ? MB_POS : (polyD[p.id]||p.fb) >= 50 ? MB_GOLD_TEXT : MB_NEG,
+                  fontWeight:"bold"
+                }},
+                "Polymarket",
+              ])}
+            />
+          </div>
+        </MBReportSection>}
+
+        {divider}
+
+        {/* 04 — Economic Calendar */}
+        {!hiddenSections.has(4) && <MBReportSection number={4} title="Economic Calendar" intro={commentary?.calendar?.intro}>
+          <MBDataTable
+            headers={["Date","Event","Category","Time","Days Away"]}
+            rows={upcoming.map(e=>[
+              new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}),
+              e.ev,
+              { value:e.cat, style:{
+                color:MB_BG, background:MB_CAT_BG[e.cat]||"#333",
+                padding:"2px 8px", borderRadius:2, fontSize:9,
+                fontFamily:MB_MONO, letterSpacing:1
+              }},
+              e.time,
+              { value: mbDue(e.date)===0?"Today":`${mbDue(e.date)}d`, style:{
+                color:mbDue(e.date)<=3?MB_NEG:mbDue(e.date)<=7?MB_GOLD_TEXT:MB_MID,
+                fontWeight:mbDue(e.date)<=3?"bold":"normal"
+              }},
+            ])}
+          />
+          <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:8}}>
+            Source: Federal Reserve · BLS · BEA · SEC.gov
+          </div>
+        </MBReportSection>}
+
+        {divider}
+
+        {/* 05 — Market News */}
+        {!hiddenSections.has(5) && <MBReportSection number={5} title="Market News — Key Takeaways" intro={commentary?.news?.intro}>
+          {(commentary?.news_summaries?.length ? commentary.news_summaries : news.map(n=>({headline:n.title,summary:n.description,source:n.src})))
+            .map((item, i) => hiddenArticles.has(i) ? null : (
+              <MBArticleItem key={i} item={item} index={i} onDelete={()=>hideArticle(i)}/>
+            ))
+          }
+          <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:16}}>
+            Source: The Block · CoinDesk · Cointelegraph · Blockworks · Decrypt · CryptoSlate · Summarized by Claude (Anthropic)
+          </div>
+        </MBReportSection>}
+
+        {/* Footer */}
+        <div style={{margin:"32px 64px 0"}}>
+          <div style={{borderTop:`3px solid ${MB_INK}`}}/>
+          <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:16}}>
+            <SDMLogo width={80}/>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:MB_BODY,fontSize:10,color:MB_MUTED}}>
+                {mbFmtLong(date)} · Institutional Research
+              </div>
+              <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:3}}>
+                Not investment advice · For internal distribution only
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MarketBriefWrapper — state container ───────────────────────────────────────
+function MarketBriefWrapper({ onBack }) {
+  const [view, setView]             = useState("home"); // home | generating | report
+  const [reportData, setReportData] = useState(null);
+  const [steps, setSteps]           = useState([]);
+
+  const setStep = (i, status) => setSteps(s => s.map((st,idx) => idx===i ? {...st,status} : st));
+
+  const MB_MOCK_NEWS_FALLBACK = [
+    { title:"Bitcoin consolidates near key support as macro uncertainty weighs", description:"Bitcoin traded sideways near critical support levels as investors assessed Federal Reserve policy signals.", time:"Today", src:"CoinDesk" },
+    { title:"Ethereum ETF inflows pick up pace amid renewed institutional interest", description:"Spot Ethereum ETFs recorded their strongest week of inflows in over a month.", time:"Today", src:"CoinDesk" },
+    { title:"CME Bitcoin futures open interest climbs to multi-month high", description:"Open interest in CME Bitcoin futures reached its highest level in several months.", time:"Today", src:"The Block" },
+    { title:"SEC review timeline for altcoin ETF applications under scrutiny", description:"Market participants are monitoring the SEC's review cadence for pending spot ETF applications.", time:"Today", src:"The Block" },
+    { title:"Stablecoin supply expands as on-chain activity rebounds", description:"Total stablecoin supply across major networks expanded this week.", time:"Today", src:"CoinDesk" },
+  ];
+
+  const handleGenerate = async ({ date, btcF, ethF, solF, customArticles=[] }) => {
+    const STEPS = [
+      { label:"Fetching live market data",       status:"pending" },
+      { label:"Generating AI analysis (Claude)", status:"pending" },
+    ];
+    setSteps(STEPS);
+    setView("generating");
+
+    setStep(0,"loading");
+    const [mkt, drv, polyD, rawNews, geoNews] = await Promise.all([
+      mbFetchMarket().catch(()=>MB_MOCK_MKT),
+      mbFetchDerivatives().catch(()=>MB_MOCK_DRV),
+      mbFetchPoly().catch(()=>({})),
+      fetchRSS().catch(()=>MB_MOCK_NEWS_FALLBACK),
+      fetchGeoNews().catch(()=>[]),
+    ]);
+    const news = rawNews.slice(0, Math.max(0, 5 - customArticles.length));
+    setStep(0,"done");
+
+    setStep(1,"loading");
+    const commentary = await generateCommentary({ date, mkt, drv, btcF, ethF, solF, polyD:polyD||{}, news, customArticles, geoNews })
+      .catch(err => ({ _err:"exception", msg:err.message }));
+    setStep(1,"done");
+
+    setReportData({ date, mkt, drv, btcF, ethF, solF, polyD:polyD||{}, news, commentary, customArticles, geoNews });
+    setView("report");
+  };
+
+  if (view === "home") return <MarketBriefHome onGenerate={handleGenerate} />;
+  if (view === "generating") return <MBGeneratingScreen steps={steps} />;
+  if (view === "report") return <MarketBriefReport data={reportData} onBack={onBack} />;
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── END MARKET BRIEF module ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function App() {
   const [phase, setPhase] = useState(PHASES.HOME);
@@ -833,6 +2080,29 @@ export default function App() {
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Calculate collateralized loan terms, generate branded lending proposals with payment schedules and risk analysis.</p>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#16a34a", letterSpacing: 1, textTransform: "uppercase" }}>
                 Build a lending proposal <span>&rarr;</span>
+              </div>
+            </button>
+
+            {/* Daily Market Brief */}
+            <button
+              onClick={() => navigateTo(PHASES.MARKET_BRIEF)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
+                </div>
+                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>LIVE</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Daily Market Brief</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>AI-written institutional crypto brief with live market data, ETF flows, derivatives, geopolitics, and news summaries.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+                Generate brief <span>&rarr;</span>
               </div>
             </button>
           </div>
@@ -1386,6 +2656,11 @@ export default function App() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ═══ PHASE: MARKET_BRIEF ═══ */}
+      {phase === PHASES.MARKET_BRIEF && (
+        <MarketBriefWrapper onBack={() => navigateTo(PHASES.HOME)} />
       )}
 
       {/* ─── Canva Exporting Overlay ─── */}
