@@ -186,6 +186,26 @@ Select the best trade, populate all fields, and write the executive summary.`;
       return res.status(200).json(parsed);
     }
 
+    // ─── MODE: prompt pass-through (market brief / geopolitical) ─────────────
+    const { prompt } = req.body;
+    if (prompt) {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    }
+
     // ─── MODE: summary only (existing) ───────────────────────────────────────
     if (!tradeId || !fields) {
       return res.status(400).json({ error: 'Missing tradeId or fields' });
