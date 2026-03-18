@@ -1251,7 +1251,7 @@ function MarketBriefReport({ data, onBack }) {
 
   return (
     <div style={{background:MB_BGOFF,minHeight:"100vh"}}>
-      <style>{`@media print{.noprint{display:none!important;}body{background:#fff!important;}}`}</style>
+      <style>{`@page{margin:0;size:auto;}@media print{.noprint{display:none!important;}body{margin:0;padding:0;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}#mb-report-root{box-shadow:none!important;padding:32px 48px 32px 48px!important;max-width:100%!important;}}`}</style>
 
       <div className="noprint" style={{position:"sticky",top:0,zIndex:100,background:MB_INK,
         padding:"10px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
