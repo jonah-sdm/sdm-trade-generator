@@ -104,29 +104,19 @@ ${cssText}
 
 async function handleLendingShareLink(reportRef, data, setLinkText) {
   if (!reportRef.current) return;
-  setLinkText("Saving...");
+  setLinkText("Creating...");
   const fullHtml = buildLendingStandaloneHtml(reportRef);
-  const filename = `SDM-Lending-${data.collateralAsset}-${new Date().toISOString().slice(0, 10)}.html`;
   try {
-    const res = await fetch("/api/share", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html: fullHtml, filename }),
-    });
-    if (!res.ok) throw new Error("Upload failed");
-    const { url } = await res.json();
-    await navigator.clipboard.writeText(url);
-    setLinkText("Link copied!");
-    window.open(url, "_blank");
-  } catch (e) {
     const blob = new Blob([fullHtml], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setLinkText("Downloaded!");
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    await navigator.clipboard.writeText(url);
+    setLinkText("Opened!");
+  } catch (e) {
+    const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
+    const dataUrl = `data:text/html;base64,${encoded}`;
+    window.open(dataUrl, "_blank");
+    setLinkText("Opened!");
   }
   setTimeout(() => setLinkText("Link"), 3000);
 }
@@ -135,12 +125,11 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
   const [execHtml, setExecHtml] = useState(fieldValues?.executive_summary ? `<p>${fieldValues.executive_summary.replace(/\n/g, "</p><p>")}</p>` : "");
-  const [execEditing, setExecEditing] = useState(false);
+  const [execHover, setExecHover] = useState(false);
   const [linkText, setLinkText] = useState("Link");
 
-  const handleEditorSave = useCallback(() => {
+  const handleExecBlur = useCallback(() => {
     if (editorRef.current) setExecHtml(editorRef.current.innerHTML);
-    setExecEditing(false);
   }, []);
 
   if (!data || data.error) {
@@ -254,41 +243,30 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Executive Summary */}
-        <div style={{ marginBottom: 32, padding: 24, background: "#FAFAFA", border: "1px solid #E8E8E8", borderLeft: "3px solid #FFC32C", borderRadius: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={sectionLabel}>Executive Summary</div>
-            {!execEditing && (
-              <button onClick={() => setExecEditing(true)} style={{ background: "none", border: "1px solid #E8E8E8", borderRadius: 2, padding: "6px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", cursor: "pointer" }}>
-                Edit
-              </button>
-            )}
+        <div
+          style={{ marginBottom: 32, padding: 24, background: "#FAFAFA", border: "1px solid #E8E8E8", borderLeft: "3px solid #FFC32C", borderRadius: 2, position: "relative" }}
+          onMouseEnter={() => setExecHover(true)}
+          onMouseLeave={() => setExecHover(false)}
+        >
+          <div style={sectionLabel}>Executive Summary</div>
+          <div style={{ transition: "opacity 0.15s, max-height 0.15s", opacity: execHover ? 1 : 0, maxHeight: execHover ? 40 : 0, overflow: "hidden", marginTop: execHover ? 12 : 0, marginBottom: execHover ? 8 : 0 }}>
+            <RichTextToolbar />
           </div>
-          {execEditing ? (
-            <div>
-              <RichTextToolbar />
-              <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                dangerouslySetInnerHTML={{ __html: execHtml || data.summary.split("\n\n").map(p => `<p>${p}</p>`).join("") }}
-                style={{ background: "#FFFFFF", border: "1px solid #E8E8E8", padding: "12px 14px", minHeight: 120, fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#333", outline: "none" }}
-              />
-              <button onClick={handleEditorSave} style={{ marginTop: 8, background: "#111", color: "#FFF", border: "none", borderRadius: 2, padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
-                Save
-              </button>
-            </div>
-          ) : (
-            <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#333", lineHeight: 1.7 }}>
-              {execHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: execHtml }} />
-              ) : (
-                <>
-                  {data.summary.split("\n\n").map((para, i) => <p key={i} style={{ marginBottom: 12 }}>{para}</p>)}
-                  <p style={{ color: "#AAAAAA", fontSize: 12, marginTop: 10 }}>Click "Edit" to customize the executive summary...</p>
-                </>
-              )}
-            </div>
-          )}
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            dangerouslySetInnerHTML={{ __html: execHtml || data.summary.split("\n\n").map(p => `<p>${p}</p>`).join("") }}
+            onBlur={handleExecBlur}
+            style={{
+              fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#333", outline: "none",
+              background: execHover ? "#FFFFFF" : "transparent",
+              border: execHover ? "1px solid #E8E8E8" : "1px solid transparent",
+              borderRadius: 2, padding: "12px 14px", minHeight: 80, marginTop: 12,
+              transition: "background 0.15s, border-color 0.15s",
+              cursor: "text",
+            }}
+          />
         </div>
 
         {/* Loan Structure */}

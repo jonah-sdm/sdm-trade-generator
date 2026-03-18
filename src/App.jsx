@@ -6,6 +6,8 @@ import { computeLendingProposal, SUPPORTED_ASSETS } from "./lendingEngine";
 import TradeReport from "./TradeReport";
 import LendingReport from "./LendingReport";
 import PayoffChart from "./PayoffChart";
+import MBChartSection06 from "./MBChartSection06";
+import MBChartSection07 from "./MBChartSection07";
 import "./index.css";
 
 const ASK_AI_PRESETS = [
@@ -551,9 +553,12 @@ function clusterAndRank(articles, n) {
   const clusters = [];
   for (const article of articles) {
     const kw = new Set(mbExtractKeywords(article.title));
+    // Require 3+ keyword overlap to cluster (was 2 — too aggressive)
     const match = clusters.find(c => {
       const repKw = mbExtractKeywords(c[0].title);
-      return repKw.filter(k => kw.has(k)).length >= 2;
+      const overlap = repKw.filter(k => kw.has(k)).length;
+      const minLen = Math.min(kw.size, repKw.length);
+      return overlap >= 3 || (minLen <= 3 && overlap >= 2 && overlap / minLen > 0.6);
     });
     if (match) match.push(article);
     else clusters.push([article]);
@@ -582,9 +587,20 @@ function clusterAndRank(articles, n) {
   for (const article of shuffled) {
     if (selected.length >= n) break;
     const s = article.src;
-    if ((srcCounts[s] || 0) < 2) {
+    if ((srcCounts[s] || 0) < 3) {
       selected.push(article);
       srcCounts[s] = (srcCounts[s] || 0) + 1;
+    }
+  }
+  // Guarantee minimum n results — if clustering reduced too much, pull from raw articles
+  if (selected.length < n) {
+    const usedTitles = new Set(selected.map(a => a.title));
+    for (const article of articles) {
+      if (selected.length >= n) break;
+      if (!usedTitles.has(article.title)) {
+        selected.push({ ...article, sources: [article.src], coverageCount: 1, score: 0 });
+        usedTitles.add(article.title);
+      }
     }
   }
   return selected;
@@ -600,7 +616,7 @@ async function fetchRSS() {
     )
   );
   const all = results.flatMap(r => r.status === "fulfilled" ? r.value : []);
-  return clusterAndRank(all, 7);
+  return clusterAndRank(all, 10);
 }
 
 async function fetchGeoNews() {
@@ -645,7 +661,9 @@ Return ONLY a valid JSON object (no code fences, no extra text) with exactly thi
   "news_summaries": [
     { "headline": "insight headline 1", "summary": "1-2 sentences: content + implication", "source": "Source name" },
     { "headline": "insight headline 2", "summary": "1-2 sentences: content + implication", "source": "Source name" },
-    { "headline": "insight headline 3", "summary": "1-2 sentences: content + implication", "source": "Source name" }
+    { "headline": "insight headline 3", "summary": "1-2 sentences: content + implication", "source": "Source name" },
+    { "headline": "insight headline 4", "summary": "1-2 sentences: content + implication", "source": "Source name" },
+    { "headline": "insight headline 5", "summary": "1-2 sentences: content + implication", "source": "Source name" }
   ],
   "geo_bullets": ["bullet 1 — geopolitical event + crypto/market implication, 15-20 words", "bullet 2", "bullet 3", "bullet 4", "bullet 5"]
 }
@@ -715,15 +733,18 @@ function buildExportHTML(rootEl, date) {
 </head><body>${clone.outerHTML}</body></html>`;
 }
 
-async function createShareLink(html, date) {
-  const resp = await fetch("/api/share", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ html, date }),
-  });
-  if (!resp.ok) return null;
-  const { url } = await resp.json();
-  return url || null;
+async function createShareLink(html) {
+  try {
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    return url;
+  } catch (e) {
+    const encoded = btoa(unescape(encodeURIComponent(html)));
+    const dataUrl = `data:text/html;base64,${encoded}`;
+    window.open(dataUrl, "_blank");
+    return dataUrl;
+  }
 }
 
 // ── MB ETF data from GitHub ────────────────────────────────────────────────────
@@ -1354,6 +1375,14 @@ function MarketBriefReport({ data, onBack }) {
 
         {/* 01 — Market Snapshot */}
         {!hiddenSections.has(1) && <MBReportSection number={1} title="Market Snapshot" intro={commentary?.market?.intro}>
+          <div style={{marginBottom:28}}>
+            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>BTC Technical Analysis — Daily &amp; 4H</div>
+            <MBChartSection06 />
+          </div>
+          <div style={{marginBottom:28}}>
+            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Top Coins — 5-Day Normalized Returns</div>
+            <MBChartSection07 />
+          </div>
           <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
             Top 10 by Market Cap
           </div>
@@ -1480,11 +1509,20 @@ function MarketBriefReport({ data, onBack }) {
 
         {/* 05 — Market News */}
         {!hiddenSections.has(5) && <MBReportSection number={5} title="Market News — Key Takeaways" intro={commentary?.news?.intro}>
-          {(commentary?.news_summaries?.length ? commentary.news_summaries : news.map(n=>({headline:n.title,summary:n.description,source:n.src})))
-            .map((item, i) => hiddenArticles.has(i) ? null : (
+          {(() => {
+            const rawItems = news.map(n=>({headline:n.title,summary:n.description,source:n.src}));
+            const aiItems = commentary?.news_summaries || [];
+            // Use AI summaries if we got enough, otherwise pad with raw news to ensure 5
+            let items = aiItems.length >= rawItems.length ? aiItems : [
+              ...aiItems,
+              ...rawItems.slice(aiItems.length)
+            ];
+            // Ensure minimum 5 items using fallback
+            if (items.length < 5) items = rawItems.length >= 5 ? rawItems : [...items, ...rawItems.slice(items.length)].slice(0,5);
+            return items.map((item, i) => hiddenArticles.has(i) ? null : (
               <MBArticleItem key={i} item={item} index={i} onDelete={()=>hideArticle(i)}/>
-            ))
-          }
+            ));
+          })()}
           <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:16}}>
             Source: The Block · CoinDesk · Cointelegraph · Blockworks · Decrypt · CryptoSlate · Summarized by Claude (Anthropic)
           </div>
@@ -1946,10 +1984,9 @@ export default function App() {
     <div style={{ ...S.main, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center" }}>
       <div style={{ marginBottom: 32 }}>
         <div style={{ width: 60, height: 60, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <svg width="48" height="58" viewBox="0 0 40 48" fill="none">
-            <path d="M20 0L40 12V36L20 48L0 36V12L20 0Z" fill="#FFC32C"/>
-            <path d="M20 8L32 15V29L20 36L8 29V15L20 8Z" fill="#111"/>
-            <path d="M14 20L20 16L26 20V28L20 32L14 28V20Z" fill="#FFC32C"/>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="52" height="52">
+            <path fill="#eec13f" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+            <path fill="#eec13f" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
           </svg>
         </div>
         <h2 style={{ ...S.heading2, marginBottom: 8 }}>{title}</h2>
@@ -2027,9 +2064,9 @@ export default function App() {
               </div>
             </button>
 
-            {/* Sales Library */}
+            {/* Daily Market Brief */}
             <button
-              onClick={() => navigateTo(PHASES.SALES_LIBRARY)}
+              onClick={() => navigateTo(PHASES.MARKET_BRIEF)}
               style={{
                 background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
                 padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
@@ -2038,15 +2075,15 @@ export default function App() {
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
+                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#FFC32C", color: "#111" }}>SALES</span>
+                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>LIVE</span>
               </div>
-              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Sales Library</h2>
-              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Daily Market Brief</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>AI-written institutional crypto brief with live market data, ETF flows, derivatives, geopolitics, and news summaries.</p>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
-                Browse documents <span>&rarr;</span>
+                Generate brief <span>&rarr;</span>
               </div>
             </button>
 
@@ -2096,9 +2133,9 @@ export default function App() {
               </div>
             </button>
 
-            {/* Daily Market Brief */}
+            {/* Sales Library */}
             <button
-              onClick={() => navigateTo(PHASES.MARKET_BRIEF)}
+              onClick={() => navigateTo(PHASES.SALES_LIBRARY)}
               style={{
                 background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
                 padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
@@ -2107,15 +2144,15 @@ export default function App() {
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
+                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>LIVE</span>
+                <span style={{ ...S.pill, background: "#FFC32C", color: "#111" }}>SALES</span>
               </div>
-              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Daily Market Brief</h2>
-              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>AI-written institutional crypto brief with live market data, ETF flows, derivatives, geopolitics, and news summaries.</p>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Sales Library</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
-                Generate brief <span>&rarr;</span>
+                Browse documents <span>&rarr;</span>
               </div>
             </button>
           </div>
@@ -2218,7 +2255,7 @@ export default function App() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
             {[
-              { key: "asset", label: "Asset / Underlying", type: "select", options: ["BTC","ETH","SOL","XRP","ADA","AVAX","DOT","MATIC","LINK","UNI","LTC","DOGE","AAVE","ARB","OP"], value: aiForm.asset },
+              { key: "asset", label: "Asset / Underlying", type: "text", placeholder: "e.g. BTC", value: aiForm.asset },
               { key: "currentPrice", label: "Current Price ($)", type: "text", placeholder: "e.g. 95000", value: aiForm.currentPrice },
               { key: "portfolioValue", label: "Portfolio / Position Value ($)", type: "text", placeholder: "e.g. 5000000", value: aiForm.portfolioValue },
               { key: "expiryDate", label: "Target Expiry Date", type: "text", placeholder: "e.g. 26 Jun 2026", value: aiForm.expiryDate },
@@ -2369,20 +2406,8 @@ export default function App() {
               ))}
             </div>
 
-            {["call_spread", "put_spread", "straddle", "strangle"].includes(selectedTrade.id) &&
-              fieldValues.spot &&
-              (fieldValues.long_strike || fieldValues.atm_strike || fieldValues.call_strike) && (
-                <PayoffChart
-                  strategy={selectedTrade.id}
-                  direction={fieldValues.direction || "Long"}
-                  spot={Number(fieldValues.spot)}
-                  long_strike={Number(fieldValues.long_strike) || 0}
-                  short_strike={Number(fieldValues.short_strike) || 0}
-                  atm_strike={Number(fieldValues.atm_strike) || 0}
-                  call_strike={Number(fieldValues.call_strike) || 0}
-                  put_strike={Number(fieldValues.put_strike) || 0}
-                  premium={Number(fieldValues.premium) || Number(fieldValues.total_premium) || 0}
-                />
+            {(fieldValues.spot || fieldValues.current_price || fieldValues.spot_price) && (
+                <PayoffChart strategy={selectedTrade.id} fields={fieldValues} />
               )
             }
 
@@ -2485,20 +2510,8 @@ export default function App() {
                 <FieldInput key={field.key} field={field} value={fieldValues[field.key]} onChange={handleFieldChange} />
               ))}
             </div>
-            {["call_spread", "put_spread", "straddle", "strangle"].includes(selectedTrade.id) &&
-              fieldValues.spot &&
-              (fieldValues.long_strike || fieldValues.atm_strike || fieldValues.call_strike) && (
-                <PayoffChart
-                  strategy={selectedTrade.id}
-                  direction={fieldValues.direction || "Long"}
-                  spot={Number(fieldValues.spot)}
-                  long_strike={Number(fieldValues.long_strike) || 0}
-                  short_strike={Number(fieldValues.short_strike) || 0}
-                  atm_strike={Number(fieldValues.atm_strike) || 0}
-                  call_strike={Number(fieldValues.call_strike) || 0}
-                  put_strike={Number(fieldValues.put_strike) || 0}
-                  premium={Number(fieldValues.premium) || Number(fieldValues.total_premium) || 0}
-                />
+            {(fieldValues.spot || fieldValues.current_price || fieldValues.spot_price) && (
+                <PayoffChart strategy={selectedTrade.id} fields={fieldValues} />
               )
             }
             {error && (

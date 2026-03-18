@@ -1,39 +1,127 @@
-// Compact payoff-at-expiry chart for call/put spreads, straddles, and strangles.
-// Pure inline SVG — no external libraries. viewBox 300×148.
-export default function PayoffChart({ strategy, direction, spot, long_strike, short_strike, atm_strike, call_strike, put_strike, premium }) {
-  const W = 300, H = 148;
-  const PL = 38, PR = 8, PT = 22, PB = 24;
-  const chartW = W - PL - PR; // 254
-  const chartH = H - PT - PB; // 102
+// Payoff-at-expiry chart for all derivatives trade types.
+// Pure inline SVG — no external libraries.
+export default function PayoffChart({ strategy, fields }) {
+  const W = 480, H = 240;
+  const PL = 52, PR = 16, PT = 28, PB = 32;
+  const chartW = W - PL - PR;
+  const chartH = H - PT - PB;
 
-  function pf(S) {
-    if (strategy === "call_spread") {
-      return Math.max(0, S - long_strike) - Math.max(0, S - short_strike) + premium;
-    }
-    if (strategy === "put_spread") {
-      return Math.max(0, long_strike - S) - Math.max(0, short_strike - S) + premium;
-    }
-    if (strategy === "straddle") {
-      const raw = Math.max(0, S - atm_strike) + Math.max(0, atm_strike - S);
-      return direction === "Long" ? raw + premium : premium - raw;
-    }
-    if (strategy === "strangle") {
-      const raw = Math.max(0, S - call_strike) + Math.max(0, put_strike - S);
-      return direction === "Long" ? raw + premium : premium - raw;
-    }
-    return 0;
+  // Parse numeric value from field
+  function n(v) {
+    if (typeof v === "number") return v || 0;
+    if (!v) return 0;
+    const cleaned = String(v).replace(/[$,%\s]/g, "").replace(/,/g, "");
+    return Number(cleaned) || 0;
   }
+
+  // Compute payoff at price S for each strategy
+  function pf(S) {
+    switch (strategy) {
+      case "call_spread": {
+        const longK = n(fields.long_strike), shortK = n(fields.short_strike), prem = n(fields.premium);
+        const dir = fields.direction || "Long";
+        const raw = Math.max(0, S - longK) - Math.max(0, S - shortK) + prem;
+        return dir === "Short" ? -raw : raw;
+      }
+      case "put_spread": {
+        const longK = n(fields.long_strike), shortK = n(fields.short_strike), prem = n(fields.premium);
+        const dir = fields.direction || "Long";
+        const raw = Math.max(0, longK - S) - Math.max(0, shortK - S) + prem;
+        return dir === "Short" ? -raw : raw;
+      }
+      case "straddle": {
+        const atm = n(fields.atm_strike), prem = n(fields.total_premium);
+        const raw = Math.max(0, S - atm) + Math.max(0, atm - S);
+        return (fields.direction || "Long") === "Long" ? raw + prem : prem - raw;
+      }
+      case "strangle": {
+        const ck = n(fields.call_strike), pk = n(fields.put_strike), prem = n(fields.total_premium);
+        const raw = Math.max(0, S - ck) + Math.max(0, pk - S);
+        return (fields.direction || "Long") === "Long" ? raw + prem : prem - raw;
+      }
+      case "covered_call": {
+        const costBasis = n(fields.cost_basis), strike = n(fields.strike), prem = n(fields.premium);
+        // P&L = (S - costBasis) + premium - max(0, S - strike)
+        return (S - costBasis) + prem - Math.max(0, S - strike);
+      }
+      case "cash_secured_put": {
+        const strike = n(fields.strike), prem = n(fields.premium), curPrice = n(fields.current_price);
+        // If assigned (S < strike): P&L = S - strike + premium
+        // If not assigned (S >= strike): P&L = premium
+        return S < strike ? (S - strike + prem) : prem;
+      }
+      case "leap": {
+        const strike = n(fields.strike), prem = n(fields.premium);
+        // Long call: P&L = max(0, S - strike) - premium
+        return Math.max(0, S - strike) - prem;
+      }
+      case "collar": {
+        const costBasis = n(fields.cost_basis), putK = n(fields.put_strike), callK = n(fields.call_strike);
+        const netCost = n(fields.put_premium) - n(fields.call_premium);
+        // Spot P&L + long put + short call - net cost
+        return (S - costBasis) + Math.max(0, putK - S) - Math.max(0, S - callK) - netCost;
+      }
+      case "long_seagull": {
+        const lp = n(fields.lower_put), lc = n(fields.lower_call), uc = n(fields.upper_call);
+        // Short put + long call + short call (zero cost)
+        return -Math.max(0, lp - S) + Math.max(0, S - lc) - Math.max(0, S - uc);
+      }
+      case "wheel": {
+        const curPrice = n(fields.current_price), strike = n(fields.current_strike), prem = n(fields.current_premium);
+        const phase = fields.current_phase || "Selling Puts";
+        if (phase.includes("Put")) {
+          // Cash-secured put
+          return S < strike ? (S - strike + prem) : prem;
+        } else {
+          // Covered call phase
+          const costBasis = n(fields.cost_basis);
+          return (S - costBasis) + prem - Math.max(0, S - strike);
+        }
+      }
+      case "earnings_play": {
+        const curPrice = n(fields.current_price), strike = n(fields.strike), prem = n(fields.premium_collected);
+        const posType = fields.position_type || "No Position";
+        if (posType === "Short Put") return S < strike ? (S - strike + prem) : prem;
+        if (posType === "Long Call") return Math.max(0, S - strike) - prem;
+        if (posType === "Covered Call") return (S - curPrice) + prem - Math.max(0, S - strike);
+        if (posType === "Short Call Spread") {
+          const width = curPrice * 0.1;
+          return -Math.max(0, S - strike) + Math.max(0, S - (strike + width)) + prem;
+        }
+        // No Position — show flat
+        return 0;
+      }
+      case "reverse_cash_carry": {
+        // Delta-neutral: P&L is flat (funding rate income)
+        const spotPrice = n(fields.spot_price), fundRate = n(fields.funding_rate);
+        const pv = n(fields.portfolio_value) || (spotPrice * n(fields.btc_amount));
+        const dailyIncome = pv * (fundRate / 100) / 365;
+        // Show as flat income line with slight slope for visualization
+        return dailyIncome * 30; // ~1 month income
+      }
+      default:
+        return 0;
+    }
+  }
+
+  // Determine spot price and range
+  function getSpot() {
+    return n(fields.spot) || n(fields.current_price) || n(fields.spot_price) || 0;
+  }
+
+  const spot = getSpot();
+  if (!spot) return null;
 
   const lo = spot * 0.74;
   const hi = spot * 1.26;
-  const N = 100;
+  const N = 120;
   const xs = Array.from({ length: N }, (_, i) => lo + (hi - lo) * (i / (N - 1)));
   const payoffs = xs.map(pf);
 
   const rawMin = Math.min(...payoffs);
   const rawMax = Math.max(...payoffs);
   const range = Math.max(rawMax - rawMin, 1);
-  const pad = range * 0.12;
+  const pad = range * 0.15;
   const yLo = rawMin - pad;
   const yHi = rawMax + pad;
 
@@ -43,7 +131,9 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
 
   // Y grid step
   let yStep = 1;
-  if (range >= 10000) yStep = 10000;
+  if (range >= 50000) yStep = 20000;
+  else if (range >= 10000) yStep = 5000;
+  else if (range >= 5000) yStep = 2000;
   else if (range >= 1000) yStep = 1000;
   else if (range >= 100) yStep = 100;
   else if (range >= 10) yStep = 10;
@@ -61,7 +151,8 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
   };
 
   const fmtY = (v) => {
-    if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(0)}K`;
+    if (Math.abs(v) >= 10000) return `$${(v / 1000).toFixed(0)}K`;
+    if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(1)}K`;
     return v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`;
   };
 
@@ -70,13 +161,13 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
     return `$${v}`;
   };
 
-  // Layer 1: long spot reference polyline
+  // Long spot reference polyline
   const spotRefPts = xs.map((x) => {
     const sy = zeroPx - (x - spot) * 0.35 * (chartH / range);
-    return `${xp(x).toFixed(1)},${sy.toFixed(1)}`;
+    return `${xp(x).toFixed(1)},${Math.max(PT, Math.min(PT + chartH, sy)).toFixed(1)}`;
   }).join(" ");
 
-  // Layers 3 & 4: fill polygons
+  // Fill polygons (profit/loss areas)
   function buildPolygons(positive) {
     const result = [];
     let seg = null;
@@ -93,7 +184,7 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
           <polygon
             key={result.length}
             points={[...seg.pts, `${seg.lastX.toFixed(1)},${zeroPx.toFixed(1)}`, `${seg.firstX.toFixed(1)},${zeroPx.toFixed(1)}`].join(" ")}
-            fill={positive ? "rgba(29,158,117,0.15)" : "rgba(226,75,74,0.12)"}
+            fill={positive ? "rgba(29,158,117,0.13)" : "rgba(226,75,74,0.10)"}
             stroke="none"
           />
         );
@@ -105,7 +196,7 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
         <polygon
           key={result.length}
           points={[...seg.pts, `${seg.lastX.toFixed(1)},${zeroPx.toFixed(1)}`, `${seg.firstX.toFixed(1)},${zeroPx.toFixed(1)}`].join(" ")}
-          fill={positive ? "rgba(29,158,117,0.15)" : "rgba(226,75,74,0.12)"}
+          fill={positive ? "rgba(29,158,117,0.13)" : "rgba(226,75,74,0.10)"}
           stroke="none"
         />
       );
@@ -113,7 +204,7 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
     return result;
   }
 
-  // Layer 8: payoff line segments (color changes at zero)
+  // Payoff line segments colored by profit/loss
   function buildPayoffLine() {
     const segments = [];
     let seg = null;
@@ -133,106 +224,179 @@ export default function PayoffChart({ strategy, direction, spot, long_strike, sh
         key={i}
         points={s.pts.join(" ")}
         stroke={s.pos ? "#1D9E75" : "#E24B4A"}
-        strokeWidth="2"
+        strokeWidth="2.5"
         strokeLinejoin="round"
         fill="none"
       />
     ));
   }
 
-  // Strike annotations
+  // Strike annotations per strategy
   const annotations = [];
-  if (strategy === "call_spread" || strategy === "put_spread") {
-    annotations.push({ strike: long_strike, color: "#378ADD" });
-    annotations.push({ strike: short_strike, color: "#E24B4A" });
-  } else if (strategy === "straddle") {
-    annotations.push({ strike: atm_strike, color: "#378ADD" });
-  } else if (strategy === "strangle") {
-    const color = direction === "Long" ? "#378ADD" : "#E24B4A";
-    annotations.push({ strike: call_strike, color });
-    annotations.push({ strike: put_strike, color });
+  switch (strategy) {
+    case "call_spread":
+    case "put_spread":
+      if (n(fields.long_strike)) annotations.push({ strike: n(fields.long_strike), color: "#378ADD", label: "Long" });
+      if (n(fields.short_strike)) annotations.push({ strike: n(fields.short_strike), color: "#E24B4A", label: "Short" });
+      break;
+    case "straddle":
+      if (n(fields.atm_strike)) annotations.push({ strike: n(fields.atm_strike), color: "#378ADD", label: "ATM" });
+      break;
+    case "strangle":
+      if (n(fields.call_strike)) annotations.push({ strike: n(fields.call_strike), color: "#378ADD", label: "Call" });
+      if (n(fields.put_strike)) annotations.push({ strike: n(fields.put_strike), color: "#E24B4A", label: "Put" });
+      break;
+    case "covered_call":
+      if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#E24B4A", label: "Call" });
+      if (n(fields.cost_basis)) annotations.push({ strike: n(fields.cost_basis), color: "#888", label: "Basis" });
+      break;
+    case "cash_secured_put":
+      if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#378ADD", label: "Put" });
+      break;
+    case "leap":
+      if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#378ADD", label: "Strike" });
+      break;
+    case "collar":
+      if (n(fields.put_strike)) annotations.push({ strike: n(fields.put_strike), color: "#378ADD", label: "Put" });
+      if (n(fields.call_strike)) annotations.push({ strike: n(fields.call_strike), color: "#E24B4A", label: "Call" });
+      break;
+    case "long_seagull":
+      if (n(fields.lower_put)) annotations.push({ strike: n(fields.lower_put), color: "#E24B4A", label: "Put" });
+      if (n(fields.lower_call)) annotations.push({ strike: n(fields.lower_call), color: "#1D9E75", label: "Long C" });
+      if (n(fields.upper_call)) annotations.push({ strike: n(fields.upper_call), color: "#E24B4A", label: "Short C" });
+      break;
+    case "wheel":
+      if (n(fields.current_strike)) annotations.push({ strike: n(fields.current_strike), color: "#378ADD", label: "Strike" });
+      if (n(fields.cost_basis)) annotations.push({ strike: n(fields.cost_basis), color: "#888", label: "Basis" });
+      break;
+    case "earnings_play":
+      if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#FBBF24", label: "Strike" });
+      break;
+    default:
+      break;
   }
 
-  // Breakeven dot (spreads only, not straddle/strangle)
-  let breakeven = null;
-  if (strategy === "call_spread" || strategy === "put_spread") {
-    const absP = Math.abs(premium);
-    if (strategy === "call_spread") {
-      breakeven = direction === "Long" ? long_strike + absP : short_strike + absP;
-    } else {
-      breakeven = direction === "Long" ? long_strike - absP : short_strike - absP;
+  // Breakeven calculation
+  let breakevens = [];
+  for (let i = 1; i < N; i++) {
+    if ((payoffs[i - 1] < 0 && payoffs[i] >= 0) || (payoffs[i - 1] >= 0 && payoffs[i] < 0)) {
+      // Linear interpolation
+      const ratio = Math.abs(payoffs[i - 1]) / (Math.abs(payoffs[i - 1]) + Math.abs(payoffs[i]));
+      const bePrice = xs[i - 1] + ratio * (xs[i] - xs[i - 1]);
+      breakevens.push(bePrice);
     }
-    if (breakeven < lo || breakeven > hi) breakeven = null;
   }
 
   const spotPnl = pf(spot);
   const zeroInRange = zeroPx >= PT && zeroPx <= PT + chartH;
-  const xTicks = Array.from({ length: 5 }, (_, i) => lo + (hi - lo) * (i / 4));
+  const xTicks = Array.from({ length: 6 }, (_, i) => lo + (hi - lo) * (i / 5));
+
+  // Strategy label for chart header
+  const strategyLabels = {
+    call_spread: "Call Spread", put_spread: "Put Spread", straddle: "Straddle", strangle: "Strangle",
+    covered_call: "Covered Call", cash_secured_put: "Cash-Secured Put", leap: "Long Call (LEAP)",
+    collar: "Protective Collar", long_seagull: "Long Seagull", wheel: "The Wheel",
+    earnings_play: "Event Risk", reverse_cash_carry: "Cash & Carry",
+  };
 
   return (
-    <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", padding: 0, background: "transparent" }}>
-      <svg viewBox="0 0 300 148" width="100%" style={{ display: "block" }}>
+    <div style={{
+      marginBottom: 24,
+      background: "#FAFAFA",
+      border: "1px solid #E8E8E8",
+      borderRadius: 2,
+      overflow: "hidden",
+      maxWidth: 480,
+    }}>
+      <div style={{
+        padding: "8px 14px 6px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottom: "1px solid #F0F0F0",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+            <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
+          </svg>
+          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#888", textTransform: "uppercase" }}>
+            Payoff at Expiry
+          </span>
+        </div>
+        <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#AAA" }}>
+          {strategyLabels[strategy] || strategy} {fields.direction ? `· ${fields.direction}` : ""}
+        </span>
+      </div>
 
-        {/* Layer 1: Long spot reference */}
-        <polyline points={spotRefPts} stroke="rgba(140,140,140,0.4)" strokeWidth="1.2" strokeDasharray="5,4" fill="none" />
-        <text x={W - PR - 2} y={PT + 8} fontSize="8" fill="rgba(128,128,128,0.5)" textAnchor="end">Long spot</text>
+      <div style={{ padding: "6px 8px 8px" }}>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
 
-        {/* Layer 2: Grid lines + axis labels */}
-        {yTicks.map(v => {
-          const py = yp(v);
-          if (py < PT - 1 || py > PT + chartH + 1) return null;
-          return (
-            <g key={v}>
-              <line x1={PL} y1={py} x2={W - PR} y2={py} stroke="rgba(128,128,128,0.12)" strokeWidth="0.5" />
-              <text x={PL - 3} y={py + 3} fontSize="9" fill="rgba(128,128,128,0.8)" textAnchor="end">{fmtY(v)}</text>
+          {/* Long spot reference */}
+          {strategy !== "reverse_cash_carry" && (
+            <>
+              <polyline points={spotRefPts} stroke="rgba(140,140,140,0.3)" strokeWidth="1" strokeDasharray="5,4" fill="none" />
+              <text x={W - PR - 2} y={PT + 10} fontSize="9" fill="rgba(128,128,128,0.4)" textAnchor="end">Long spot</text>
+            </>
+          )}
+
+          {/* Grid lines + axis labels */}
+          {yTicks.map(v => {
+            const py = yp(v);
+            if (py < PT - 1 || py > PT + chartH + 1) return null;
+            return (
+              <g key={v}>
+                <line x1={PL} y1={py} x2={W - PR} y2={py} stroke="rgba(128,128,128,0.10)" strokeWidth="0.5" />
+                <text x={PL - 4} y={py + 3.5} fontSize="9.5" fill="rgba(128,128,128,0.7)" textAnchor="end" fontFamily="'Poppins',sans-serif">{fmtY(v)}</text>
+              </g>
+            );
+          })}
+          {xTicks.map((x, i) => (
+            <text key={i} x={xp(x)} y={H - PB + 15} fontSize="9.5" fill="rgba(128,128,128,0.7)" textAnchor="middle" fontFamily="'Poppins',sans-serif">{fmtX(x)}</text>
+          ))}
+
+          {/* Profit fill */}
+          {buildPolygons(true)}
+
+          {/* Loss fill */}
+          {buildPolygons(false)}
+
+          {/* Strike annotation lines */}
+          {annotations.map((ann, i) => {
+            const ax = xp(ann.strike);
+            if (ax < PL || ax > W - PR) return null;
+            return (
+              <g key={i}>
+                <line x1={ax} y1={PT} x2={ax} y2={H - PB} stroke={ann.color} strokeWidth="1" strokeDasharray="4,3" opacity="0.7" />
+                <text x={ax} y={PT - 4} fontSize="9" fontWeight="600" fill={ann.color} textAnchor="middle" fontFamily="'Poppins',sans-serif">{fmtStrike(ann.strike)}</text>
+              </g>
+            );
+          })}
+
+          {/* Spot vertical */}
+          <line x1={xp(spot)} y1={PT} x2={xp(spot)} y2={H - PB} stroke="rgba(128,128,128,0.25)" strokeWidth="1" strokeDasharray="3,3" />
+
+          {/* Zero line */}
+          {zeroInRange && (
+            <line x1={PL} y1={zeroPx} x2={W - PR} y2={zeroPx} stroke="rgba(128,128,128,0.18)" strokeWidth="0.8" />
+          )}
+
+          {/* Payoff line */}
+          {buildPayoffLine()}
+
+          {/* Breakeven dots */}
+          {breakevens.map((be, i) => (
+            <g key={`be-${i}`}>
+              <circle cx={xp(be)} cy={zeroPx} r="5" fill="white" stroke="#D4A017" strokeWidth="2" />
+              <text x={xp(be)} y={zeroPx - 9} fontSize="9" fontWeight="bold" fill="#D4A017" textAnchor="middle" fontFamily="'Poppins',sans-serif">BE</text>
+              <text x={xp(be)} y={zeroPx + 16} fontSize="8" fill="#D4A017" textAnchor="middle" fontFamily="'Poppins',sans-serif">{fmtStrike(Math.round(be))}</text>
             </g>
-          );
-        })}
-        {xTicks.map((x, i) => (
-          <text key={i} x={xp(x)} y={H - PB + 13} fontSize="9" fill="rgba(128,128,128,0.8)" textAnchor="middle">{fmtX(x)}</text>
-        ))}
+          ))}
 
-        {/* Layer 3: Profit fill */}
-        {buildPolygons(true)}
+          {/* Spot dot */}
+          <circle cx={xp(spot)} cy={yp(spotPnl)} r="4" fill={spotPnl >= 0 ? "#1D9E75" : "#E24B4A"} stroke="white" strokeWidth="1.5" />
 
-        {/* Layer 4: Loss fill */}
-        {buildPolygons(false)}
-
-        {/* Layer 5: Strike annotation lines */}
-        {annotations.map((ann, i) => {
-          const ax = xp(ann.strike);
-          if (ax < PL || ax > W - PR) return null;
-          return (
-            <g key={i}>
-              <line x1={ax} y1={PT} x2={ax} y2={H - PB} stroke={ann.color} strokeWidth="1" strokeDasharray="3,3" opacity="0.8" />
-              <text x={ax} y={PT - 3} fontSize="8" fontWeight="bold" fill={ann.color} textAnchor="middle">{fmtStrike(ann.strike)}</text>
-            </g>
-          );
-        })}
-
-        {/* Layer 6: Spot vertical */}
-        <line x1={xp(spot)} y1={PT} x2={xp(spot)} y2={H - PB} stroke="rgba(128,128,128,0.3)" strokeWidth="1" strokeDasharray="3,3" />
-
-        {/* Layer 7: Zero line */}
-        {zeroInRange && (
-          <line x1={PL} y1={zeroPx} x2={W - PR} y2={zeroPx} stroke="rgba(128,128,128,0.2)" strokeWidth="0.8" />
-        )}
-
-        {/* Layer 8: Payoff line */}
-        {buildPayoffLine()}
-
-        {/* Layer 9: Breakeven dot */}
-        {breakeven !== null && (
-          <g>
-            <circle cx={xp(breakeven)} cy={zeroPx} r="4.5" fill="white" stroke="#D4A017" strokeWidth="2" />
-            <text x={xp(breakeven)} y={zeroPx - 8} fontSize="8" fontWeight="bold" fill="#D4A017" textAnchor="middle">BE</text>
-          </g>
-        )}
-
-        {/* Layer 10: Spot dot */}
-        <circle cx={xp(spot)} cy={yp(spotPnl)} r="3.5" fill={spotPnl >= 0 ? "#1D9E75" : "#E24B4A"} stroke="white" strokeWidth="1.5" />
-
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 }

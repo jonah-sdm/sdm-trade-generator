@@ -184,7 +184,7 @@ export const TRADE_TYPES = [
     color: "#378ADD",
     icon: "⟋",
     fields: [
-      { key: "asset", label: "Asset", type: "select", options: ["BTC", "ETH", "SOL"] },
+      { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "long_strike", label: "Long Strike", type: "number", placeholder: "84000" },
@@ -204,7 +204,7 @@ export const TRADE_TYPES = [
     color: "#E24B4A",
     icon: "⟍",
     fields: [
-      { key: "asset", label: "Asset", type: "select", options: ["BTC", "ETH", "SOL"] },
+      { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "long_strike", label: "Long Strike (higher put)", type: "number", placeholder: "84000" },
@@ -224,7 +224,7 @@ export const TRADE_TYPES = [
     color: "#A78BFA",
     icon: "⟺",
     fields: [
-      { key: "asset", label: "Asset", type: "select", options: ["BTC", "ETH", "SOL"] },
+      { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "atm_strike", label: "ATM Strike", type: "number", placeholder: "84000" },
@@ -243,7 +243,7 @@ export const TRADE_TYPES = [
     color: "#34D399",
     icon: "⟻",
     fields: [
-      { key: "asset", label: "Asset", type: "select", options: ["BTC", "ETH", "SOL"] },
+      { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "call_strike", label: "OTM Call Strike", type: "number", placeholder: "90000" },
