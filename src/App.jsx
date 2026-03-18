@@ -6,6 +6,7 @@ import { computeLendingProposal, SUPPORTED_ASSETS } from "./lendingEngine";
 import { extractFieldsFromSummary } from "./fieldExtractor";
 import TradeReport from "./TradeReport";
 import LendingReport from "./LendingReport";
+import PayoffChart from "./PayoffChart";
 import "./index.css";
 
 
@@ -143,7 +144,7 @@ function FieldInput({ field, value, onChange, assumed }) {
         value={displayValue}
         onChange={e => {
           const raw = isNum ? e.target.value.replace(/,/g, "") : e.target.value;
-          if (isNum && raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+          if (isNum && raw !== "" && !/^-?\d*\.?\d*$/.test(raw)) return;
           onChange(field.key, raw);
         }}
       />
@@ -984,7 +985,7 @@ export default function App() {
               </div>
 
               <div className="fields-grid">
-                {selectedTrade.fields.map(field => (
+                {[...selectedTrade.fields].sort((a, b) => (a.key === "executive_summary" ? -1 : b.key === "executive_summary" ? 1 : 0)).map(field => (
                   <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} assumed={assumedFields.includes(field.key)} />
                 ))}
               </div>
@@ -1089,6 +1090,22 @@ export default function App() {
                 )}
               </div>
 
+              {["call_spread", "put_spread", "straddle", "strangle"].includes(selectedTrade.id) &&
+                fieldValues.spot &&
+                (fieldValues.long_strike || fieldValues.atm_strike || fieldValues.call_strike) && (
+                  <PayoffChart
+                    strategy={selectedTrade.id}
+                    direction={fieldValues.direction || "Long"}
+                    spot={Number(fieldValues.spot)}
+                    long_strike={Number(fieldValues.long_strike) || 0}
+                    short_strike={Number(fieldValues.short_strike) || 0}
+                    atm_strike={Number(fieldValues.atm_strike) || 0}
+                    call_strike={Number(fieldValues.call_strike) || 0}
+                    put_strike={Number(fieldValues.put_strike) || 0}
+                    premium={Number(fieldValues.premium) || Number(fieldValues.total_premium) || 0}
+                  />
+                )
+              }
               <div className="form-actions">
                 <div className="form-action-note">
                   <span style={{ fontSize: 12, color: "var(--text-dim)" }}>You can edit any field before generating. The AI suggestion is a starting point.</span>
@@ -1128,10 +1145,26 @@ export default function App() {
                 <p className="form-sub">Fill in the deal-specific inputs. These power the payoff calculations and report generation.</p>
               </div>
               <div className="fields-grid">
-                {selectedTrade.fields.map(field => (
+                {[...selectedTrade.fields].sort((a, b) => (a.key === "executive_summary" ? -1 : b.key === "executive_summary" ? 1 : 0)).map(field => (
                   <FieldInput key={field.key} field={field} value={fieldValues[field.key]} onChange={handleFieldChange} />
                 ))}
               </div>
+              {["call_spread", "put_spread", "straddle", "strangle"].includes(selectedTrade.id) &&
+                fieldValues.spot &&
+                (fieldValues.long_strike || fieldValues.atm_strike || fieldValues.call_strike) && (
+                  <PayoffChart
+                    strategy={selectedTrade.id}
+                    direction={fieldValues.direction || "Long"}
+                    spot={Number(fieldValues.spot)}
+                    long_strike={Number(fieldValues.long_strike) || 0}
+                    short_strike={Number(fieldValues.short_strike) || 0}
+                    atm_strike={Number(fieldValues.atm_strike) || 0}
+                    call_strike={Number(fieldValues.call_strike) || 0}
+                    put_strike={Number(fieldValues.put_strike) || 0}
+                    premium={Number(fieldValues.premium) || Number(fieldValues.total_premium) || 0}
+                  />
+                )
+              }
               {error && (
                 <div className="error-banner"><span className="error-icon">&#x26A0;</span>{error}</div>
               )}

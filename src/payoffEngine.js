@@ -114,6 +114,83 @@ For the position to remain profitable, ${asset} must stay within the implied mov
 Assessment: <strong>${fields.recommendation || "under review"}</strong>. ${fields.recommendation === "Hold Through Event" ? `Premium collected exceeds the breakeven move required — the position has positive expected value relative to historical realized moves at this event type. Hold unless the position size is disproportionate to risk tolerance.` : fields.recommendation === "Close Before Event" ? `Closing before the event locks in accumulated premium and removes binary gap risk. The remaining time value does not justify the event exposure.` : fields.recommendation === "Roll to Later Date" ? `Rolling to a later expiry captures the remaining premium advantage while removing this specific event from the risk window.` : `Review position sizing ahead of the event. Binary events can produce moves that exceed the implied range.`}`;
     }
 
+    case "call_spread": {
+      const spot = parseNum(fields.spot);
+      const longK = parseNum(fields.long_strike);
+      const shortK = parseNum(fields.short_strike);
+      const premium = parseNum(fields.premium);
+      const dir = fields.direction || "Long";
+      const isLong = dir === "Long";
+      const absP = Math.abs(premium);
+      const breakeven = isLong ? longK + absP : shortK + absP;
+      const maxGain = isLong ? Math.max(shortK - longK + premium, 0) : absP;
+      const maxLoss = isLong ? absP : Math.max(longK - shortK - absP, 0);
+      return isLong
+        ? `This is a bull call spread on ${fields.asset || "the underlying"}. You buy the ${fmtN(longK)} call and sell the ${fmtN(shortK)} call, paying a net debit of ${fmtN(absP)}, expiring ${fields.expiry || "on the target date"}.
+
+The position profits above ${fmtN(breakeven)} at expiry, with maximum gain of ${fmtN(maxGain)} if the asset settles above ${fmtN(shortK)}. Maximum loss is the ${fmtN(absP)} debit if the asset expires below ${fmtN(longK)}. The spread provides leveraged upside exposure at a lower cost than a naked long call, in exchange for capping profit at the width of the spread.`
+        : `This is a bear call spread on ${fields.asset || "the underlying"}. You sell the ${fmtN(shortK)} call and buy the ${fmtN(longK)} call as a hedge, collecting a net credit of ${fmtN(absP)}, expiring ${fields.expiry || "on the target date"}.
+
+The full ${fmtN(absP)} credit is retained if the asset remains below ${fmtN(shortK)} at expiry. Losses begin above ${fmtN(breakeven)} and are capped at ${fmtN(maxLoss)} if the asset expires above ${fmtN(longK)}. This is a neutral-to-bearish income trade with strictly defined maximum loss.`;
+    }
+
+    case "put_spread": {
+      const spot = parseNum(fields.spot);
+      const longK = parseNum(fields.long_strike);
+      const shortK = parseNum(fields.short_strike);
+      const premium = parseNum(fields.premium);
+      const dir = fields.direction || "Long";
+      const isLong = dir === "Long";
+      const absP = Math.abs(premium);
+      const breakeven = isLong ? longK - absP : shortK - absP;
+      const maxGain = isLong ? Math.max(longK - shortK + premium, 0) : absP;
+      const maxLoss = isLong ? absP : Math.max(longK - shortK - absP, 0);
+      return isLong
+        ? `This is a bear put spread on ${fields.asset || "the underlying"}. You buy the ${fmtN(longK)} put and sell the ${fmtN(shortK)} put, paying a net debit of ${fmtN(absP)}, expiring ${fields.expiry || "on the target date"}.
+
+The position profits below ${fmtN(breakeven)} at expiry, with maximum gain of ${fmtN(maxGain)} if the asset settles below ${fmtN(shortK)}. Maximum loss is the ${fmtN(absP)} debit if the asset expires above ${fmtN(longK)}. This is a defined-risk directional downside trade.`
+        : `This is a bull put spread on ${fields.asset || "the underlying"}. You sell the ${fmtN(shortK)} put and buy the ${fmtN(longK)} put for protection, collecting a net credit of ${fmtN(absP)}, expiring ${fields.expiry || "on the target date"}.
+
+The full ${fmtN(absP)} credit is retained if the asset remains above ${fmtN(shortK)} at expiry. Losses begin below ${fmtN(breakeven)} and are capped at ${fmtN(maxLoss)} if the asset expires below ${fmtN(longK)}. This is a neutral-to-bullish income trade with bounded maximum loss.`;
+    }
+
+    case "straddle": {
+      const spot = parseNum(fields.spot);
+      const atmK = parseNum(fields.atm_strike);
+      const premium = parseNum(fields.total_premium);
+      const dir = fields.direction || "Long";
+      const isLong = dir === "Long";
+      const absP = Math.abs(premium);
+      const beLow = atmK - absP;
+      const beHigh = atmK + absP;
+      return isLong
+        ? `This is a long straddle on ${fields.asset || "the underlying"} at the ${fmtN(atmK)} strike, expiring ${fields.expiry || "on the target date"}. You buy both the call and put at the same strike, paying a total debit of ${fmtN(absP)}.
+
+The position profits if the asset moves sharply in either direction. The two breakevens are ${fmtN(beLow)} to the downside and ${fmtN(beHigh)} to the upside. Maximum loss is the ${fmtN(absP)} premium paid, occurring if the asset expires exactly at the strike. Implied volatility at ${fields.iv || "current levels"} needs to be realised — or exceeded — for the trade to be profitable.`
+        : `This is a short straddle on ${fields.asset || "the underlying"} at the ${fmtN(atmK)} strike, expiring ${fields.expiry || "on the target date"}. You sell both the call and put at the same strike, collecting a total credit of ${fmtN(absP)}.
+
+Maximum profit of ${fmtN(absP)} is achieved if the asset expires exactly at ${fmtN(atmK)}. The position begins losing outside the ${fmtN(beLow)}–${fmtN(beHigh)} range, with theoretically unlimited loss on a large move in either direction. This trade is a bet on implied volatility (${fields.iv || "current IV"}) exceeding realised volatility — a volatility crush or a range-bound market.`;
+    }
+
+    case "strangle": {
+      const spot = parseNum(fields.spot);
+      const callK = parseNum(fields.call_strike);
+      const putK = parseNum(fields.put_strike);
+      const premium = parseNum(fields.total_premium);
+      const dir = fields.direction || "Long";
+      const isLong = dir === "Long";
+      const absP = Math.abs(premium);
+      const beLow = putK - absP;
+      const beHigh = callK + absP;
+      return isLong
+        ? `This is a long strangle on ${fields.asset || "the underlying"}, buying the ${fmtN(callK)} call and the ${fmtN(putK)} put, expiring ${fields.expiry || "on the target date"}. Total debit paid is ${fmtN(absP)}.
+
+The position profits outside the ${fmtN(beLow)}–${fmtN(beHigh)} range. Between the two strikes, the full premium is lost. Compared to a straddle, the strangle costs less but requires a larger price move to reach breakeven. Maximum loss is the ${fmtN(absP)} premium, occurring anywhere between ${fmtN(putK)} and ${fmtN(callK)} at expiry.`
+        : `This is a short strangle on ${fields.asset || "the underlying"}, selling the ${fmtN(callK)} call and the ${fmtN(putK)} put, expiring ${fields.expiry || "on the target date"}. Total credit received is ${fmtN(absP)}.
+
+Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires between ${fmtN(putK)} and ${fmtN(callK)}. Losses begin outside the ${fmtN(beLow)}–${fmtN(beHigh)} range. This is a range-bound income trade with unlimited theoretical loss on a large directional move. It is exposed to volatility expansion (vega risk) and requires active management if the asset approaches either strike.`;
+    }
+
     default:
       return "Trade analysis summary is being prepared.";
   }
@@ -129,6 +206,10 @@ export function computeTradeAnalysis(tradeId, fields) {
     case "wheel": return computeWheel(fields);
     case "collar": return computeCollar(fields);
     case "earnings_play": return computeEarningsPlay(fields);
+    case "call_spread": return computeCallSpread(fields);
+    case "put_spread": return computePutSpread(fields);
+    case "straddle": return computeStraddle(fields);
+    case "strangle": return computeStrangle(fields);
     default: return null;
   }
 }
@@ -586,5 +667,189 @@ function computeEarningsPlay(f) {
     zones: [
       { from: downTarget, to: upTarget, label: "Expected Move", color: "rgba(251,191,36,0.06)" },
     ],
+  };
+}
+
+// --- CALL SPREAD ---
+// long_strike = the strike of the leg you are LONG (bought call)
+// short_strike = the strike of the leg you are SHORT (sold call)
+// For Long (bull): long_strike < short_strike; premium is negative (debit)
+// For Short (bear): long_strike > short_strike; premium is positive (credit)
+function computeCallSpread(f) {
+  const spot = n(f.spot);
+  const longK = n(f.long_strike);
+  const shortK = n(f.short_strike);
+  const premium = n(f.premium);
+  const dir = f.direction || "Long";
+  const isLong = dir === "Long";
+
+  const lo = spot * 0.74;
+  const hi = spot * 1.26;
+
+  // Single formula works for both directions given correct strike ordering
+  const pf = (S) => Math.max(0, S - longK) - Math.max(0, S - shortK) + premium;
+  const curve = buildCurve(lo, hi, pf);
+
+  const absP = Math.abs(premium);
+  const breakeven = isLong ? longK + absP : shortK + absP;
+  const maxGain = isLong ? Math.max(shortK - longK + premium, 0) : absP;
+  const maxLoss = isLong ? absP : Math.max(longK - shortK - absP, 0);
+
+  return {
+    curve, spot, breakevens: [breakeven],
+    metrics: [
+      { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
+      { label: dir + " Call Spread", value: `${fmt(longK)} / ${fmt(shortK)}`, sub: f.expiry || "—" },
+      { label: "Max Gain", value: fmt(maxGain), sub: isLong ? `Above ${fmt(shortK)}` : "Premium income", positive: true },
+      { label: "Max Loss", value: fmt(maxLoss), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(longK)}`, negative: true },
+      { label: "Breakeven", value: fmt(breakeven), sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
+    ],
+    legs: isLong
+      ? [
+          { action: "BUY", type: "Call", strike: longK, label: `${fmt(longK)} Call`, color: "#378ADD" },
+          { action: "SELL", type: "Call", strike: shortK, label: `${fmt(shortK)} Call`, color: "#ef4444" },
+        ]
+      : [
+          { action: "SELL", type: "Call", strike: shortK, label: `${fmt(shortK)} Call`, color: "#ef4444" },
+          { action: "BUY", type: "Call", strike: longK, label: `${fmt(longK)} Call`, color: "#378ADD" },
+        ],
+    zones: [],
+  };
+}
+
+// --- PUT SPREAD ---
+// long_strike = strike of bought put (higher strike for Long bear spread)
+// short_strike = strike of sold put (lower strike)
+function computePutSpread(f) {
+  const spot = n(f.spot);
+  const longK = n(f.long_strike);
+  const shortK = n(f.short_strike);
+  const premium = n(f.premium);
+  const dir = f.direction || "Long";
+  const isLong = dir === "Long";
+
+  const lo = spot * 0.74;
+  const hi = spot * 1.26;
+
+  const pf = (S) => Math.max(0, longK - S) - Math.max(0, shortK - S) + premium;
+  const curve = buildCurve(lo, hi, pf);
+
+  const absP = Math.abs(premium);
+  const breakeven = isLong ? longK - absP : shortK - absP;
+  const maxGain = isLong ? Math.max(longK - shortK + premium, 0) : absP;
+  const maxLoss = isLong ? absP : Math.max(longK - shortK - absP, 0);
+
+  return {
+    curve, spot, breakevens: [breakeven],
+    metrics: [
+      { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
+      { label: dir + " Put Spread", value: `${fmt(longK)} / ${fmt(shortK)}`, sub: f.expiry || "—" },
+      { label: "Max Gain", value: fmt(maxGain), sub: isLong ? `Below ${fmt(shortK)}` : "Premium income", positive: true },
+      { label: "Max Loss", value: fmt(maxLoss), sub: isLong ? `Above ${fmt(longK)}` : `Below ${fmt(shortK)}`, negative: true },
+      { label: "Breakeven", value: fmt(breakeven), sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
+    ],
+    legs: isLong
+      ? [
+          { action: "BUY", type: "Put", strike: longK, label: `${fmt(longK)} Put`, color: "#378ADD" },
+          { action: "SELL", type: "Put", strike: shortK, label: `${fmt(shortK)} Put`, color: "#ef4444" },
+        ]
+      : [
+          { action: "SELL", type: "Put", strike: shortK, label: `${fmt(shortK)} Put`, color: "#ef4444" },
+          { action: "BUY", type: "Put", strike: longK, label: `${fmt(longK)} Put`, color: "#378ADD" },
+        ],
+    zones: [],
+  };
+}
+
+// --- STRADDLE ---
+function computeStraddle(f) {
+  const spot = n(f.spot);
+  const atmK = n(f.atm_strike);
+  const premium = n(f.total_premium);
+  const dir = f.direction || "Long";
+  const isLong = dir === "Long";
+
+  const lo = spot * 0.74;
+  const hi = spot * 1.26;
+
+  const pf = (S) => {
+    const raw = Math.max(0, S - atmK) + Math.max(0, atmK - S);
+    return isLong ? raw + premium : premium - raw;
+  };
+  const curve = buildCurve(lo, hi, pf);
+
+  const absP = Math.abs(premium);
+  const beLow = atmK - absP;
+  const beHigh = atmK + absP;
+
+  return {
+    curve, spot, breakevens: [beLow, beHigh],
+    metrics: [
+      { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
+      { label: dir + " Straddle", value: fmt(atmK) + " ATM", sub: f.expiry || "—" },
+      ...(isLong
+        ? [{ label: "Max Loss", value: fmt(absP), sub: "Premium paid", negative: true }]
+        : [{ label: "Max Profit", value: fmt(absP), sub: "Premium received", positive: true }]
+      ),
+      { label: "BE Low", value: fmt(beLow), sub: isLong ? "Below = profit" : "Below = loss" },
+      { label: "BE High", value: fmt(beHigh), sub: isLong ? "Above = profit" : "Above = loss" },
+    ],
+    legs: isLong
+      ? [
+          { action: "BUY", type: "Call", strike: atmK, label: `${fmt(atmK)} Call`, color: "#A78BFA" },
+          { action: "BUY", type: "Put", strike: atmK, label: `${fmt(atmK)} Put`, color: "#A78BFA" },
+        ]
+      : [
+          { action: "SELL", type: "Call", strike: atmK, label: `${fmt(atmK)} Call`, color: "#ef4444" },
+          { action: "SELL", type: "Put", strike: atmK, label: `${fmt(atmK)} Put`, color: "#ef4444" },
+        ],
+    zones: [],
+  };
+}
+
+// --- STRANGLE ---
+function computeStrangle(f) {
+  const spot = n(f.spot);
+  const callK = n(f.call_strike);
+  const putK = n(f.put_strike);
+  const premium = n(f.total_premium);
+  const dir = f.direction || "Long";
+  const isLong = dir === "Long";
+
+  const lo = spot * 0.74;
+  const hi = spot * 1.26;
+
+  const pf = (S) => {
+    const raw = Math.max(0, S - callK) + Math.max(0, putK - S);
+    return isLong ? raw + premium : premium - raw;
+  };
+  const curve = buildCurve(lo, hi, pf);
+
+  const absP = Math.abs(premium);
+  const beLow = putK - absP;
+  const beHigh = callK + absP;
+
+  return {
+    curve, spot, breakevens: [beLow, beHigh],
+    metrics: [
+      { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
+      { label: dir + " Strangle", value: `${fmt(putK)} / ${fmt(callK)}`, sub: f.expiry || "—" },
+      ...(isLong
+        ? [{ label: "Max Loss", value: fmt(absP), sub: "Premium paid", negative: true }]
+        : [{ label: "Max Profit", value: fmt(absP), sub: "Premium received", positive: true }]
+      ),
+      { label: "BE Low", value: fmt(beLow), sub: isLong ? "Below = profit" : "Below = loss" },
+      { label: "BE High", value: fmt(beHigh), sub: isLong ? "Above = profit" : "Above = loss" },
+    ],
+    legs: isLong
+      ? [
+          { action: "BUY", type: "Call", strike: callK, label: `${fmt(callK)} Call`, color: "#34D399" },
+          { action: "BUY", type: "Put", strike: putK, label: `${fmt(putK)} Put`, color: "#34D399" },
+        ]
+      : [
+          { action: "SELL", type: "Call", strike: callK, label: `${fmt(callK)} Call`, color: "#ef4444" },
+          { action: "SELL", type: "Put", strike: putK, label: `${fmt(putK)} Put`, color: "#ef4444" },
+        ],
+    zones: [],
   };
 }
