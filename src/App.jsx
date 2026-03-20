@@ -2215,7 +2215,7 @@ export default function App() {
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Options Pricer</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Multi-leg Black-Scholes pricer for vanilla crypto options. Greeks, net P&amp;L, and scenario analysis at expiry.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#FFC32C", letterSpacing: 1, textTransform: "uppercase" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
                 Price options <span>&rarr;</span>
               </div>
             </button>
