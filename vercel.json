@@ -3,23 +3,24 @@
   "outputDirectory": "build",
   "framework": "create-react-app",
   "functions": {
-    "api/share.js": {
-      "maxDuration": 30,
-      "memory": 256
-    },
-    "api/ask-ai.js": {
-      "maxDuration": 30,
-      "memory": 256
-    },
-    "api/generate.js": {
-      "maxDuration": 30,
-      "memory": 256
-    }
+    "api/share.js":          { "maxDuration": 30, "memory": 256 },
+    "api/ask-ai.js":         { "maxDuration": 30, "memory": 256 },
+    "api/generate.js":       { "maxDuration": 30, "memory": 256 },
+    "api/enrich-leads.js":   { "maxDuration": 60, "memory": 512 },
+    "api/canva-auth.js":     { "maxDuration": 10, "memory": 128 },
+    "api/canva-callback.js": { "maxDuration": 10, "memory": 128 },
+    "api/canva-proxy.js":    { "maxDuration": 30, "memory": 256 },
+    "api/canva-status.js":   { "maxDuration": 10, "memory": 128 }
   },
   "rewrites": [
-    { "source": "/api/share", "destination": "/api/share" },
-    { "source": "/api/ask-ai", "destination": "/api/ask-ai" },
-    { "source": "/api/generate", "destination": "/api/generate" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/share",           "destination": "/api/share" },
+    { "source": "/api/ask-ai",          "destination": "/api/ask-ai" },
+    { "source": "/api/generate",        "destination": "/api/generate" },
+    { "source": "/api/enrich-leads",    "destination": "/api/enrich-leads" },
+    { "source": "/api/canva-auth",      "destination": "/api/canva-auth" },
+    { "source": "/api/canva-callback",  "destination": "/api/canva-callback" },
+    { "source": "/api/canva-proxy",     "destination": "/api/canva-proxy" },
+    { "source": "/api/canva/status",    "destination": "/api/canva-status" },
+    { "source": "/(.*)",                "destination": "/index.html" }
   ]
 }

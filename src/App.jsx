@@ -8,6 +8,7 @@ import LendingReport from "./LendingReport";
 import PayoffChart from "./PayoffChart";
 import MBChartSection06 from "./MBChartSection06";
 import MBChartSection07 from "./MBChartSection07";
+import ConferenceLeads from "./ConferenceLeads";
 import "./index.css";
 
 const ASK_AI_PRESETS = [
@@ -24,7 +25,7 @@ const ASK_AI_PRESETS = [
 ];
 
 const AI_RESPONSE_THEMES = {
-  light: { bg: "#FFFFFF", surface: "#FAFAFA", card: "#FFFFFF", border: "#E8E8E8", accent: "#FFC32C", text: "#111111", muted: "#888888" },
+  light: { bg: "#EFEFEF", surface: "#EFEFEF", card: "#FFFFFF", border: "#E8E8E8", accent: "#ffcc36", text: "#111111", muted: "#888888" },
 };
 
 const PHASES = {
@@ -38,6 +39,7 @@ const PHASES = {
   LENDING_GENERATING: "lending_generating",
   LENDING_RESULT: "lending_result",
   SALES_LIBRARY: "sales_library",
+  CONFERENCE_LEADS: "conference_leads",
   AI_CONFIGURE: "ai_configure",
   AI_GENERATING: "ai_generating",
   AI_REVIEW: "ai_review",
@@ -103,7 +105,7 @@ function AppHeader({ onReset }) {
   return (
     <header style={{ background: "#FFFFFF", borderBottom: "1px solid #E8E8E8" }}>
       <div style={{ height: 3, background: "#111" }} />
-      <div style={{ height: 2, background: "#FFC32C" }} />
+      <div style={{ height: 2, background: "#ffcc36" }} />
       <div style={{ padding: "16px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div onClick={onReset}>
           <SDMLogo width={140} />
@@ -112,7 +114,7 @@ function AppHeader({ onReset }) {
           Trade Idea Studio
         </div>
       </div>
-      <div style={{ height: 2, background: "#FFC32C" }} />
+      <div style={{ height: 2, background: "#ffcc36" }} />
       <div style={{ height: 3, background: "#111" }} />
     </header>
   );
@@ -125,7 +127,7 @@ function TradeCard({ trade, selected, onClick }) {
       style={{
         background: "#FFFFFF",
         border: selected ? "2px solid #111" : "1px solid #E8E8E8",
-        borderTop: selected ? "3px solid #FFC32C" : "3px solid transparent",
+        borderTop: selected ? "3px solid #ffcc36" : "3px solid transparent",
         borderRadius: 2,
         padding: "24px 20px",
         textAlign: "left",
@@ -136,7 +138,7 @@ function TradeCard({ trade, selected, onClick }) {
         flexDirection: "column",
         gap: 6,
       }}
-      onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.borderTopColor = "#FFC32C"; } }}
+      onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.borderTopColor = "#ffcc36"; } }}
       onMouseLeave={e => { if (!selected) { e.currentTarget.style.borderColor = "#E8E8E8"; e.currentTarget.style.borderTopColor = "transparent"; } }}
     >
       <div style={{ fontSize: 22, marginBottom: 4 }}>{trade.icon}</div>
@@ -144,7 +146,7 @@ function TradeCard({ trade, selected, onClick }) {
       <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 15, color: "#111", lineHeight: 1.2 }}>{trade.label}</div>
       <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", fontWeight: 400 }}>{trade.category}</div>
       <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", lineHeight: 1.5, marginTop: 4 }}>{trade.description}</div>
-      {selected && <div style={{ marginTop: 8, height: 2, background: "#FFC32C", borderRadius: 1 }} />}
+      {selected && <div style={{ marginTop: 8, height: 2, background: "#ffcc36", borderRadius: 1 }} />}
     </button>
   );
 }
@@ -291,7 +293,7 @@ const LENDING_FIELDS = [
 
 // ─── Styles ───
 const S = {
-  page: { background: "#FFFFFF", minHeight: "100vh", fontFamily: "'Poppins',sans-serif" },
+  page: { background: "#EFEFEF", minHeight: "100vh", fontFamily: "'Poppins',sans-serif" },
   main: { maxWidth: 1100, margin: "0 auto", padding: "40px 48px" },
   mainWide: { maxWidth: 1200, margin: "0 auto", padding: "40px 48px" },
   sectionLabel: { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 },
@@ -334,7 +336,7 @@ const MB_RULE       = "#E8E8E8";
 const MB_RULEG      = "#F2F2F2";
 const MB_BG         = "#FFFFFF";
 const MB_BGOFF      = "#F7F7F7";
-const MB_GOLD       = "#FFC32C";
+const MB_GOLD       = "#ffcc36";
 const MB_GOLD_TEXT  = "#7a5c10";
 const MB_BLUE       = "#1851EB";
 const MB_POS        = "#16a34a";
@@ -1922,7 +1924,7 @@ export default function App() {
 
   // ─── Breadcrumb ───
   const Breadcrumb = ({ items }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "1px solid #E8E8E8", background: "#FAFAFA" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "1px solid #E8E8E8", background: "#EFEFEF" }}>
       <button style={S.btnBack} onClick={handleReset}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </button>
@@ -1956,8 +1958,8 @@ export default function App() {
 
   // ─── Sidebar (configure screens) ───
   const ConfigureSidebar = ({ icon, tag, label, category, description, outputItems, backLabel, onBack }) => (
-    <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E8E8E8", padding: "32px 28px", background: "#FAFAFA" }}>
-      <div style={{ borderTop: "3px solid #FFC32C", paddingTop: 16, marginBottom: 20 }}>
+    <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E8E8E8", padding: "32px 28px", background: "#EFEFEF" }}>
+      <div style={{ borderTop: "3px solid #ffcc36", paddingTop: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
         <div style={S.sectionLabel}>{tag}</div>
         <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 6 }}>{label}</div>
@@ -1969,7 +1971,7 @@ export default function App() {
           <div style={{ ...S.sectionLabel, marginBottom: 10 }}>Report Includes</div>
           {outputItems.map((item, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #F0F0F0", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555" }}>
-              <span style={{ width: 4, height: 4, background: "#FFC32C", borderRadius: "50%", flexShrink: 0 }} />
+              <span style={{ width: 4, height: 4, background: "#ffcc36", borderRadius: "50%", flexShrink: 0 }} />
               {item}
             </div>
           ))}
@@ -2001,7 +2003,7 @@ export default function App() {
           <div key={i} style={{ ...S.genStep, ...(currentStep > i ? S.genStepDone : {}), borderBottom: i < steps.length - 1 ? "1px solid #F0F0F0" : "none" }}>
             <div style={{
               width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-              background: currentStep > i ? "#111" : currentStep === i ? "#FFC32C" : "#F0F0F0",
+              background: currentStep > i ? "#111" : currentStep === i ? "#ffcc36" : "#F0F0F0",
               color: currentStep > i ? "#fff" : "#111",
               fontSize: 10, fontWeight: 700,
             }}>
@@ -2053,14 +2055,14 @@ export default function App() {
                 background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
                 padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#FFC32C"; }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#ffcc36"; }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>AI BETA</span>
+                <span style={{ ...S.pill, background: "#111", color: "#ffcc36" }}>AI BETA</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Ask AI</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Paste meeting notes and let AI recommend the optimal trade structure, strikes, and summary.</p>
@@ -2073,7 +2075,7 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.MARKET_BRIEF)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #ffcc36", borderRadius: 2,
                 padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
               }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
@@ -2081,9 +2083,9 @@ export default function App() {
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>LIVE</span>
+                <span style={{ ...S.pill, background: "#111", color: "#ffcc36" }}>LIVE</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Daily Market Brief</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>AI-written institutional crypto brief with live market data, ETF flows, derivatives, geopolitics, and news summaries.</p>
@@ -2099,11 +2101,11 @@ export default function App() {
                 background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
                 padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#FFC32C"; }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#ffcc36"; }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 40, height: 40, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
                 </div>
                 <span style={{ ...S.pill, background: "#F0F0F0", color: "#111" }}>DERIVATIVES</span>
@@ -2126,7 +2128,7 @@ export default function App() {
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 40, height: 40, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>
                 </div>
                 <span style={{ ...S.pill, background: "#dcfce7", color: "#16a34a" }}>LENDING</span>
@@ -2142,17 +2144,17 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.SALES_LIBRARY)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #ffcc36", borderRadius: 2,
                 padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
               }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 40, height: 40, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#FFC32C", color: "#111" }}>SALES</span>
+                <span style={{ ...S.pill, background: "#ffcc36", color: "#111" }}>SALES</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Sales Library</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
@@ -2160,8 +2162,41 @@ export default function App() {
                 Browse documents <span>&rarr;</span>
               </div>
             </button>
+
+            {/* Conference Leads */}
+            <button
+              onClick={() => navigateTo(PHASES.CONFERENCE_LEADS)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#ffcc36"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
+                <span style={{ ...S.pill, background: "#ffcc36", color: "#111" }}>LEADS</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Conference Leads</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Scrape attendee lists from conference videos, then enrich with LinkedIn URLs, company websites, and industry tags.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+                Scrape &amp; enrich leads <span>&rarr;</span>
+              </div>
+            </button>
           </div>
         </div>
+      )}
+
+      {/* ═══ PHASE: CONFERENCE_LEADS ═══ */}
+      {phase === PHASES.CONFERENCE_LEADS && (
+        <ConferenceLeads onBack={() => navigateTo(PHASES.HOME)} />
       )}
 
       {/* ═══ PHASE: UPLOAD ═══ */}
@@ -2169,7 +2204,7 @@ export default function App() {
         <div style={{ ...S.main, display: "flex", justifyContent: "center", paddingTop: 60 }}>
           <div style={{ ...S.card, maxWidth: 480, width: "100%", textAlign: "center" }}>
             <div style={{ marginBottom: 16 }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
             <h2 style={{ ...S.heading2, marginBottom: 8 }}>{uploadedFile ? uploadedFile.name : "Linked Document"}</h2>
             {uploadedFile && <p style={{ ...S.subtext, marginBottom: 8 }}>{(uploadedFile.size / 1024).toFixed(1)} KB</p>}
@@ -2209,16 +2244,16 @@ export default function App() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 14, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 10 }}>
                   Ask AI
-                  <span style={{ ...S.pill, background: "#FFC32C", color: "#111", fontSize: 9 }}>BETA</span>
+                  <span style={{ ...S.pill, background: "#ffcc36", color: "#111", fontSize: 9 }}>BETA</span>
                 </div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Describe what your client needs and let AI suggest the best trade structure</div>
               </div>
             </div>
-            <span style={{ color: "#FFC32C", fontSize: 18 }}>&rarr;</span>
+            <span style={{ color: "#ffcc36", fontSize: 18 }}>&rarr;</span>
           </button>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
@@ -2242,7 +2277,7 @@ export default function App() {
               <div style={{ ...S.sectionLabel, marginBottom: 8 }}>AI Trade Advisor</div>
               <h1 style={{ ...S.heading1, display: "flex", alignItems: "center", gap: 12 }}>
                 Ask AI
-                <span style={{ ...S.pill, background: "#111", color: "#FFC32C", fontSize: 9 }}>BETA</span>
+                <span style={{ ...S.pill, background: "#111", color: "#ffcc36", fontSize: 9 }}>BETA</span>
               </h1>
               <p style={{ ...S.subtext, marginTop: 6 }}>Tell us about your client and what they're looking for. AI will suggest the best derivatives structure and pre-fill the report.</p>
             </div>
@@ -2302,7 +2337,7 @@ export default function App() {
                     }
                   }}
                   style={{
-                    background: activePreset === p.id ? "#111" : "#FAFAFA",
+                    background: activePreset === p.id ? "#111" : "#EFEFEF",
                     color: activePreset === p.id ? "#FFFFFF" : "#555",
                     border: activePreset === p.id ? "1px solid #111" : "1px solid #E8E8E8",
                     borderRadius: 2, padding: "7px 14px",
@@ -2351,7 +2386,7 @@ export default function App() {
 
           {/* AI Response */}
           {(aiResponseLoading || aiResponse) && (
-            <div style={{ marginTop: 28, border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2, background: "#FAFAFA" }}>
+            <div style={{ marginTop: 28, border: "1px solid #E8E8E8", borderTop: "3px solid #ffcc36", borderRadius: 2, background: "#EFEFEF" }}>
               {aiResponseLoading ? (
                 <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: 12, color: "#888", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
                   <span style={{ width: 16, height: 16, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
@@ -2398,8 +2433,8 @@ export default function App() {
           <div style={{ flex: 1, padding: "40px 48px", overflowY: "auto" }}>
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>AI GENERATED</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                <span style={{ ...S.pill, background: "#111", color: "#ffcc36" }}>AI GENERATED</span>
               </div>
               <h2 style={S.heading2}>Review & Confirm Trade</h2>
               <p style={{ ...S.subtext, marginTop: 6 }}>AI has suggested a <strong>{selectedTrade.label}</strong> based on your client brief. Review the parameters below — edit anything that needs adjusting, then generate your report.</p>
@@ -2417,7 +2452,7 @@ export default function App() {
             }
 
             {/* Loan Component Panel */}
-            <div style={{ marginBottom: 28, padding: 20, background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2 }}>
+            <div style={{ marginBottom: 28, padding: 20, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2 }}>
               <button
                 onClick={() => {
                   const next = !showLoanPanel;
@@ -2579,7 +2614,7 @@ export default function App() {
             </div>
 
             {lendingValues.collateralUnits && lendingValues.pricePerUnit && (
-              <div style={{ display: "flex", gap: 24, padding: "16px 20px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 24, padding: "16px 20px", background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, marginBottom: 20 }}>
                 <div>
                   <div style={S.sectionLabel}>Collateral Value</div>
                   <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 4 }}>
@@ -2662,7 +2697,7 @@ export default function App() {
                   key={cat}
                   onClick={() => setSalesCategory(cat)}
                   style={{
-                    background: salesCategory === cat ? "#111" : "#FAFAFA",
+                    background: salesCategory === cat ? "#111" : "#EFEFEF",
                     color: salesCategory === cat ? "#FFFFFF" : "#555",
                     border: salesCategory === cat ? "1px solid #111" : "1px solid #E8E8E8",
                     borderRadius: 2, padding: "8px 16px",
@@ -2744,15 +2779,15 @@ export default function App() {
           <div style={{ background: "#111", color: "#FFFFFF", borderRadius: 2, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
             <span style={{ color: "#16a34a" }}>&#10003;</span>
             <span>Exported to Canva</span>
-            <a href={canvaResult.editUrl} target="_blank" rel="noreferrer" style={{ color: "#FFC32C", textDecoration: "none", fontWeight: 600 }}>Open &rarr;</a>
+            <a href={canvaResult.editUrl} target="_blank" rel="noreferrer" style={{ color: "#ffcc36", textDecoration: "none", fontWeight: 600 }}>Open &rarr;</a>
             <button onClick={() => setCanvaResult(null)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>&times;</button>
           </div>
         </div>
       )}
 
       {/* ─── Footer ─── */}
-      <footer style={{ borderTop: "1px solid #E8E8E8", padding: "20px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FAFAFA" }}>
-        <div style={{ height: 2, background: "#FFC32C", width: 24 }} />
+      <footer style={{ borderTop: "1px solid #E8E8E8", padding: "20px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#EFEFEF" }}>
+        <div style={{ height: 2, background: "#ffcc36", width: 24 }} />
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>SDM — Internal Use Only</span>
           <span style={{ color: "#E8E8E8" }}>&middot;</span>
@@ -2787,7 +2822,7 @@ export default function App() {
                     <button key={type} onClick={() => setFeedbackType(type)}
                       style={{
                         padding: "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", borderRadius: 2,
-                        background: feedbackType === type ? "#111" : "#FAFAFA",
+                        background: feedbackType === type ? "#111" : "#EFEFEF",
                         color: feedbackType === type ? "#FFFFFF" : "#555",
                         border: feedbackType === type ? "1px solid #111" : "1px solid #E8E8E8",
                         textTransform: "capitalize",
