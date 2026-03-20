@@ -9,6 +9,7 @@ import PayoffChart from "./PayoffChart";
 import MBChartSection06 from "./MBChartSection06";
 import MBChartSection07 from "./MBChartSection07";
 import ConferenceLeads from "./ConferenceLeads";
+import OptionsPricer from "./OptionsPricer";
 import "./index.css";
 
 const ASK_AI_PRESETS = [
@@ -40,6 +41,7 @@ const PHASES = {
   LENDING_RESULT: "lending_result",
   SALES_LIBRARY: "sales_library",
   CONFERENCE_LEADS: "conference_leads",
+  OPTIONS_PRICER: "options_pricer",
   AI_CONFIGURE: "ai_configure",
   AI_GENERATING: "ai_generating",
   AI_REVIEW: "ai_review",
@@ -61,6 +63,7 @@ const PHASE_TITLES = {
   [PHASES.AI_GENERATING]: "Analyzing — Ask AI",
   [PHASES.AI_REVIEW]: "Review AI Trade — Derivatives Studio",
   [PHASES.MARKET_BRIEF]: "Daily Market Brief — SDM",
+  [PHASES.OPTIONS_PRICER]: "Options Pricer — SDM",
 };
 
 // ─── SDM Logo ───
@@ -2190,6 +2193,32 @@ export default function App() {
                 Scrape &amp; enrich leads <span>&rarr;</span>
               </div>
             </button>
+
+            {/* Options Pricer */}
+            <button
+              onClick={() => navigateTo(PHASES.OPTIONS_PRICER)}
+              style={{
+                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5">
+                    <path d="M3 3v18h18"/>
+                    <path d="M7 16l4-4 4 4 5-5"/>
+                  </svg>
+                </div>
+                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>OPTIONS</span>
+              </div>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Options Pricer</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Multi-leg Black-Scholes pricer for vanilla crypto options. Greeks, net P&amp;L, and scenario analysis at expiry.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#FFC32C", letterSpacing: 1, textTransform: "uppercase" }}>
+                Price options <span>&rarr;</span>
+              </div>
+            </button>
           </div>
         </div>
       )}
@@ -2197,6 +2226,11 @@ export default function App() {
       {/* ═══ PHASE: CONFERENCE_LEADS ═══ */}
       {phase === PHASES.CONFERENCE_LEADS && (
         <ConferenceLeads onBack={() => navigateTo(PHASES.HOME)} />
+      )}
+
+      {/* ═══ PHASE: OPTIONS_PRICER ═══ */}
+      {phase === PHASES.OPTIONS_PRICER && (
+        <OptionsPricer onBack={() => navigateTo(PHASES.HOME)} />
       )}
 
       {/* ═══ PHASE: UPLOAD ═══ */}
