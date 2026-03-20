@@ -354,19 +354,24 @@ async function handleShareLink(reportRef, trade, setLinkText) {
   setLinkText("Creating...");
   const fullHtml = buildStandaloneHtml(reportRef, trade);
   try {
-    const blob = new Blob([fullHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    await navigator.clipboard.writeText(url);
-    setLinkText("Opened!");
+    const date = new Date().toISOString().slice(0, 10);
+    const slug = (trade.label || "report").replace(/[^a-zA-Z0-9]+/g, "-");
+    const filename = `SDM-${slug}-${date}.html`;
+    const res = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: fullHtml, filename }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.url) throw new Error(json.error || "Share failed");
+    await navigator.clipboard.writeText(json.url).catch(() => {});
+    window.open(json.url, "_blank");
+    setLinkText("Link copied ✓");
   } catch (e) {
-    // Fallback: open as data URI
-    const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
-    const dataUrl = `data:text/html;base64,${encoded}`;
-    window.open(dataUrl, "_blank");
-    setLinkText("Opened!");
+    console.error("Share error:", e);
+    setLinkText("Error — try again");
   }
-  setTimeout(() => setLinkText("Link"), 3000);
+  setTimeout(() => setLinkText("Link"), 4000);
 }
 
 function handleExportPDF(reportRef, trade) {

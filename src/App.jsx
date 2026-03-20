@@ -738,17 +738,22 @@ function buildExportHTML(rootEl, date) {
 </head><body>${clone.outerHTML}</body></html>`;
 }
 
-async function createShareLink(html) {
+async function createShareLink(html, date) {
   try {
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    return url;
+    const d = date || new Date().toISOString().slice(0, 10);
+    const filename = `SDM-MarketBrief-${d}.html`;
+    const res = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html, filename }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.url) throw new Error(json.error || "Share failed");
+    window.open(json.url, "_blank");
+    return json.url;
   } catch (e) {
-    const encoded = btoa(unescape(encodeURIComponent(html)));
-    const dataUrl = `data:text/html;base64,${encoded}`;
-    window.open(dataUrl, "_blank");
-    return dataUrl;
+    console.error("Share error:", e);
+    return null;
   }
 }
 

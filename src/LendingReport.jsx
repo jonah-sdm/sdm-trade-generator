@@ -107,18 +107,24 @@ async function handleLendingShareLink(reportRef, data, setLinkText) {
   setLinkText("Creating...");
   const fullHtml = buildLendingStandaloneHtml(reportRef);
   try {
-    const blob = new Blob([fullHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    await navigator.clipboard.writeText(url);
-    setLinkText("Opened!");
+    const date = new Date().toISOString().slice(0, 10);
+    const borrower = (data?.borrowerName || "client").replace(/[^a-zA-Z0-9]+/g, "-");
+    const filename = `SDM-Lending-${borrower}-${date}.html`;
+    const res = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html: fullHtml, filename }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.url) throw new Error(json.error || "Share failed");
+    await navigator.clipboard.writeText(json.url).catch(() => {});
+    window.open(json.url, "_blank");
+    setLinkText("Link copied ✓");
   } catch (e) {
-    const encoded = btoa(unescape(encodeURIComponent(fullHtml)));
-    const dataUrl = `data:text/html;base64,${encoded}`;
-    window.open(dataUrl, "_blank");
-    setLinkText("Opened!");
+    console.error("Share error:", e);
+    setLinkText("Error — try again");
   }
-  setTimeout(() => setLinkText("Link"), 3000);
+  setTimeout(() => setLinkText("Link"), 4000);
 }
 
 export default function LendingReport({ data, fieldValues, onBack, onReset }) {
