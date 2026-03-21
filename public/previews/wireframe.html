@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDM Trade Idea Studio — Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --base:        #FDFCF7;
+  --surface:     #F7F5EE;
+  --border:      #EEE9DA;
+  --yellow:      #FFC32C;
+  --yellow-bg:   #FFF3C4;
+  --yellow-glow: rgba(255,195,44,0.18);
+  --ink:         #1A1A18;
+  --ink-2:       #3D3C38;
+  --ink-3:       #7A7870;
+  --dark-card:   #1E1E1A;
+  --dark-card-2: #2A2A24;
+  --green:       #1A6B3C;
+  --green-bg:    #E6F5EE;
+  --r-sm: 6px; --r: 10px; --r-card: 14px; --r-pill: 999px;
+}
+
+html { font-size: 14px; }
+body {
+  font-family: 'Poppins', system-ui, sans-serif;
+  background: radial-gradient(ellipse at 80% 0%, rgba(255,195,44,0.09) 0%, transparent 45%), var(--base);
+  color: var(--ink-2);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+.header {
+  padding: 0 48px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.5px solid var(--border);
+  background: rgba(253,252,247,0.88);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.logo-name { font-family:'Montserrat',sans-serif; font-size:15px; font-weight:700; letter-spacing:0.06em; color:var(--ink); }
+.logo-divider { width:1px; height:14px; background:var(--border); margin:0 2px; }
+.logo-sub { font-family:'Poppins',sans-serif; font-size:11px; color:var(--ink-3); font-weight:300; }
+.header-nav { background:var(--ink); border-radius:var(--r-pill); display:inline-flex; gap:2px; padding:3px; }
+.nav-tab {
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+  color: rgba(255,255,255,0.42);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-tab.active { background:#fff; color:var(--ink); }
+.nav-tab:hover:not(.active) { color:rgba(255,255,255,0.78); }
+.header-right { display:flex; align-items:center; gap:10px; }
+.btn-ghost {
+  background:var(--surface); border:0.5px solid var(--border); border-radius:var(--r-pill);
+  padding:7px 16px; font-family:'Poppins',sans-serif; font-size:11px; color:var(--ink-2);
+  cursor:pointer; transition:background 0.15s;
+}
+.btn-ghost:hover { background:var(--border); }
+.btn-primary {
+  background:var(--yellow); border:none; border-radius:var(--r-pill);
+  padding:7px 18px; font-family:'Montserrat',sans-serif; font-size:10px;
+  font-weight:700; letter-spacing:0.05em; color:var(--ink);
+  cursor:pointer; transition:opacity 0.15s;
+}
+.btn-primary:hover { opacity:0.88; }
+
+/* ── Page shell ── */
+.screen { display:none; }
+.screen.active { display:block; }
+.page { max-width:1100px; margin:0 auto; padding:56px 48px 96px; }
+.page-wide { max-width:1200px; margin:0 auto; padding:56px 48px 96px; }
+
+/* ── Breadcrumb ── */
+.breadcrumb {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:'Poppins',sans-serif; font-size:11px; color:var(--ink-3);
+  margin-bottom:32px; cursor:pointer;
+}
+.breadcrumb:hover { color:var(--ink-2); }
+.breadcrumb-sep { opacity:0.4; }
+
+/* ── Page title block ── */
+.page-header { margin-bottom:40px; }
+.page-eyebrow {
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3);
+  margin-bottom:10px;
+}
+.page-title {
+  font-family:'Montserrat',sans-serif; font-size:28px; font-weight:600;
+  letter-spacing:-0.02em; color:var(--ink); line-height:1.15; margin-bottom:8px;
+}
+.page-sub { font-family:'Poppins',sans-serif; font-size:13px; color:var(--ink-3); font-weight:300; line-height:1.7; }
+
+/* ── Section label ── */
+.section-label {
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-3);
+  border-left:2.5px solid var(--yellow); padding-left:10px; margin-bottom:18px;
+}
+.divider { height:0.5px; background:var(--border); margin:40px 0; }
+
+/* ── Cards / surfaces ── */
+.card {
+  background:#fff; border:0.5px solid var(--border); border-radius:var(--r-card);
+  padding:24px;
+}
+.card-dark {
+  background:var(--dark-card); border:0.5px solid rgba(255,255,255,0.07);
+  border-radius:var(--r-card); padding:24px;
+}
+
+/* ── Tags ── */
+.tag {
+  border-radius:var(--r-pill); padding:3px 10px;
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.tag-yellow  { background:var(--yellow-bg); color:#7A5500; border:0.5px solid rgba(255,195,44,0.35); }
+.tag-dark    { background:var(--ink); color:#fff; }
+.tag-surface { background:var(--surface); color:var(--ink-3); border:0.5px solid var(--border); }
+.tag-live    { background:#E6F5EE; color:#1A6B3C; border:0.5px solid rgba(26,107,60,0.2); }
+.tag-blue    { background:#EEF2FF; color:#1851EB; border:0.5px solid rgba(24,81,235,0.2); }
+
+/* ── Form elements ── */
+.form-group { margin-bottom:18px; }
+.form-label {
+  display:block; font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); margin-bottom:7px;
+}
+.form-input, .form-select, .form-textarea {
+  width:100%; background:#fff; border:0.5px solid var(--border); border-radius:var(--r-sm);
+  padding:9px 12px; font-family:'Poppins',sans-serif; font-size:13px; color:var(--ink);
+  outline:none; transition:border-color 0.15s;
+  appearance:none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--yellow); }
+.form-textarea { resize:vertical; min-height:160px; line-height:1.65; }
+.form-row { display:grid; gap:16px; }
+.form-row-2 { grid-template-columns:1fr 1fr; }
+.form-row-3 { grid-template-columns:1fr 1fr 1fr; }
+
+/* ── Table ── */
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th {
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3);
+  padding:8px 12px; text-align:left; border-bottom:0.5px solid var(--border);
+  background:var(--surface);
+}
+.data-table td {
+  font-family:'Poppins',sans-serif; font-size:12px; color:var(--ink-2);
+  padding:10px 12px; border-bottom:0.5px solid var(--border);
+}
+.data-table tr:last-child td { border-bottom:none; }
+.data-table tr:hover td { background:var(--surface); }
+
+/* ── Stat boxes ── */
+.stat-row { display:flex; gap:12px; margin-bottom:24px; }
+.stat-box {
+  flex:1; background:#fff; border:0.5px solid var(--border); border-radius:var(--r);
+  padding:14px 16px;
+}
+.stat-box-num {
+  font-family:'Montserrat',sans-serif; font-size:20px; font-weight:600;
+  letter-spacing:-0.03em; color:var(--ink); line-height:1; margin-bottom:4px;
+}
+.stat-box-label { font-family:'Poppins',sans-serif; font-size:10px; color:var(--ink-3); font-weight:300; }
+
+/* ── Split layout ── */
+.split { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+.split-left-wide { display:grid; grid-template-columns:1.4fr 1fr; gap:24px; align-items:start; }
+.split-right-wide { display:grid; grid-template-columns:1fr 1.5fr; gap:24px; align-items:start; }
+
+/* ── Upload zone ── */
+.upload-zone {
+  border:1.5px dashed var(--border); border-radius:var(--r-card); padding:60px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px; cursor:pointer; transition:border-color 0.2s, background 0.2s;
+  background:#fff; text-align:center;
+}
+.upload-zone:hover { border-color:var(--yellow); background:var(--yellow-bg); }
+.upload-icon { color:var(--ink-3); margin-bottom:4px; }
+.upload-title { font-family:'Montserrat',sans-serif; font-size:14px; font-weight:600; color:var(--ink); }
+.upload-sub { font-family:'Poppins',sans-serif; font-size:12px; color:var(--ink-3); font-weight:300; }
+
+/* ── Step list ── */
+.step-list { display:flex; flex-direction:column; gap:1px; }
+.step-item {
+  display:flex; align-items:center; gap:14px; padding:13px 16px;
+  background:#fff; border:0.5px solid var(--border);
+}
+.step-item:first-child { border-radius:var(--r) var(--r) 0 0; }
+.step-item:last-child { border-radius:0 0 var(--r) var(--r); }
+.step-num {
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  background:var(--surface); border:0.5px solid var(--border); color:var(--ink-3);
+  flex-shrink:0;
+}
+.step-num.done { background:var(--yellow); border-color:var(--yellow); color:var(--ink); }
+.step-num.active { background:var(--ink); border-color:var(--ink); color:#fff; }
+.step-text { font-family:'Poppins',sans-serif; font-size:12px; color:var(--ink-2); flex:1; }
+.step-status { font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.08em; color:var(--ink-3); }
+.step-status.live { color:var(--green); }
+
+/* ── Doc grid ── */
+.doc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.doc-card {
+  background:#fff; border:0.5px solid var(--border); border-radius:var(--r-card);
+  overflow:hidden; cursor:pointer; transition:box-shadow 0.2s, transform 0.15s;
+}
+.doc-card:hover { box-shadow:0 4px 18px rgba(0,0,0,0.07); transform:translateY(-1px); }
+.doc-thumb {
+  height:110px; background:var(--surface); border-bottom:0.5px solid var(--border);
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.doc-info { padding:12px 14px; }
+.doc-title { font-family:'Montserrat',sans-serif; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px; line-height:1.3; }
+.doc-meta { font-family:'Poppins',sans-serif; font-size:10px; color:var(--ink-3); font-weight:300; margin-bottom:10px; }
+.doc-actions { display:flex; gap:6px; }
+.doc-btn {
+  flex:1; padding:5px 0; border:0.5px solid var(--border); border-radius:var(--r-sm);
+  background:var(--surface); font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.06em; color:var(--ink-3); cursor:pointer; text-align:center;
+  transition:background 0.15s;
+}
+.doc-btn:hover { background:var(--border); }
+.doc-btn.primary { background:var(--yellow); border-color:var(--yellow); color:var(--ink); }
+
+/* ── Ticker bar ── */
+.ticker-bar {
+  display:flex; gap:0; background:#fff; border:0.5px solid var(--border);
+  border-radius:var(--r-card); overflow:hidden; margin-bottom:28px;
+}
+.ticker-item {
+  flex:1; padding:14px 20px; border-right:0.5px solid var(--border);
+  display:flex; flex-direction:column; gap:4px;
+}
+.ticker-item:last-child { border-right:none; }
+.ticker-label { font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.1em; color:var(--ink-3); }
+.ticker-price { font-family:'Montserrat',sans-serif; font-size:18px; font-weight:600; letter-spacing:-0.03em; color:var(--ink); }
+.ticker-chg { font-family:'Poppins',sans-serif; font-size:11px; font-weight:400; }
+.ticker-chg.up { color:#1A6B3C; }
+.ticker-chg.dn { color:#B91C1C; }
+
+/* ── Brief content ── */
+.brief-section {
+  background:#fff; border:0.5px solid var(--border); border-radius:var(--r);
+  padding:20px; margin-bottom:14px;
+}
+.brief-section-title {
+  font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--yellow);
+  margin-bottom:10px;
+}
+.brief-text { font-family:'Poppins',sans-serif; font-size:12px; color:var(--ink-2); line-height:1.75; font-weight:300; }
+.brief-text strong { font-weight:500; color:var(--ink); }
+
+/* ── AI output ── */
+.ai-output {
+  background:var(--dark-card); border:0.5px solid rgba(255,255,255,0.07);
+  border-radius:var(--r-card); padding:28px;
+}
+.ai-section-title {
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--yellow);
+  margin-bottom:12px; border-left:2px solid var(--yellow); padding-left:8px;
+}
+.ai-text { font-family:'Poppins',sans-serif; font-size:12px; color:rgba(255,255,255,0.65); line-height:1.75; font-weight:300; margin-bottom:20px; }
+.ai-param-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:0.5px solid rgba(255,255,255,0.07); }
+.ai-param-key { font-family:'Montserrat',sans-serif; font-size:10px; font-weight:600; color:rgba(255,255,255,0.35); letter-spacing:0.04em; }
+.ai-param-val { font-family:'Poppins',sans-serif; font-size:12px; color:rgba(255,255,255,0.8); }
+
+/* ── Report preview ── */
+.report-preview {
+  background:var(--ink); border-radius:var(--r-card); overflow:hidden;
+  border:0.5px solid rgba(255,255,255,0.08);
+}
+.rp-header { background:#FFC32C; padding:14px 18px; }
+.rp-logo { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; color:#1A1A18; }
+.rp-body { padding:18px; }
+.rp-title { font-family:'Montserrat',sans-serif; font-size:15px; font-weight:600; color:#fff; margin-bottom:4px; }
+.rp-sub { font-family:'Poppins',sans-serif; font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:16px; font-weight:300; }
+.rp-row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:0.5px solid rgba(255,255,255,0.07); }
+.rp-key { font-family:'Poppins',sans-serif; font-size:11px; color:rgba(255,255,255,0.35); }
+.rp-val { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:600; color:rgba(255,255,255,0.85); }
+
+/* ── Options dark layout ── */
+.opts-surface {
+  background:#161616; border:0.5px solid rgba(255,255,255,0.07);
+  border-radius:var(--r-card); padding:20px;
+}
+.opts-input {
+  background:#0D0D0D; border:0.5px solid rgba(255,255,255,0.1);
+  border-radius:var(--r-sm); padding:8px 12px;
+  font-family:'Poppins',sans-serif; font-size:12px; color:rgba(255,255,255,0.85);
+  width:100%; outline:none;
+}
+.opts-label {
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.3);
+  margin-bottom:5px; display:block;
+}
+.opts-th {
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.3);
+  padding:8px 10px; text-align:left; border-bottom:0.5px solid rgba(255,255,255,0.07);
+}
+.opts-td {
+  font-family:'Poppins',sans-serif; font-size:12px; color:rgba(255,255,255,0.7);
+  padding:9px 10px; border-bottom:0.5px solid rgba(255,255,255,0.05);
+}
+.opts-td.gold { color:var(--yellow); font-weight:500; }
+.opts-td.pos { color:#4ADE80; }
+.opts-td.neg { color:#F87171; }
+
+/* ── Badge ── */
+.wf-badge {
+  position:fixed; bottom:20px; right:20px;
+  background:var(--dark-card); color:rgba(255,255,255,0.4);
+  font-family:'Montserrat',sans-serif; font-size:9px; font-weight:600; letter-spacing:0.1em;
+  padding:6px 12px; border-radius:var(--r-pill); pointer-events:none; z-index:999;
+}
+
+/* ── Pill filters ── */
+.filter-row { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
+.filter-pill {
+  padding:6px 14px; border:0.5px solid var(--border); border-radius:var(--r-pill);
+  font-family:'Montserrat',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.05em;
+  color:var(--ink-3); cursor:pointer; background:#fff; transition:all 0.15s;
+}
+.filter-pill.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+.filter-pill:hover:not(.active) { border-color:var(--ink-3); color:var(--ink-2); }
+
+/* ── Search bar ── */
+.search-bar {
+  display:flex; align-items:center; gap:10px;
+  background:#fff; border:0.5px solid var(--border); border-radius:var(--r-pill);
+  padding:10px 18px; margin-bottom:18px;
+}
+.search-input {
+  border:none; background:transparent; outline:none;
+  font-family:'Poppins',sans-serif; font-size:13px; color:var(--ink); flex:1;
+}
+.search-icon { color:var(--ink-3); flex-shrink:0; }
+
+/* ── Ticker/pulse ── */
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.8);} }
+.live-dot { width:6px; height:6px; border-radius:50%; background:#22C55E; animation:pulse 2s ease-in-out infinite; }
+
+/* Home-specific */
+.tool-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.tool-card {
+  background:#fff; border-radius:var(--r-card); border:0.5px solid var(--border);
+  padding:20px; cursor:pointer; transition:box-shadow 0.2s, transform 0.15s, border-color 0.15s;
+  display:flex; flex-direction:column; position:relative; overflow:hidden;
+}
+.tool-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:transparent; transition:background 0.2s; border-radius:var(--r-card) var(--r-card) 0 0;
+}
+.tool-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.07); transform:translateY(-1px); border-color:rgba(255,195,44,0.45); }
+.tool-card:hover::before { background:var(--yellow); }
+.tool-card.featured { background:var(--dark-card); border-color:transparent; }
+.tool-card.featured:hover { border-color:rgba(255,195,44,0.3); }
+.card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.card-icon {
+  width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  background:var(--surface); border:0.5px solid var(--border); flex-shrink:0;
+}
+.card-icon.dark { background:var(--dark-card); border-color:rgba(255,255,255,0.08); }
+.card-icon.yellow { background:var(--yellow-bg); border-color:rgba(255,195,44,0.3); }
+.featured .card-icon { background:var(--dark-card-2); border-color:rgba(255,255,255,0.1); }
+.card-title { font-family:'Montserrat',sans-serif; font-size:14px; font-weight:600; color:var(--ink); margin-bottom:6px; line-height:1.3; }
+.featured .card-title { color:#fff; }
+.card-body { font-family:'Poppins',sans-serif; font-size:12px; color:var(--ink-3); line-height:1.65; flex:1; margin-bottom:16px; font-weight:300; }
+.featured .card-body { color:rgba(255,255,255,0.42); }
+.card-cta {
+  font-family:'Montserrat',sans-serif; display:flex; align-items:center; gap:5px;
+  font-size:10px; font-weight:600; color:var(--ink-3); letter-spacing:0.04em; text-transform:uppercase;
+  transition:color 0.15s, gap 0.15s;
+}
+.tool-card:hover .card-cta { color:var(--ink); gap:8px; }
+.featured .card-cta { color:rgba(255,255,255,0.35); }
+.featured:hover .card-cta { color:var(--yellow); gap:8px; }
+.cta-arrow { font-size:14px; line-height:1; transition:transform 0.15s; }
+.tool-card:hover .cta-arrow { transform:translateX(2px); }
+.stats-bar {
+  display:flex; align-items:center; gap:32px; padding:18px 24px;
+  background:#fff; border-radius:var(--r-card); border:0.5px solid var(--border); margin-bottom:36px;
+}
+.stat { display:flex; flex-direction:column; gap:3px; }
+.stat-number { font-family:'Montserrat',sans-serif; font-size:22px; font-weight:600; letter-spacing:-0.03em; color:var(--ink); line-height:1; }
+.stat-label { font-family:'Poppins',sans-serif; font-size:10px; color:var(--ink-3); font-weight:300; }
+.stat-div { width:0.5px; height:32px; background:var(--border); }
+.hero { margin-bottom:52px; }
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface); border:0.5px solid var(--border); border-radius:var(--r-pill);
+  padding:4px 12px 4px 8px; font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700;
+  letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3); margin-bottom:20px;
+}
+.eyebrow-dot { width:6px; height:6px; border-radius:50%; background:var(--yellow); animation:pulse 2s ease-in-out infinite; }
+.hero-title { font-family:'Montserrat',sans-serif; font-size:36px; font-weight:600; letter-spacing:-0.02em; color:var(--ink); line-height:1.12; margin-bottom:14px; max-width:540px; }
+.hero-sub { font-family:'Poppins',sans-serif; font-size:13px; color:var(--ink-3); line-height:1.7; max-width:440px; font-weight:300; }
+.recent-row { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:0.5px solid var(--border); }
+.recent-row:last-child { border-bottom:none; }
+.recent-left { display:flex; align-items:center; gap:12px; }
+.recent-dot { width:6px; height:6px; border-radius:50%; background:var(--border); flex-shrink:0; }
+.recent-dot.active { background:var(--yellow); }
+.recent-title { font-family:'Poppins',sans-serif; font-size:13px; font-weight:400; color:var(--ink-2); }
+.recent-meta { font-family:'Poppins',sans-serif; font-size:10px; color:var(--ink-3); font-weight:300; }
+.recent-link {
+  font-size:11px; color:var(--ink-3); text-decoration:none;
+  background:var(--surface); border:0.5px solid var(--border); border-radius:var(--r-pill);
+  padding:3px 10px; cursor:pointer;
+}
+.recent-link:hover { background:var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="header-logo" onclick="showScreen('home')">
+    <svg viewBox="62 68 110 106" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+      <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+    </svg>
+    <span class="logo-name">SDM</span>
+    <div class="logo-divider"></div>
+    <span class="logo-sub">Trade Idea Studio</span>
+  </div>
+
+  <nav class="header-nav">
+    <div class="nav-tab active" data-screen="home" onclick="showScreen('home')">Home</div>
+    <div class="nav-tab" data-screen="ask-ai" onclick="showScreen('ask-ai')">Ask AI</div>
+    <div class="nav-tab" data-screen="market-brief" onclick="showScreen('market-brief')">Market Brief</div>
+    <div class="nav-tab" data-screen="derivatives" onclick="showScreen('derivatives')">Derivatives</div>
+    <div class="nav-tab" data-screen="options" onclick="showScreen('options')">Options</div>
+    <div class="nav-tab" data-screen="lending" onclick="showScreen('lending')">Lending</div>
+    <div class="nav-tab" data-screen="library" onclick="showScreen('library')">Library</div>
+  </nav>
+
+  <div class="header-right">
+    <button class="btn-ghost">Changelog</button>
+    <button class="btn-primary">+ NEW REPORT</button>
+  </div>
+</header>
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 1 — HOME
+══════════════════════════════════════ -->
+<div id="home" class="screen active">
+<main class="page">
+  <div class="hero">
+    <div class="hero-eyebrow"><div class="eyebrow-dot"></div> Institutional Digital Asset Structuring</div>
+    <h1 class="hero-title">Generate <strong>institutional-grade</strong> trade collateral in seconds.</h1>
+    <p class="hero-sub">Reports, lending proposals, market briefs, and options pricing — built for the way SDM moves.</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-number">7</div><div class="stat-label">active tools</div></div>
+    <div class="stat-div"></div>
+    <div class="stat"><div class="stat-number">∞</div><div class="stat-label">shareable links</div></div>
+    <div class="stat-div"></div>
+    <div class="stat"><div class="stat-number">BS</div><div class="stat-label">options math</div></div>
+    <div class="stat-div"></div>
+    <div class="stat"><div class="stat-number">0</div><div class="stat-label">exchange APIs</div></div>
+    <div style="flex:1;"></div>
+    <div style="font-size:11px;color:var(--ink-3);">Last session: today, 2:14 pm</div>
+  </div>
+
+  <div class="section-label">Select a Product</div>
+
+  <div class="tool-grid">
+    <div class="tool-card featured" onclick="showScreen('ask-ai')">
+      <div class="card-top">
+        <div class="card-icon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" stroke-width="1.6"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+        </div>
+        <span class="tag tag-yellow">AI Beta</span>
+      </div>
+      <div class="card-title">Ask AI</div>
+      <div class="card-body">Paste meeting notes and let AI recommend the optimal trade structure, strikes, and executive summary.</div>
+      <div class="card-cta">Start AI analysis <span class="cta-arrow">→</span></div>
+    </div>
+
+    <div class="tool-card yellow-tint" onclick="showScreen('market-brief')">
+      <div class="card-top">
+        <div class="card-icon yellow">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7A5500" stroke-width="1.6"><rect x="2" y="7" width="8" height="16" rx="2"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/></svg>
+        </div>
+        <span class="tag tag-live">● Live</span>
+      </div>
+      <div class="card-title">Daily Market Brief</div>
+      <div class="card-body">AI-written institutional crypto brief with live market data, ETF flows, derivatives, and geopolitical context.</div>
+      <div class="card-cta">Generate brief <span class="cta-arrow">→</span></div>
+    </div>
+
+    <div class="tool-card" onclick="showScreen('derivatives')">
+      <div class="card-top">
+        <div class="card-icon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="1.6"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <span class="tag tag-surface">Derivatives</span>
+      </div>
+      <div class="card-title">Derivatives Studio</div>
+      <div class="card-body">Generate branded trade reports with payoff diagrams, risk metrics, and executive summaries for clients.</div>
+      <div class="card-cta">Create a trade report <span class="cta-arrow">→</span></div>
+    </div>
+
+    <div class="tool-card" onclick="showScreen('options')">
+      <div class="card-top">
+        <div class="card-icon dark">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 5-5"/></svg>
+        </div>
+        <span class="tag tag-yellow">Options</span>
+      </div>
+      <div class="card-title">Options Pricer</div>
+      <div class="card-body">Multi-leg Black-Scholes pricer for vanilla crypto options. Live Greeks, net P&amp;L, and scenario analysis.</div>
+      <div class="card-cta">Price options <span class="cta-arrow">→</span></div>
+    </div>
+
+    <div class="tool-card" onclick="showScreen('lending')">
+      <div class="card-top">
+        <div class="card-icon" style="background:#E6F5EE;border-color:rgba(26,107,60,0.15);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1A6B3C" stroke-width="1.6"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>
+        </div>
+        <span class="tag tag-live">Lending</span>
+      </div>
+      <div class="card-title">Lending Calculator</div>
+      <div class="card-body">Calculate collateralized loan terms and generate branded lending proposals with full payment schedules.</div>
+      <div class="card-cta">Build a proposal <span class="cta-arrow">→</span></div>
+    </div>
+
+
+    <div class="tool-card" style="grid-column:1/-1;flex-direction:row;align-items:center;gap:20px;padding:16px 20px;" onclick="showScreen('library')">
+      <div class="card-icon" style="flex-shrink:0;width:40px;height:40px;border-radius:12px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" stroke-width="1.6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px;">
+          <div class="card-title" style="margin:0;">Sales Library</div>
+          <span class="tag tag-surface">Sales</span>
+        </div>
+        <div class="card-body" style="margin:0;">Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</div>
+      </div>
+      <div class="card-cta" style="flex-shrink:0;font-size:12px;">Browse documents <span class="cta-arrow">→</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-label">Recent Reports</div>
+  <div>
+    <div class="recent-row">
+      <div class="recent-left"><div class="recent-dot active"></div><div><div class="recent-title">SDM — Covered Call · BTC $98,000</div><div class="recent-meta">Today, 11:42 am &nbsp;·&nbsp; Derivatives</div></div></div>
+      <a class="recent-link">Open link ↗</a>
+    </div>
+    <div class="recent-row">
+      <div class="recent-left"><div class="recent-dot active"></div><div><div class="recent-title">SDM — Cash-Secured Put · ETH $2,400</div><div class="recent-meta">Mar 7, 2026 &nbsp;·&nbsp; Derivatives</div></div></div>
+      <a class="recent-link">Open link ↗</a>
+    </div>
+    <div class="recent-row">
+      <div class="recent-left"><div class="recent-dot"></div><div><div class="recent-title">Lending Proposal — Acme Capital · 10 BTC</div><div class="recent-meta">Mar 6, 2026 &nbsp;·&nbsp; Lending</div></div></div>
+      <a class="recent-link">Open link ↗</a>
+    </div>
+    <div class="recent-row">
+      <div class="recent-left"><div class="recent-dot"></div><div><div class="recent-title">Daily Market Brief · March 6, 2026</div><div class="recent-meta">Mar 6, 2026 &nbsp;·&nbsp; Market Brief</div></div></div>
+      <a class="recent-link">Open link ↗</a>
+    </div>
+  </div>
+</main>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 2 — ASK AI
+══════════════════════════════════════ -->
+<div id="ask-ai" class="screen">
+<main class="page">
+  <div class="breadcrumb" onclick="showScreen('home')">← <span class="breadcrumb-sep">Home</span> / Ask AI</div>
+  <div class="page-header">
+    <div class="page-eyebrow">AI-Powered</div>
+    <div class="page-title">Ask AI</div>
+    <div class="page-sub">Paste raw meeting notes or a client brief. AI extracts context and recommends the optimal trade structure.</div>
+  </div>
+
+  <div class="split">
+    <!-- LEFT: input -->
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label" style="margin-bottom:16px;">Client Brief or Meeting Notes</div>
+        <textarea class="form-textarea" style="min-height:220px;" placeholder="Paste meeting notes, email thread, or client brief here...
+
+Example: 'Client holds 50 BTC at avg cost $72k. Wants downside protection to $85k but willing to cap upside at $105k. Tenor 30 days. Risk tolerance: moderate.'"></textarea>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:14px;">
+          <div class="form-row-2 form-row" style="flex:1;">
+            <div>
+              <label class="form-label">Asset</label>
+              <select class="form-select">
+                <option>BTC — Bitcoin</option>
+                <option>ETH — Ethereum</option>
+                <option>SOL — Solana</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Preferred Structure</label>
+              <select class="form-select">
+                <option>Auto-detect</option>
+                <option>Covered Call</option>
+                <option>Protective Put</option>
+                <option>Collar</option>
+                <option>Spread</option>
+                <option>Straddle / Strangle</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn-primary" style="padding:10px 28px;font-size:11px;">Analyze with AI →</button>
+          <button class="btn-ghost">Clear</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--yellow-bg);border:0.5px solid rgba(255,195,44,0.35);border-radius:var(--r-sm);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7A5500" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span style="font-family:'Poppins',sans-serif;font-size:11px;color:#7A5500;font-weight:300;">AI analysis is for structuring guidance only. Not financial advice. Always validate parameters with the desk.</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: output -->
+    <div class="ai-output">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+        <div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:rgba(255,255,255,0.85);letter-spacing:0.04em;">AI RECOMMENDATION</div>
+        <span class="tag tag-yellow" style="font-size:8px;">GPT-4o</span>
+      </div>
+
+      <div class="ai-section-title">Recommended Structure</div>
+      <div class="ai-text">Based on the client brief, a <strong style="color:#fff;">Collar strategy</strong> is the optimal fit. This caps downside at ~$85,000 while preserving participation up to $105,000, matching the stated risk/reward preference.</div>
+
+      <div class="ai-section-title">Key Parameters</div>
+      <div style="margin-bottom:20px;">
+        <div class="ai-param-row"><span class="ai-param-key">Strategy</span><span class="ai-param-val">Collar (Buy Put + Sell Call)</span></div>
+        <div class="ai-param-row"><span class="ai-param-key">Underlying</span><span class="ai-param-val">BTC / USD</span></div>
+        <div class="ai-param-row"><span class="ai-param-key">Spot Reference</span><span class="ai-param-val">$93,400</span></div>
+        <div class="ai-param-row"><span class="ai-param-key">Put Strike</span><span class="ai-param-val">$85,000 (–8.9%)</span></div>
+        <div class="ai-param-row"><span class="ai-param-key">Call Strike</span><span class="ai-param-val">$105,000 (+12.4%)</span></div>
+        <div class="ai-param-row"><span class="ai-param-key">Expiry</span><span class="ai-param-val">30 days (Apr 19, 2026)</span></div>
+        <div class="ai-param-row"><span class="ai-param-key">Net Premium</span><span class="ai-param-val" style="color:#4ADE80;">~$0 (zero-cost)</span></div>
+      </div>
+
+      <div class="ai-section-title">Executive Summary</div>
+      <div class="ai-text">Client seeks asymmetric protection on a 50 BTC position acquired at ~$72,000 average cost. A zero-cost collar provides full protection below $85,000 while retaining $570,000 of upside per contract. Net carry cost is effectively zero.</div>
+
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button onclick="showScreen('derivatives')" style="flex:1;padding:9px;background:var(--yellow);border:none;border-radius:var(--r-sm);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.05em;color:var(--ink);cursor:pointer;">BUILD TRADE REPORT →</button>
+        <button class="btn-ghost" style="border-radius:var(--r-sm);font-size:11px;">Copy</button>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 3 — MARKET BRIEF
+══════════════════════════════════════ -->
+<div id="market-brief" class="screen">
+<main class="page">
+  <div class="breadcrumb" onclick="showScreen('home')">← <span class="breadcrumb-sep">Home</span> / Daily Market Brief</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;">
+    <div class="page-header" style="margin-bottom:0;">
+      <div class="page-eyebrow">AI-Generated · Live Data</div>
+      <div class="page-title">Daily Market Brief</div>
+      <div class="page-sub">Institutional crypto brief with live prices, ETF flows, and macro context.</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding-top:28px;">
+      <div style="display:flex;align-items:center;gap:6px;font-family:'Poppins',sans-serif;font-size:11px;color:var(--ink-3);">
+        <div class="live-dot"></div> Live prices
+      </div>
+      <button class="btn-ghost">Export PDF</button>
+      <button class="btn-ghost">Share Link</button>
+      <button class="btn-primary">Regenerate ↻</button>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-bar">
+    <div class="ticker-item"><div class="ticker-label">BTC / USD</div><div class="ticker-price">$93,420</div><div class="ticker-chg up">+2.14%</div></div>
+    <div class="ticker-item"><div class="ticker-label">ETH / USD</div><div class="ticker-price">$2,418</div><div class="ticker-chg dn">–0.78%</div></div>
+    <div class="ticker-item"><div class="ticker-label">SOL / USD</div><div class="ticker-price">$148.30</div><div class="ticker-chg up">+3.42%</div></div>
+    <div class="ticker-item"><div class="ticker-label">BTC Dominance</div><div class="ticker-price">61.4%</div><div class="ticker-chg up">+0.3%</div></div>
+    <div class="ticker-item"><div class="ticker-label">BTC 30d Vol</div><div class="ticker-price">52.1%</div><div class="ticker-chg dn">–4.2%</div></div>
+    <div class="ticker-item" style="border-right:none;"><div class="ticker-label">Fear &amp; Greed</div><div class="ticker-price">72</div><div class="ticker-chg up">Greed</div></div>
+  </div>
+
+  <!-- Brief date header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:var(--ink);letter-spacing:0.02em;">
+      SECURE DIGITAL MARKETS — DAILY BRIEF
+    </div>
+    <div style="font-family:'Poppins',sans-serif;font-size:11px;color:var(--ink-3);">March 20, 2026 &nbsp;·&nbsp; Generated 09:04 EST</div>
+  </div>
+
+  <div class="brief-section">
+    <div class="brief-section-title">Market Overview</div>
+    <div class="brief-text">Bitcoin broke above <strong>$93,000</strong> this morning, continuing its March recovery from the $81k local bottom. Spot ETF inflows have re-accelerated with BlackRock's IBIT logging its fourth consecutive day of positive flows totaling <strong>$412M</strong>. Altcoins remain broadly range-bound with ETH struggling at the $2,450 resistance level amid ongoing fee compression concerns post-Dencun.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div class="brief-section">
+      <div class="brief-section-title">ETF Flows (24h)</div>
+      <div class="brief-text">
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span>IBIT (BlackRock)</span><span style="color:#1A6B3C;font-weight:500;">+$214M</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span>FBTC (Fidelity)</span><span style="color:#1A6B3C;font-weight:500;">+$198M</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span>GBTC (Grayscale)</span><span style="color:#B91C1C;font-weight:500;">–$41M</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;"><span>Total Net</span><span style="color:#1A6B3C;font-weight:500;">+$371M</span></div>
+      </div>
+    </div>
+    <div class="brief-section">
+      <div class="brief-section-title">Derivatives Snapshot</div>
+      <div class="brief-text">
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span>OI (BTC Perps)</span><span style="font-weight:500;">$18.4B</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span>Funding Rate</span><span style="color:#1A6B3C;font-weight:500;">+0.012% / 8h</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);"><span>25d RR (30d)</span><span style="font-weight:500;">+3.2 (call skew)</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;"><span>ATM IV (30d)</span><span style="font-weight:500;">52.1%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="brief-section" style="margin-top:14px;">
+    <div class="brief-section-title">Macro &amp; Geopolitical</div>
+    <div class="brief-text">Fed minutes released Wednesday signaled <strong>no immediate rate cuts</strong>, with core PCE remaining above target at 2.7%. Risk assets sold off briefly before recovering as the dollar index pulled back. Bitcoin's low correlation to equities this week (0.18 vs S&amp;P 500) continues to attract macro allocators seeking uncorrelated returns ahead of Q2 earnings season.</div>
+  </div>
+</main>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 4 — DERIVATIVES STUDIO
+══════════════════════════════════════ -->
+<div id="derivatives" class="screen">
+<main class="page">
+  <div class="breadcrumb" onclick="showScreen('home')">← <span class="breadcrumb-sep">Home</span> / Derivatives Studio</div>
+  <div class="page-header">
+    <div class="page-eyebrow">Trade Structuring</div>
+    <div class="page-title">Derivatives Studio</div>
+    <div class="page-sub">Configure your trade parameters and generate a branded, shareable client report.</div>
+  </div>
+
+  <div class="split-left-wide" style="align-items:start;">
+    <!-- LEFT: form -->
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label" style="margin-bottom:18px;">Trade Configuration</div>
+        <div class="form-row form-row-2" style="margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Product Type</label>
+            <select class="form-select">
+              <option>Covered Call</option>
+              <option>Cash-Secured Put</option>
+              <option>Protective Put</option>
+              <option>Bull Call Spread</option>
+              <option>Bear Put Spread</option>
+              <option>Collar</option>
+              <option>Straddle</option>
+              <option>Strangle</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Underlying Asset</label>
+            <select class="form-select">
+              <option>BTC — Bitcoin</option>
+              <option>ETH — Ethereum</option>
+              <option>SOL — Solana</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Spot Price ($)</label>
+            <input class="form-input" value="93,400" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Strike Price ($)</label>
+            <input class="form-input" value="98,000" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Expiry Date</label>
+            <input class="form-input" value="Apr 19, 2026" />
+          </div>
+        </div>
+        <div class="form-row form-row-3" style="margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Notional (BTC)</label>
+            <input class="form-input" value="5.0" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Implied Vol (%)</label>
+            <input class="form-input" value="52.0" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Risk-Free Rate (%)</label>
+            <input class="form-input" value="5.25" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label" style="margin-bottom:16px;">Client Details</div>
+        <div class="form-group">
+          <label class="form-label">Client / Counterparty Name</label>
+          <input class="form-input" placeholder="e.g. Acme Capital Management" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Additional Notes (optional)</label>
+          <textarea class="form-textarea" style="min-height:80px;" placeholder="Context for the executive summary..."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="btn-primary" style="padding:11px 28px;font-size:11px;">Generate Report →</button>
+        <button class="btn-ghost">Save Draft</button>
+        <button class="btn-ghost">Reset</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: preview -->
+    <div>
+      <div class="section-label" style="margin-bottom:14px;">Report Preview</div>
+      <div class="report-preview">
+        <div class="rp-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div class="rp-logo">SECURE DIGITAL MARKETS</div>
+            <div style="font-family:'Poppins',sans-serif;font-size:10px;color:rgba(26,26,24,0.6);margin-top:1px;">Trade Structuring Report</div>
+          </div>
+          <svg viewBox="62 68 110 106" width="32" height="32"><path fill="#1A1A18" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/><path fill="#1A1A18" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/></svg>
+        </div>
+        <div class="rp-body">
+          <div class="rp-title">Covered Call — BTC $98,000</div>
+          <div class="rp-sub">Acme Capital Management &nbsp;·&nbsp; April 19, 2026</div>
+          <div class="rp-row"><span class="rp-key">Spot Reference</span><span class="rp-val">$93,400</span></div>
+          <div class="rp-row"><span class="rp-key">Strike</span><span class="rp-val">$98,000 (+4.9%)</span></div>
+          <div class="rp-row"><span class="rp-key">Notional</span><span class="rp-val">5.0 BTC · $467,000</span></div>
+          <div class="rp-row"><span class="rp-key">Premium Earned</span><span class="rp-val" style="color:#4ADE80;">+$8,240 (1.76%)</span></div>
+          <div class="rp-row"><span class="rp-key">Max Gain</span><span class="rp-val">$31,040</span></div>
+          <div class="rp-row"><span class="rp-key">Breakeven</span><span class="rp-val">$91,752</span></div>
+          <!-- Payoff Diagram — Covered Call SVG -->
+          <div style="margin-top:16px;background:rgba(255,255,255,0.03);border-radius:8px;padding:14px 12px 8px;">
+            <div style="font-size:8px;font-family:'Montserrat',sans-serif;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:10px;">Payoff at Expiry</div>
+            <svg viewBox="0 0 460 145" width="100%" height="145" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+              <!-- Grid lines -->
+              <line x1="40" y1="18" x2="450" y2="18" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+              <line x1="40" y1="45" x2="450" y2="45" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+              <line x1="40" y1="72" x2="450" y2="72" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+              <line x1="40" y1="99" x2="450" y2="99" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+              <line x1="40" y1="122" x2="450" y2="122" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+
+              <!-- Zero line (P&L = 0) -->
+              <line x1="40" y1="88" x2="450" y2="88" stroke="rgba(255,255,255,0.15)" stroke-width="0.75" stroke-dasharray="4,3"/>
+
+              <!-- Loss fill — left of breakeven, below zero -->
+              <polygon points="40,128 183,88 40,88" fill="rgba(239,68,68,0.09)"/>
+              <!-- Gain fill — breakeven → right, above zero -->
+              <polygon points="183,88 260,55 450,55 450,88" fill="rgba(74,222,128,0.07)"/>
+
+              <!-- RED segment: far left → breakeven -->
+              <polyline points="40,128 183,88" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round"/>
+              <!-- GOLD segment: breakeven → strike (max gain) -->
+              <polyline points="183,88 260,55" fill="none" stroke="#FFC32C" stroke-width="2" stroke-linecap="round"/>
+              <!-- GOLD dashed flat: strike → far right (capped) -->
+              <polyline points="260,55 450,55" fill="none" stroke="#FFC32C" stroke-width="2" stroke-linecap="round" stroke-dasharray="5,3" opacity="0.7"/>
+
+              <!-- Spot reference vertical -->
+              <line x1="210" y1="20" x2="210" y2="122" stroke="rgba(255,255,255,0.15)" stroke-width="0.75" stroke-dasharray="3,3"/>
+              <!-- Strike vertical -->
+              <line x1="260" y1="20" x2="260" y2="55" stroke="rgba(255,195,44,0.4)" stroke-width="0.75" stroke-dasharray="3,3"/>
+
+              <!-- Spot dot -->
+              <circle cx="210" cy="73" r="3.5" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+
+              <!-- Max gain dot -->
+              <circle cx="260" cy="55" r="4" fill="#FFC32C"/>
+              <circle cx="260" cy="55" r="2" fill="#1A1A18"/>
+
+              <!-- Breakeven dot -->
+              <circle cx="183" cy="88" r="3" fill="rgba(255,255,255,0.3)"/>
+
+              <!-- X-axis labels -->
+              <text x="36" y="140" font-family="'Poppins',sans-serif" font-size="7.5" fill="rgba(255,255,255,0.25)">$80k</text>
+              <text x="165" y="140" font-family="'Poppins',sans-serif" font-size="7.5" fill="rgba(255,255,255,0.3)">$91.7k</text>
+              <text x="200" y="140" font-family="'Poppins',sans-serif" font-size="7.5" fill="rgba(255,255,255,0.4)">$93.4k</text>
+              <text x="250" y="140" font-family="'Poppins',sans-serif" font-size="7.5" fill="rgba(255,195,44,0.7)">$98k ✕</text>
+              <text x="424" y="140" font-family="'Poppins',sans-serif" font-size="7.5" fill="rgba(255,255,255,0.25)">$115k</text>
+
+              <!-- Y-axis labels -->
+              <text x="0" y="58" font-family="'Poppins',sans-serif" font-size="7" fill="rgba(74,222,128,0.7)">+$12.8k</text>
+              <text x="8" y="91" font-family="'Poppins',sans-serif" font-size="7" fill="rgba(255,255,255,0.25)">$0</text>
+              <text x="4" y="130" font-family="'Poppins',sans-serif" font-size="7" fill="rgba(248,113,113,0.7)">–$8k</text>
+
+              <!-- Callout badges -->
+              <rect x="215" y="60" width="31" height="12" rx="3" fill="rgba(255,255,255,0.07)"/>
+              <text x="218" y="69" font-family="'Montserrat',sans-serif" font-size="7" font-weight="700" fill="rgba(255,255,255,0.45)">SPOT</text>
+
+              <rect x="264" y="42" width="48" height="12" rx="3" fill="rgba(255,195,44,0.15)"/>
+              <text x="267" y="51" font-family="'Montserrat',sans-serif" font-size="7" font-weight="700" fill="rgba(255,195,44,0.8)">MAX GAIN</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-ghost" style="flex:1;font-size:11px;">Export PDF</button>
+        <button class="btn-ghost" style="flex:1;font-size:11px;">Share Link ↗</button>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 5 — OPTIONS PRICER
+══════════════════════════════════════ -->
+<div id="options" class="screen">
+<div style="background:#0D0D0D;min-height:100vh;">
+<main class="page" style="max-width:1100px;">
+  <div class="breadcrumb" onclick="showScreen('home')" style="color:rgba(255,255,255,0.3);">
+    <span style="color:rgba(255,255,255,0.2);">←</span> <span style="color:rgba(255,255,255,0.2);">Home</span> <span style="opacity:0.3;">/</span> <span style="color:rgba(255,255,255,0.45);">Options Pricer</span>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;">
+    <div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:8px;">Black-Scholes Engine</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em;">Options Pricer</div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-ghost" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-size:11px;">Export CSV</button>
+      <button style="padding:8px 20px;background:var(--yellow);border:none;border-radius:var(--r-pill);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.05em;color:#1A1A18;cursor:pointer;">+ Add Leg</button>
+    </div>
+  </div>
+
+  <!-- Config bar -->
+  <div style="background:#161616;border:0.5px solid rgba(255,255,255,0.07);border-radius:var(--r-card);padding:16px 20px;margin-bottom:16px;display:flex;gap:24px;align-items:center;">
+    <div>
+      <label class="opts-label">Underlying</label>
+      <select class="opts-input" style="width:140px;">
+        <option>BTC / USD</option><option>ETH / USD</option><option>SOL / USD</option>
+      </select>
+    </div>
+    <div>
+      <label class="opts-label">Global Spot ($)</label>
+      <input class="opts-input" value="93,400" style="width:120px;" />
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+      <div style="width:32px;height:17px;background:var(--yellow);border-radius:999px;position:relative;cursor:pointer;">
+        <div style="width:13px;height:13px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;"></div>
+      </div>
+      <span style="font-family:'Poppins',sans-serif;font-size:11px;color:rgba(255,255,255,0.4);">Sync spot to all legs</span>
+    </div>
+    <div style="margin-left:auto;font-family:'Poppins',sans-serif;font-size:11px;color:rgba(255,255,255,0.25);">3 legs · Last calc: 0.3ms</div>
+  </div>
+
+  <!-- Leg table -->
+  <div style="background:#161616;border:0.5px solid rgba(255,255,255,0.07);border-radius:var(--r-card);overflow:hidden;margin-bottom:16px;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th class="opts-th">#</th>
+          <th class="opts-th">Type</th>
+          <th class="opts-th">Side</th>
+          <th class="opts-th">Strike ($)</th>
+          <th class="opts-th">Expiry</th>
+          <th class="opts-th">IV (%)</th>
+          <th class="opts-th">Qty</th>
+          <th class="opts-th"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="opts-td" style="color:rgba(255,255,255,0.3);">1</td>
+          <td class="opts-td"><select class="opts-input" style="width:72px;padding:4px 8px;font-size:11px;"><option>Call</option><option>Put</option></select></td>
+          <td class="opts-td"><select class="opts-input" style="width:68px;padding:4px 8px;font-size:11px;"><option>Buy</option><option>Sell</option></select></td>
+          <td class="opts-td"><input class="opts-input" value="98,000" style="width:100px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="Apr 19, 2026" style="width:120px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="52.0" style="width:72px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="1" style="width:55px;" /></td>
+          <td class="opts-td"><span style="color:rgba(255,255,255,0.2);cursor:pointer;font-size:16px;">×</span></td>
+        </tr>
+        <tr>
+          <td class="opts-td" style="color:rgba(255,255,255,0.3);">2</td>
+          <td class="opts-td"><select class="opts-input" style="width:72px;padding:4px 8px;font-size:11px;"><option selected>Put</option><option>Call</option></select></td>
+          <td class="opts-td"><select class="opts-input" style="width:68px;padding:4px 8px;font-size:11px;"><option>Buy</option><option>Sell</option></select></td>
+          <td class="opts-td"><input class="opts-input" value="85,000" style="width:100px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="Apr 19, 2026" style="width:120px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="55.0" style="width:72px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="1" style="width:55px;" /></td>
+          <td class="opts-td"><span style="color:rgba(255,255,255,0.2);cursor:pointer;font-size:16px;">×</span></td>
+        </tr>
+        <tr>
+          <td class="opts-td" style="color:rgba(255,255,255,0.3);">3</td>
+          <td class="opts-td"><select class="opts-input" style="width:72px;padding:4px 8px;font-size:11px;"><option>Call</option><option>Put</option></select></td>
+          <td class="opts-td"><select class="opts-input" style="width:68px;padding:4px 8px;font-size:11px;"><option>Sell</option><option>Buy</option></select></td>
+          <td class="opts-td"><input class="opts-input" value="105,000" style="width:100px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="Apr 19, 2026" style="width:120px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="50.0" style="width:72px;" /></td>
+          <td class="opts-td"><input class="opts-input" value="1" style="width:55px;" /></td>
+          <td class="opts-td"><span style="color:rgba(255,255,255,0.2);cursor:pointer;font-size:16px;">×</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Results table -->
+  <div style="background:#161616;border:0.5px solid rgba(255,255,255,0.07);border-radius:var(--r-card);overflow:hidden;margin-bottom:16px;">
+    <div style="padding:14px 16px 10px;border-bottom:0.5px solid rgba(255,255,255,0.07);">
+      <span style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.3);">Pricing Results</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th class="opts-th">Leg</th>
+        <th class="opts-th">Price ($)</th>
+        <th class="opts-th">Delta</th>
+        <th class="opts-th">Gamma</th>
+        <th class="opts-th">Vega</th>
+        <th class="opts-th">Theta</th>
+        <th class="opts-th">Net P&amp;L</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="opts-td">1 · Buy Call $98k</td><td class="opts-td gold">$3,284</td><td class="opts-td">0.412</td><td class="opts-td">0.000041</td><td class="opts-td">182.4</td><td class="opts-td neg">–$142</td><td class="opts-td neg">–$3,284</td></tr>
+        <tr><td class="opts-td">2 · Buy Put $85k</td><td class="opts-td gold">$2,108</td><td class="opts-td neg">–0.288</td><td class="opts-td">0.000033</td><td class="opts-td">159.2</td><td class="opts-td neg">–$118</td><td class="opts-td neg">–$2,108</td></tr>
+        <tr><td class="opts-td">3 · Sell Call $105k</td><td class="opts-td gold">$2,041</td><td class="opts-td">0.301</td><td class="opts-td">0.000029</td><td class="opts-td">148.7</td><td class="opts-td pos">+$104</td><td class="opts-td pos">+$2,041</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Net summary -->
+  <div style="background:#161616;border:1px solid rgba(255,195,44,0.25);border-radius:var(--r-card);padding:18px 20px;display:flex;gap:40px;align-items:center;">
+    <div><div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(255,195,44,0.6);text-transform:uppercase;margin-bottom:4px;">Net Premium</div><div style="font-family:'Montserrat',sans-serif;font-size:22px;font-weight:600;color:var(--yellow);">–$3,351</div></div>
+    <div style="width:0.5px;height:40px;background:rgba(255,255,255,0.07);"></div>
+    <div><div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:4px;">Net Delta</div><div style="font-family:'Montserrat',sans-serif;font-size:22px;font-weight:600;color:rgba(255,255,255,0.85);">+0.425</div></div>
+    <div style="width:0.5px;height:40px;background:rgba(255,255,255,0.07);"></div>
+    <div><div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:4px;">Net Theta</div><div style="font-family:'Montserrat',sans-serif;font-size:22px;font-weight:600;color:#F87171;">–$156/day</div></div>
+    <div style="width:0.5px;height:40px;background:rgba(255,255,255,0.07);"></div>
+    <div><div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:4px;">Strategy</div><div style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:600;color:rgba(255,255,255,0.7);">Collar</div></div>
+  </div>
+</main>
+</div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 6 — LENDING CALCULATOR
+══════════════════════════════════════ -->
+<div id="lending" class="screen">
+<main class="page">
+  <div class="breadcrumb" onclick="showScreen('home')">← <span class="breadcrumb-sep">Home</span> / Lending Calculator</div>
+  <div class="page-header">
+    <div class="page-eyebrow">Collateralized Lending</div>
+    <div class="page-title">Lending Calculator</div>
+    <div class="page-sub">Structure a collateralized digital asset loan and generate a branded proposal for your client.</div>
+  </div>
+
+  <div class="split">
+    <!-- LEFT -->
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label" style="margin-bottom:18px;">Loan Terms</div>
+        <div class="form-group">
+          <label class="form-label">Borrower Name</label>
+          <input class="form-input" placeholder="e.g. Acme Capital Management" />
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Collateral Asset</label>
+            <select class="form-select"><option>BTC</option><option>ETH</option><option>SOL</option></select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Collateral Amount</label>
+            <input class="form-input" value="10.0" />
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Loan Amount (USD)</label>
+            <input class="form-input" value="560,000" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">LTV Ratio (%)</label>
+            <input class="form-input" value="60" style="background:var(--yellow-bg);border-color:rgba(255,195,44,0.4);" />
+          </div>
+        </div>
+        <div class="form-row form-row-2" style="margin-bottom:16px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Interest Rate (% APR)</label>
+            <input class="form-input" value="12.0" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Tenor</label>
+            <select class="form-select"><option>30 Days</option><option>60 Days</option><option selected>90 Days</option><option>180 Days</option><option>365 Days</option></select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Payment Structure</label>
+          <select class="form-select"><option>Interest-only, bullet repayment</option><option>Monthly amortizing</option><option>Bullet (no interim payments)</option></select>
+        </div>
+      </div>
+      <button class="btn-primary" style="padding:11px 28px;font-size:11px;margin-right:10px;">Generate Proposal →</button>
+      <button class="btn-ghost">Export PDF</button>
+    </div>
+
+    <!-- RIGHT: summary + schedule -->
+    <div>
+      <div class="stat-row" style="gap:10px;">
+        <div class="stat-box"><div class="stat-box-num">$93,400</div><div class="stat-box-label">BTC Spot (live)</div></div>
+        <div class="stat-box"><div class="stat-box-num">$934,000</div><div class="stat-box-label">Collateral Value</div></div>
+        <div class="stat-box" style="border-color:rgba(255,195,44,0.4);background:var(--yellow-bg);"><div class="stat-box-num">60.0%</div><div class="stat-box-label">Initial LTV</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="section-label" style="margin-bottom:14px;">Risk Levels</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#FFF8E6;border:0.5px solid rgba(255,195,44,0.35);border-radius:var(--r-sm);">
+            <div><div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#7A5500;margin-bottom:2px;">MARGIN CALL</div><div style="font-family:'Poppins',sans-serif;font-size:11px;color:#7A5500;font-weight:300;">70% LTV trigger</div></div>
+            <div style="font-family:'Montserrat',sans-serif;font-size:18px;font-weight:600;color:#B45309;">$80,000</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#FEF2F2;border:0.5px solid rgba(185,28,28,0.2);border-radius:var(--r-sm);">
+            <div><div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;color:#B91C1C;margin-bottom:2px;">LIQUIDATION</div><div style="font-family:'Poppins',sans-serif;font-size:11px;color:#B91C1C;font-weight:300;">80% LTV trigger</div></div>
+            <div style="font-family:'Montserrat',sans-serif;font-size:18px;font-weight:600;color:#B91C1C;">$70,000</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label" style="margin-bottom:14px;">Payment Schedule</div>
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Date</th><th>Interest</th><th>Principal</th><th>Balance</th></tr></thead>
+          <tbody>
+            <tr><td>Month 1</td><td>Apr 20</td><td>$5,600</td><td>—</td><td>$560,000</td></tr>
+            <tr><td>Month 2</td><td>May 20</td><td>$5,600</td><td>—</td><td>$560,000</td></tr>
+            <tr><td>Month 3</td><td>Jun 20</td><td>$5,600</td><td>$560,000</td><td style="font-weight:500;color:var(--ink);">$0</td></tr>
+            <tr><td style="font-weight:600;color:var(--ink);">Total</td><td>—</td><td style="font-weight:600;color:var(--ink);">$16,800</td><td style="font-weight:600;color:var(--ink);">$560,000</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+
+
+
+<!-- ══════════════════════════════════════
+     SCREEN 8 — SALES LIBRARY
+══════════════════════════════════════ -->
+<div id="library" class="screen">
+<main class="page">
+  <div class="breadcrumb" onclick="showScreen('home')">← <span class="breadcrumb-sep">Home</span> / Sales Library</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;">
+    <div class="page-header" style="margin-bottom:0;">
+      <div class="page-eyebrow">Document Vault</div>
+      <div class="page-title">Sales Library</div>
+      <div class="page-sub">Browse, preview, and share SDM pitch decks, one-pagers, and proposals.</div>
+    </div>
+    <button class="btn-primary" style="margin-top:28px;">+ Upload Document</button>
+  </div>
+
+  <div class="search-bar">
+    <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="search-input" placeholder="Search documents…" />
+  </div>
+
+  <div class="filter-row">
+    <div class="filter-pill active">All (18)</div>
+    <div class="filter-pill">Pitch Decks (6)</div>
+    <div class="filter-pill">One-Pagers (5)</div>
+    <div class="filter-pill">Proposals (4)</div>
+    <div class="filter-pill">Factsheets (3)</div>
+  </div>
+
+  <div class="doc-grid">
+    <!-- Doc 1 -->
+    <div class="doc-card">
+      <div class="doc-thumb">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-blue" style="font-size:8px;">DECK</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">SDM Company Overview 2026</div>
+        <div class="doc-meta">Updated Mar 15 · 24 slides</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 2 -->
+    <div class="doc-card">
+      <div class="doc-thumb" style="background:#FFF8E6;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-yellow" style="font-size:8px;">ONE-PAGER</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">Covered Call Strategy Brief</div>
+        <div class="doc-meta">Updated Mar 10 · 1 page</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 3 -->
+    <div class="doc-card">
+      <div class="doc-thumb" style="background:#EEF2FF;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1851EB" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-blue" style="font-size:8px;">DECK</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">Institutional Lending Program</div>
+        <div class="doc-meta">Updated Feb 28 · 18 slides</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 4 -->
+    <div class="doc-card">
+      <div class="doc-thumb">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-live" style="font-size:8px;">FACTSHEET</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">Options Product Factsheet</div>
+        <div class="doc-meta">Updated Mar 1 · 2 pages</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 5 -->
+    <div class="doc-card">
+      <div class="doc-thumb" style="background:#FFF8E6;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-yellow" style="font-size:8px;">ONE-PAGER</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">BTC Collar Strategy — Q1 2026</div>
+        <div class="doc-meta">Updated Mar 5 · 1 page</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 6 -->
+    <div class="doc-card">
+      <div class="doc-thumb" style="background:#EEF2FF;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1851EB" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-blue" style="font-size:8px;">PROPOSAL</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">Acme Capital — Lending Proposal</div>
+        <div class="doc-meta">Updated Mar 8 · 6 pages</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 7 -->
+    <div class="doc-card">
+      <div class="doc-thumb">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-blue" style="font-size:8px;">DECK</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">Derivatives 101 — Client Education</div>
+        <div class="doc-meta">Updated Jan 20 · 32 slides</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+    <!-- Doc 8 -->
+    <div class="doc-card">
+      <div class="doc-thumb" style="background:#E6F5EE;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1A6B3C" stroke-width="1.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="position:absolute;top:8px;right:8px;"><span class="tag tag-live" style="font-size:8px;">FACTSHEET</span></div>
+      </div>
+      <div class="doc-info">
+        <div class="doc-title">Lending Terms — Standard 2026</div>
+        <div class="doc-meta">Updated Feb 14 · 2 pages</div>
+        <div class="doc-actions"><button class="doc-btn primary">Download</button><button class="doc-btn">Share ↗</button></div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+
+<div class="wf-badge">SDM TRADE STUDIO · PROTOTYPE · 2026</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const screen = document.getElementById(id);
+  if (screen) screen.classList.add('active');
+  const tab = document.querySelector(`[data-screen="${id}"]`);
+  if (tab) tab.classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

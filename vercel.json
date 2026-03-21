@@ -9,10 +9,13 @@
     "api/enrich-leads.js": { "maxDuration": 60, "memory": 512 }
   },
   "rewrites": [
-    { "source": "/api/share",        "destination": "/api/share" },
-    { "source": "/api/ask-ai",       "destination": "/api/ask-ai" },
-    { "source": "/api/generate",     "destination": "/api/generate" },
-    { "source": "/api/enrich-leads", "destination": "/api/enrich-leads" },
-    { "source": "/(.*)",             "destination": "/index.html" }
+    { "source": "/api/share",                         "destination": "/api/share" },
+    { "source": "/api/ask-ai",                        "destination": "/api/ask-ai" },
+    { "source": "/api/generate",                      "destination": "/api/generate" },
+    { "source": "/api/enrich-leads",                  "destination": "/api/enrich-leads" },
+    { "source": "/previews/market-brief.html",        "destination": "/previews/market-brief.html" },
+    { "source": "/previews/covered-call-report.html", "destination": "/previews/covered-call-report.html" },
+    { "source": "/previews/wireframe.html",           "destination": "/previews/wireframe.html" },
+    { "source": "/(.*)",                              "destination": "/index.html" }
   ]
 }

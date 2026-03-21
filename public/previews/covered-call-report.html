@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SDM Trade Report — BTC Covered Call $100,000 Strike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --gold:#FFC32C;
+  --blue:#1851EB;
+  --ink:#1A1A18;
+  --ink-2:#4A4A48;
+  --ink-3:#8A8A88;
+  --bg:#FDFCF7;
+  --surface:#F5F4EF;
+  --border:#E8E7E2;
+  --r:10px;
+  --r-sm:6px;
+}
+body{background:var(--bg);color:var(--ink);font-family:'Poppins',sans-serif;-webkit-font-smoothing:antialiased;}
+.page-wrap{max-width:860px;margin:0 auto;}
+
+/* ── MASTHEAD ── */
+.masthead{background:var(--ink);padding:28px 40px 24px;}
+.mast-inner{display:flex;align-items:flex-start;justify-content:space-between;}
+.mast-left{display:flex;align-items:center;gap:14px;}
+.mast-wordmark{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#fff;letter-spacing:0.08em;}
+.mast-div{width:1px;height:26px;background:rgba(255,255,255,0.15);}
+.mast-pub{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3);}
+.mast-right{text-align:right;}
+.mast-date{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:0.04em;}
+.mast-ref{font-family:'Poppins',sans-serif;font-size:9px;color:rgba(255,255,255,0.2);margin-top:3px;}
+.gold-rule{height:3px;background:linear-gradient(90deg,var(--gold) 0%,rgba(255,195,44,0.25) 60%,transparent 100%);}
+
+/* ── HERO ── */
+.hero{padding:36px 40px 32px;border-bottom:0.5px solid var(--border);}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(255,195,44,0.12);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7A5500;margin-bottom:14px;}
+.hero-title{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;color:var(--ink);line-height:1.15;letter-spacing:-0.025em;margin-bottom:8px;}
+.hero-sub{font-family:'Poppins',sans-serif;font-size:13px;color:var(--ink-3);font-weight:300;}
+.hero-sub strong{color:var(--ink-2);font-weight:500;}
+
+/* ── METRICS GRID ── */
+.metrics-strip{background:#fff;border-bottom:0.5px solid var(--border);display:grid;grid-template-columns:repeat(6,1fr);}
+.metric{padding:18px 20px;border-right:0.5px solid var(--border);}
+.metric:last-child{border-right:none;}
+.metric-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;}
+.metric-val{font-family:'Montserrat',sans-serif;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;}
+.metric-val.gold{color:#7A5500;}
+.metric-val.green{color:#16a34a;}
+.metric-sub{font-family:'Poppins',sans-serif;font-size:10px;color:var(--ink-3);margin-top:3px;}
+
+/* ── CONTENT ── */
+.content{padding:36px 40px;}
+
+/* ── PAYOFF SECTION ── */
+.payoff-card{background:#fff;border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:24px;}
+.payoff-head{padding:14px 20px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.payoff-head-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);}
+.payoff-head-badge{display:flex;gap:16px;}
+.payoff-legend{display:flex;align-items:center;gap:5px;font-family:'Poppins',sans-serif;font-size:10px;color:var(--ink-3);}
+.leg-dot{width:10px;height:3px;border-radius:2px;}
+.payoff-body{padding:20px 20px 12px;}
+.payoff-zones{display:flex;justify-content:space-between;margin-top:10px;}
+.zone{text-align:center;padding:8px 16px;border-radius:var(--r-sm);font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.08em;}
+.zone-loss{background:rgba(220,38,38,0.07);color:#991b1b;}
+.zone-profit{background:rgba(22,163,74,0.08);color:#166534;}
+.zone-capped{background:rgba(255,195,44,0.1);color:#7A5500;}
+
+
+/* ── SCENARIO TABLE ── */
+.scenario-card{background:#fff;border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:24px;}
+.scenario-head{padding:14px 20px;border-bottom:0.5px solid var(--border);font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);}
+table.scenario{width:100%;border-collapse:collapse;}
+table.scenario th{padding:10px 16px;font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);background:var(--surface);border-bottom:0.5px solid var(--border);text-align:left;}
+table.scenario td{padding:10px 16px;font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-2);border-bottom:0.5px solid var(--border);}
+table.scenario tr:last-child td{border-bottom:none;}
+table.scenario tr.current td{background:rgba(255,195,44,0.06);}
+.pnl-pos{font-family:'Montserrat',sans-serif;font-weight:600;color:#16a34a;}
+.pnl-neg{font-family:'Montserrat',sans-serif;font-weight:600;color:#dc2626;}
+.pnl-flat{font-family:'Montserrat',sans-serif;font-weight:600;color:var(--ink-3);}
+.spot-badge{background:rgba(255,195,44,0.15);color:#7A5500;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:6px;}
+
+/* ── EXEC SUMMARY ── */
+.exec-section{margin-bottom:24px;}
+.exec-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid var(--border);}
+.exec-body{font-family:'Poppins',sans-serif;font-size:13px;line-height:1.85;color:var(--ink-2);font-weight:300;}
+.exec-body strong{font-weight:600;color:var(--ink);}
+
+/* ── RISK NOTES ── */
+.risk-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+.risk-item{display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:var(--surface);border-radius:var(--r-sm);}
+.risk-icon{flex-shrink:0;width:18px;height:18px;background:rgba(220,38,38,0.1);border-radius:4px;display:flex;align-items:center;justify-content:center;}
+.risk-text{font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-2);line-height:1.6;}
+
+/* ── TWO-COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
+
+/* ── FOOTER ── */
+.brief-footer{background:var(--ink);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;margin-top:0;}
+.footer-copy{font-family:'Poppins',sans-serif;font-size:10px;color:rgba(255,255,255,0.3);line-height:1.6;}
+.footer-disclaim{font-family:'Poppins',sans-serif;font-size:9px;color:rgba(255,255,255,0.2);max-width:440px;text-align:right;line-height:1.5;}
+
+.watermark{position:fixed;bottom:20px;right:20px;background:var(--ink);color:rgba(255,255,255,0.4);font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:6px 12px;border-radius:20px;pointer-events:none;}
+
+/* ── CALLOUT ── */
+.callout{background:rgba(255,195,44,0.08);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:14px 18px;margin:16px 0;}
+.callout-text{font-family:'Poppins',sans-serif;font-size:13px;line-height:1.7;color:var(--ink);font-weight:400;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- MASTHEAD -->
+  <div class="masthead">
+    <div class="mast-inner">
+      <div class="mast-left">
+        <svg viewBox="62 68 110 106" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+          <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+        </svg>
+        <span class="mast-wordmark">SECURE DIGITAL MARKETS</span>
+        <div class="mast-div"></div>
+        <span class="mast-pub">Trade Structuring Report</span>
+      </div>
+      <div class="mast-right">
+        <div class="mast-date">March 21, 2026 &nbsp;·&nbsp; SDM Structuring Desk</div>
+        <div class="mast-ref">Ref: SDM-2026-0321-BTC-CC &nbsp;·&nbsp; Prepared for: Apex Capital Partners</div>
+      </div>
+    </div>
+  </div>
+  <div class="gold-rule"></div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+      Yield Enhancement Strategy
+    </div>
+    <div class="hero-title">BTC Covered Call<br>$100,000 Strike &nbsp;·&nbsp; 30 Days</div>
+    <div class="hero-sub">
+      Prepared for <strong>Apex Capital Partners</strong> &nbsp;·&nbsp; Spot Reference <strong>$95,240</strong> &nbsp;·&nbsp; Notional <strong>10 BTC</strong>
+    </div>
+  </div>
+
+  <!-- METRICS STRIP -->
+  <div class="metrics-strip">
+    <div class="metric">
+      <div class="metric-label">Spot Reference</div>
+      <div class="metric-val">$95,240</div>
+      <div class="metric-sub">BTC/USD</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Strike Price</div>
+      <div class="metric-val gold">$100,000</div>
+      <div class="metric-sub">+4.99% OTM</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Premium / BTC</div>
+      <div class="metric-val green">$2,841</div>
+      <div class="metric-sub">2.98% yield</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total Premium</div>
+      <div class="metric-val green">$28,410</div>
+      <div class="metric-sub">10 BTC notional</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Expiry</div>
+      <div class="metric-val" style="font-size:14px;">Apr 20, 2026</div>
+      <div class="metric-sub">30 calendar days</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Implied Vol</div>
+      <div class="metric-val">72.0%</div>
+      <div class="metric-sub">vs 58% realized</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- PAYOFF DIAGRAM -->
+    <div class="payoff-card">
+      <div class="payoff-head">
+        <div class="payoff-head-title">Payoff Diagram — At Expiry (per 10 BTC)</div>
+        <div class="payoff-head-badge">
+          <div class="payoff-legend"><div class="leg-dot" style="background:#EF4444;"></div> Loss zone</div>
+          <div class="payoff-legend"><div class="leg-dot" style="background:#FFC32C;"></div> Profit zone</div>
+          <div class="payoff-legend"><div class="leg-dot" style="background:#FFC32C;opacity:0.35;width:12px;border-top:2px dashed #FFC32C;height:0;"></div> Capped above strike</div>
+        </div>
+      </div>
+      <div class="payoff-body">
+        <svg viewBox="0 0 780 180" width="100%" height="180" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background zones -->
+          <rect x="50" y="10" width="248" height="140" fill="rgba(239,68,68,0.04)" rx="2"/>
+          <rect x="298" y="10" width="182" height="140" fill="rgba(74,222,128,0.05)" rx="2"/>
+          <rect x="480" y="10" width="290" height="140" fill="rgba(255,195,44,0.05)" rx="2"/>
+
+          <!-- Grid horizontals -->
+          <line x1="50" y1="35" x2="770" y2="35" stroke="rgba(26,26,24,0.05)" stroke-width="0.5"/>
+          <line x1="50" y1="60" x2="770" y2="60" stroke="rgba(26,26,24,0.05)" stroke-width="0.5"/>
+          <line x1="50" y1="85" x2="770" y2="85" stroke="rgba(26,26,24,0.05)" stroke-width="0.5"/>
+          <line x1="50" y1="110" x2="770" y2="110" stroke="rgba(26,26,24,0.05)" stroke-width="0.5"/>
+          <line x1="50" y1="135" x2="770" y2="135" stroke="rgba(26,26,24,0.05)" stroke-width="0.5"/>
+
+          <!-- Zero line -->
+          <line x1="50" y1="110" x2="770" y2="110" stroke="rgba(26,26,24,0.2)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="22" y="114" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(26,26,24,0.35)">$0</text>
+
+          <!-- Y-axis labels -->
+          <text x="5" y="39" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(22,163,74,0.7)">+$60k</text>
+          <text x="5" y="64" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(22,163,74,0.7)">+$40k</text>
+          <text x="5" y="89" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(22,163,74,0.7)">+$20k</text>
+          <text x="5" y="139" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(220,38,38,0.65)">–$20k</text>
+
+          <!-- Payoff fills -->
+          <!-- Loss polygon: from far left to breakeven -->
+          <polygon points="50,160 298,110 50,110" fill="rgba(239,68,68,0.08)"/>
+          <!-- Gain polygon: breakeven to strike to max -->
+          <polygon points="298,110 480,77 770,77 770,110" fill="rgba(74,222,128,0.07)"/>
+
+          <!-- RED LINE: far left → breakeven ($92,400) -->
+          <polyline points="50,160 298,110" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
+
+          <!-- GOLD LINE: breakeven → strike ($100k) -->
+          <polyline points="298,110 480,77" fill="none" stroke="#FFC32C" stroke-width="2.5" stroke-linecap="round"/>
+
+          <!-- GOLD DASHED FLAT: strike → far right -->
+          <polyline points="480,77 770,77" fill="none" stroke="#FFC32C" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7,4" opacity="0.75"/>
+
+          <!-- Vertical: current spot -->
+          <line x1="408" y1="15" x2="408" y2="150" stroke="rgba(26,26,24,0.18)" stroke-width="1" stroke-dasharray="4,3"/>
+          <!-- Vertical: strike -->
+          <line x1="480" y1="15" x2="480" y2="77" stroke="rgba(255,195,44,0.5)" stroke-width="1" stroke-dasharray="4,3"/>
+
+          <!-- Spot dot -->
+          <circle cx="408" cy="91" r="5" fill="var(--ink)" stroke="#fff" stroke-width="2"/>
+          <!-- Strike dot (max gain) -->
+          <circle cx="480" cy="77" r="6" fill="#FFC32C"/>
+          <circle cx="480" cy="77" r="2.5" fill="#1A1A18"/>
+          <!-- Breakeven dot -->
+          <circle cx="298" cy="110" r="4" fill="rgba(26,26,24,0.3)" stroke="rgba(26,26,24,0.5)" stroke-width="1"/>
+
+          <!-- X labels -->
+          <text x="42" y="168" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(26,26,24,0.35)">$75k</text>
+          <text x="286" y="168" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(26,26,24,0.45)">$92.4k</text>
+          <text x="396" y="168" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(26,26,24,0.6)">$95.2k</text>
+          <text x="466" y="168" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(180,130,0,0.8)">$100k</text>
+          <text x="746" y="168" font-family="'Poppins',sans-serif" font-size="9" fill="rgba(26,26,24,0.35)">$125k</text>
+
+          <!-- Callout labels -->
+          <rect x="352" y="68" width="51" height="16" rx="4" fill="rgba(26,26,24,0.07)"/>
+          <text x="356" y="80" font-family="'Montserrat',sans-serif" font-size="8" font-weight="700" fill="rgba(26,26,24,0.55)">SPOT REF</text>
+
+          <rect x="485" y="64" width="64" height="16" rx="4" fill="rgba(255,195,44,0.18)"/>
+          <text x="489" y="76" font-family="'Montserrat',sans-serif" font-size="8" font-weight="700" fill="rgba(140,100,0,0.9)">MAX GAIN</text>
+
+          <text x="100" y="100" font-family="'Montserrat',sans-serif" font-size="8" font-weight="700" fill="rgba(220,38,38,0.45)">DOWNSIDE (SPOT DECLINES)</text>
+          <text x="530" y="68" font-family="'Montserrat',sans-serif" font-size="8" font-weight="700" fill="rgba(180,130,0,0.55)">CAPPED ABOVE STRIKE</text>
+        </svg>
+
+        <div class="payoff-zones" style="margin-top:8px;">
+          <div class="zone zone-loss">Below $92,400 · Loss zone</div>
+          <div class="zone zone-profit">$92,400 – $100,000 · Profit zone</div>
+          <div class="zone zone-capped">Above $100,000 · Capped at +$28,410 max gain</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENARIO TABLE -->
+    <div class="scenario-card">
+      <div class="scenario-head">Scenario Analysis — P&amp;L at Expiry (10 BTC Notional)</div>
+      <table class="scenario">
+        <thead>
+          <tr>
+            <th>BTC Price at Expiry</th>
+            <th>Move vs Spot</th>
+            <th>Option Value</th>
+            <th>P&amp;L (incl. premium)</th>
+            <th>Return on Notional</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>$75,000</strong></td>
+            <td>–21.3%</td>
+            <td>$0 (expires OTM)</td>
+            <td class="pnl-neg">–$173,000</td>
+            <td class="pnl-neg">–18.2%</td>
+            <td>Full loss on spot decline</td>
+          </tr>
+          <tr>
+            <td><strong>$85,000</strong></td>
+            <td>–10.8%</td>
+            <td>$0 (expires OTM)</td>
+            <td class="pnl-neg">–$73,000</td>
+            <td class="pnl-neg">–7.7%</td>
+            <td>Call premium partially offsets</td>
+          </tr>
+          <tr>
+            <td><strong>$92,400</strong></td>
+            <td>–2.98%</td>
+            <td>$0 (expires OTM)</td>
+            <td class="pnl-flat">$0 (breakeven)</td>
+            <td class="pnl-flat">0.00%</td>
+            <td>Breakeven — premium absorbed</td>
+          </tr>
+          <tr class="current">
+            <td><strong>$95,240</strong> <span class="spot-badge">SPOT</span></td>
+            <td>0.00%</td>
+            <td>$0 (expires OTM)</td>
+            <td class="pnl-pos">+$28,410</td>
+            <td class="pnl-pos">+2.98%</td>
+            <td>Full premium captured</td>
+          </tr>
+          <tr>
+            <td><strong>$100,000</strong></td>
+            <td>+5.0%</td>
+            <td>$0 (at strike, worthless)</td>
+            <td class="pnl-pos">+$76,010</td>
+            <td class="pnl-pos">+7.98%</td>
+            <td>Max gain — spot gain + premium</td>
+          </tr>
+          <tr>
+            <td><strong>$110,000</strong></td>
+            <td>+15.5%</td>
+            <td>–$100,000 (assigned)</td>
+            <td class="pnl-pos">+$76,010</td>
+            <td class="pnl-pos">+7.98%</td>
+            <td>Capped — upside forfeited</td>
+          </tr>
+          <tr>
+            <td><strong>$125,000</strong></td>
+            <td>+31.2%</td>
+            <td>–$250,000 (assigned)</td>
+            <td class="pnl-pos">+$76,010</td>
+            <td class="pnl-pos">+7.98%</td>
+            <td>Capped — significant upside lost</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- EXECUTIVE SUMMARY + RISK 2-COL -->
+    <div class="two-col">
+      <div class="exec-section">
+        <div class="exec-label">Executive Summary</div>
+        <div class="exec-body">
+          Apex Capital Partners holds a <strong>10 BTC position</strong> acquired at an average cost of approximately <strong>$72,000/BTC</strong>, representing an unrealised gain of ~$232,400 at current spot. This covered call strategy generates <strong>$28,410 in upfront premium</strong> by selling the right for a counterparty to purchase 10 BTC at <strong>$100,000</strong> on or before <strong>April 20, 2026</strong>.
+        </div>
+        <div class="callout" style="margin-top:16px;">
+          <div class="callout-text">The strategy captures a <strong>14-point implied volatility premium</strong> (72% IV vs 58% 30d realized). At current pricing, the annualised yield on notional is approximately <strong>36.2%</strong> — considerably above typical fixed income alternatives.</div>
+        </div>
+        <div class="exec-body" style="margin-top:14px;">
+          The position is suitable for clients who are <strong>comfortable capping upside above $100,000</strong> over a 30-day period and prioritise income generation over maximum capital appreciation.
+        </div>
+      </div>
+
+      <div class="exec-section">
+        <div class="exec-label">Key Risk Considerations</div>
+        <div class="risk-list">
+          <div class="risk-item">
+            <div class="risk-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="risk-text"><strong>Capped upside.</strong> If BTC exceeds $100k at expiry, gains above that level are forfeited. The client would miss a potential $25,760+/BTC rally.</div>
+          </div>
+          <div class="risk-item">
+            <div class="risk-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="risk-text"><strong>Spot downside risk.</strong> The premium ($2,841/BTC) only partially offsets a spot price decline. Full downside below breakeven ($92,400) is borne by the client.</div>
+          </div>
+          <div class="risk-item">
+            <div class="risk-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="risk-text"><strong>Early assignment risk.</strong> American-style options may be assigned early. Client must hold 10 BTC in custody to fulfil delivery obligations.</div>
+          </div>
+          <div class="risk-item">
+            <div class="risk-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="risk-text"><strong>Volatility spike risk.</strong> A sharp IV increase raises the mark-to-market cost of unwinding before expiry. Mid-term exit may result in a loss on the option leg.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA BAR -->
+    <div style="background:var(--ink);border-radius:var(--r);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px;">Ready to execute?</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;">Confirm Terms with SDM Structuring Desk</div>
+        <div style="font-family:'Poppins',sans-serif;font-size:12px;color:rgba(255,255,255,0.4);">Live pricing valid for 15 minutes · Reference: SDM-2026-0321-BTC-CC</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-shrink:0;">
+        <div style="padding:10px 22px;background:var(--gold);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--ink);">Confirm &amp; Execute</div>
+        <div style="padding:10px 22px;background:rgba(255,255,255,0.07);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;color:rgba(255,255,255,0.4);">Revise Terms</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- FOOTER -->
+  <div class="brief-footer">
+    <div class="footer-copy">
+      © 2026 Secure Digital Markets<br>
+      Generated by SDM Trade Studio &nbsp;·&nbsp; sdm.io
+    </div>
+    <div class="footer-disclaim">
+      This report is prepared for informational purposes only for the named recipient and does not constitute financial advice or a binding offer. All pricing is indicative. Digital assets involve substantial risk of loss.
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+<div class="watermark">SDM TRADE STUDIO · PREVIEW</div>
+</body>
+</html>

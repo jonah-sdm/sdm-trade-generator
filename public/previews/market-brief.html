@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SDM Daily Market Brief — March 21, 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --gold:#FFC32C;
+  --blue:#1851EB;
+  --ink:#1A1A18;
+  --ink-2:#4A4A48;
+  --ink-3:#8A8A88;
+  --bg:#FDFCF7;
+  --surface:#F5F4EF;
+  --border:#E8E7E2;
+  --r:10px;
+  --r-sm:6px;
+}
+body{background:var(--bg);color:var(--ink);font-family:'Poppins',sans-serif;-webkit-font-smoothing:antialiased;}
+
+/* ── PRINT / SHARE WRAPPER ── */
+.page-wrap{max-width:860px;margin:0 auto;padding:0;}
+
+/* ── MASTHEAD ── */
+.masthead{background:var(--ink);padding:28px 40px 24px;}
+.masthead-inner{display:flex;align-items:center;justify-content:space-between;}
+.masthead-left{display:flex;align-items:center;gap:16px;}
+.masthead-logo{display:flex;align-items:center;gap:10px;}
+.masthead-wordmark{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:0.08em;}
+.masthead-divider{width:1px;height:28px;background:rgba(255,255,255,0.15);}
+.masthead-pub{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.35);}
+.masthead-right{text-align:right;}
+.masthead-date{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:0.05em;}
+.masthead-edition{font-family:'Poppins',sans-serif;font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px;}
+
+/* Gold rule under masthead */
+.gold-rule{height:3px;background:linear-gradient(90deg,var(--gold) 0%,rgba(255,195,44,0.3) 60%,transparent 100%);}
+
+/* ── TICKER BAR ── */
+.ticker{background:var(--surface);border-bottom:0.5px solid var(--border);display:flex;overflow-x:auto;}
+.tick{padding:12px 20px;border-right:0.5px solid var(--border);min-width:110px;flex-shrink:0;}
+.tick:last-child{border-right:none;}
+.tick-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.12em;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px;}
+.tick-price{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;}
+.tick-chg{font-family:'Poppins',sans-serif;font-size:11px;font-weight:500;margin-top:1px;}
+.tick-chg.up{color:#16a34a;}
+.tick-chg.dn{color:#dc2626;}
+.tick-chg.neu{color:var(--ink-3);}
+
+/* ── CONTENT AREA ── */
+.content{padding:40px;}
+
+/* ── HEADLINE BLOCK ── */
+.brief-headline{margin-bottom:36px;padding-bottom:28px;border-bottom:0.5px solid var(--border);}
+.brief-kicker{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+.brief-title{font-family:'Montserrat',sans-serif;font-size:28px;font-weight:800;color:var(--ink);line-height:1.2;letter-spacing:-0.02em;margin-bottom:10px;}
+.brief-deck{font-family:'Poppins',sans-serif;font-size:14px;color:var(--ink-2);line-height:1.7;font-weight:300;max-width:640px;}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:32px;}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.section-icon{width:28px;height:28px;background:var(--gold);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.section-title{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink);}
+.section-body{font-family:'Poppins',sans-serif;font-size:13px;line-height:1.8;color:var(--ink-2);font-weight:300;}
+.section-body strong{font-weight:600;color:var(--ink);}
+
+/* ── INSIGHT CALLOUT ── */
+.callout{background:rgba(255,195,44,0.08);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:14px 18px;margin:16px 0;}
+.callout-text{font-family:'Poppins',sans-serif;font-size:13px;line-height:1.7;color:var(--ink);font-weight:400;}
+
+/* ── TWO-COL LAYOUT ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;}
+
+/* ── DATA CARD ── */
+.data-card{background:#fff;border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.data-card-head{padding:14px 18px;border-bottom:0.5px solid var(--border);font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3);}
+.data-row{display:flex;justify-content:space-between;align-items:center;padding:9px 18px;border-bottom:0.5px solid var(--border);}
+.data-row:last-child{border-bottom:none;}
+.data-label{font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-2);}
+.data-val{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;color:var(--ink);}
+.data-val.up{color:#16a34a;}
+.data-val.dn{color:#dc2626;}
+.data-val.pos{color:var(--blue);}
+
+/* ── SIGNAL BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.06em;}
+.badge-bull{background:rgba(22,163,74,0.1);color:#16a34a;}
+.badge-bear{background:rgba(220,38,38,0.1);color:#dc2626;}
+.badge-neu{background:var(--surface);color:var(--ink-3);}
+
+/* ── SIGNAL ROWS ── */
+.signal-row{display:flex;justify-content:space-between;align-items:center;padding:9px 18px;border-bottom:0.5px solid var(--border);}
+.signal-row:last-child{border-bottom:none;}
+.signal-label{font-family:'Poppins',sans-serif;font-size:12px;color:var(--ink-2);}
+.signal-right{display:flex;align-items:center;gap:10px;}
+.signal-val{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;color:var(--ink);}
+
+/* ── MACRO SECTION ── */
+.macro-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:16px;}
+.macro-tile{background:#fff;border:0.5px solid var(--border);border-radius:var(--r);padding:16px;}
+.macro-tile-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;}
+.macro-tile-val{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-0.01em;margin-bottom:3px;}
+.macro-tile-sub{font-family:'Poppins',sans-serif;font-size:11px;color:var(--ink-3);}
+
+/* ── FOOTER ── */
+.brief-footer{background:var(--ink);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;}
+.footer-copy{font-family:'Poppins',sans-serif;font-size:10px;color:rgba(255,255,255,0.3);line-height:1.6;}
+.footer-disclaim{font-family:'Poppins',sans-serif;font-size:9px;color:rgba(255,255,255,0.2);max-width:440px;text-align:right;line-height:1.5;}
+
+/* ── WATERMARK BADGE ── */
+.watermark{position:fixed;bottom:20px;right:20px;background:var(--ink);color:rgba(255,255,255,0.4);font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.1em;padding:6px 12px;border-radius:20px;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- MASTHEAD -->
+  <div class="masthead">
+    <div class="masthead-inner">
+      <div class="masthead-left">
+        <div class="masthead-logo">
+          <svg viewBox="62 68 110 106" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+            <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+          </svg>
+          <span class="masthead-wordmark">SECURE DIGITAL MARKETS</span>
+        </div>
+        <div class="masthead-divider"></div>
+        <div class="masthead-pub">Daily Market Brief</div>
+      </div>
+      <div class="masthead-right">
+        <div class="masthead-date">March 21, 2026</div>
+        <div class="masthead-edition">Morning Edition &nbsp;·&nbsp; Generated 08:47 EST</div>
+      </div>
+    </div>
+  </div>
+  <div class="gold-rule"></div>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="tick">
+      <div class="tick-label">BTC / USD</div>
+      <div class="tick-price">$95,240</div>
+      <div class="tick-chg up">+2.41%</div>
+    </div>
+    <div class="tick">
+      <div class="tick-label">ETH / USD</div>
+      <div class="tick-price">$2,384</div>
+      <div class="tick-chg dn">–0.62%</div>
+    </div>
+    <div class="tick">
+      <div class="tick-label">SOL / USD</div>
+      <div class="tick-price">$152.80</div>
+      <div class="tick-chg up">+4.17%</div>
+    </div>
+    <div class="tick">
+      <div class="tick-label">BTC Dom.</div>
+      <div class="tick-price">61.8%</div>
+      <div class="tick-chg up">+0.4%</div>
+    </div>
+    <div class="tick">
+      <div class="tick-label">ATM IV 30d</div>
+      <div class="tick-price">72.1%</div>
+      <div class="tick-chg dn">–3.8%</div>
+    </div>
+    <div class="tick">
+      <div class="tick-label">Fear & Greed</div>
+      <div class="tick-price">74</div>
+      <div class="tick-chg up">Greed</div>
+    </div>
+    <div class="tick">
+      <div class="tick-label">DXY</div>
+      <div class="tick-price">103.4</div>
+      <div class="tick-chg dn">–0.28%</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- HEADLINE -->
+    <div class="brief-headline">
+      <div class="brief-kicker">SDM Research &nbsp;·&nbsp; Institutional Digital Assets</div>
+      <div class="brief-title">Bitcoin Tests $95k–$97k Supply Zone<br>for the Third Time This Week</div>
+      <div class="brief-deck">A confirmed daily close above $97,500 would open the path toward the $100k psychological level. Spot ETF inflows re-accelerated with BlackRock IBIT logging four consecutive positive days. Options market pricing a 68% probability of $100k by April 28.</div>
+    </div>
+
+    <!-- MARKET OVERVIEW -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" stroke-width="2.2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div class="section-title">Market Overview</div>
+      </div>
+      <div class="section-body">
+        Bitcoin advanced <strong>2.41% overnight</strong> to $95,240 as U.S. equity futures stabilized following Wednesday's Fed minutes. The move was accompanied by above-average spot volume on major exchanges, with the Coinbase premium positive at <strong>+$42</strong>, suggesting continued institutional accumulation in the U.S. market. BTC has now reclaimed both its 50-day and 200-day moving averages on the daily timeframe, a configuration historically associated with continued upside momentum in prior bull cycles.
+      </div>
+      <div class="callout">
+        <div class="callout-text">BTC is testing the <strong>$95k–$97k supply zone</strong> for the third consecutive time this week. A confirmed daily close above $97,500 would constitute a structural breakout and open the path toward the $100k psychological level — a level that options market makers are actively delta-hedging against.</div>
+      </div>
+      <div class="section-body" style="margin-top:12px;">
+        Ethereum underperformed, declining <strong>0.62%</strong> as fee compression concerns post-Dencun weigh on sentiment. Solana outperformed the majors with a <strong>+4.17%</strong> gain driven by strong DEX volume and renewed memecoin activity on-chain.
+      </div>
+    </div>
+
+    <!-- ETF + DERIVATIVES 2-COL -->
+    <div class="two-col">
+
+      <!-- ETF FLOWS -->
+      <div class="data-card">
+        <div class="data-card-head">ETF Flows (24h)</div>
+        <div class="data-row">
+          <div class="data-label">BlackRock IBIT</div>
+          <div class="data-val up">+$312M</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">Fidelity FBTC</div>
+          <div class="data-val up">+$88M</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">ARK 21Shares ARKB</div>
+          <div class="data-val dn">–$24M</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">Grayscale GBTC</div>
+          <div class="data-val dn">–$41M</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label" style="font-weight:600;color:var(--ink);">Net Total</div>
+          <div class="data-val up" style="font-size:14px;">+$335M</div>
+        </div>
+      </div>
+
+      <!-- DERIVATIVES SNAPSHOT -->
+      <div class="data-card">
+        <div class="data-card-head">Derivatives Snapshot</div>
+        <div class="data-row">
+          <div class="data-label">Open Interest (BTC perps)</div>
+          <div class="data-val">$18.2B</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">Put / Call Ratio</div>
+          <div class="data-val pos">0.62 (call skew)</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">Max Pain (Mar 28)</div>
+          <div class="data-val">$90,000</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">25Δ Risk Reversal</div>
+          <div class="data-val up">+4.2 (call skew)</div>
+        </div>
+        <div class="data-row">
+          <div class="data-label">Funding Rate (8h)</div>
+          <div class="data-val up">+0.014%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ON-CHAIN SIGNALS -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="section-title">On-Chain Signals</div>
+      </div>
+      <div class="data-card">
+        <div class="signal-row">
+          <div class="signal-label">Exchange Net Flow (BTC)</div>
+          <div class="signal-right">
+            <div class="signal-val" style="color:#16a34a;">–4,200 BTC</div>
+            <div class="badge badge-bull">Bullish ↓</div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-label">Long-Term Holder Supply</div>
+          <div class="signal-right">
+            <div class="signal-val">74.1%</div>
+            <div class="badge badge-bull">Accumulating ↑</div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-label">MVRV Z-Score</div>
+          <div class="signal-right">
+            <div class="signal-val">2.4</div>
+            <div class="badge badge-neu">Neutral</div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-label">Realized Price (90d avg)</div>
+          <div class="signal-right">
+            <div class="signal-val">$71,840</div>
+            <div class="badge badge-bull">+32.6% above</div>
+          </div>
+        </div>
+        <div class="signal-row">
+          <div class="signal-label">Stablecoin Supply Ratio</div>
+          <div class="signal-right">
+            <div class="signal-val">0.043</div>
+            <div class="badge badge-bull">Dry powder ↑</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MACRO & GEOPOLITICAL -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div class="section-title">Macro &amp; Geopolitical</div>
+      </div>
+      <div class="section-body">
+        Fed minutes released Wednesday confirmed a <strong>data-dependent stance with no cuts expected before Q3 2026</strong>. Core PCE remains above target at 2.7%. Risk assets sold off briefly before recovering as the dollar index (DXY) pulled back 0.28% to 103.4 — historically a tailwind for BTC. Oil prices rose on Middle East tensions, adding risk-asset uncertainty in traditional markets while digital assets continued to decouple.
+      </div>
+      <div class="macro-grid">
+        <div class="macro-tile">
+          <div class="macro-tile-label">10Y Treasury</div>
+          <div class="macro-tile-val">4.38%</div>
+          <div class="macro-tile-sub">+3bps from prior close</div>
+        </div>
+        <div class="macro-tile">
+          <div class="macro-tile-label">S&amp;P 500</div>
+          <div class="macro-tile-val">5,284</div>
+          <div class="macro-tile-sub" style="color:#16a34a;">+0.34% pre-market</div>
+        </div>
+        <div class="macro-tile">
+          <div class="macro-tile-label">Gold (XAU)</div>
+          <div class="macro-tile-val">$3,042</div>
+          <div class="macro-tile-sub" style="color:#16a34a;">+0.91% (risk-off bid)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SDM NOTE -->
+    <div style="background:var(--ink);border-radius:var(--r);padding:28px 32px;margin-top:8px;">
+      <div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;">SDM Structuring Desk — Today's Focus</div>
+      <div style="font-family:'Poppins',sans-serif;font-size:13px;color:rgba(255,255,255,0.7);line-height:1.8;font-weight:300;">
+        With IV at <strong style="color:#fff;">72%</strong> elevated relative to realized vol (58%), the desk is actively running <strong style="color:#fff;">covered call overlays</strong> on BTC spot positions for yield-seeking clients. The $100k strike 30-day call offers a 5% OTM buffer with ~$2,840/BTC in premium captured. Contact your SDM relationship manager for a bespoke trade term sheet.
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <div style="padding:8px 18px;background:var(--gold);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--ink);display:inline-block;">Request a Term Sheet</div>
+        <div style="padding:8px 18px;background:rgba(255,255,255,0.06);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;color:rgba(255,255,255,0.45);display:inline-block;">Schedule a Call</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- FOOTER -->
+  <div class="brief-footer">
+    <div class="footer-copy">
+      © 2026 Secure Digital Markets<br>
+      Generated by SDM Trade Studio &nbsp;·&nbsp; sdm.io
+    </div>
+    <div class="footer-disclaim">
+      This brief is prepared for informational purposes only and does not constitute financial advice. Digital assets involve substantial risk. Past performance is not indicative of future results.
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+<div class="watermark">SDM TRADE STUDIO · PREVIEW</div>
+</body>
+</html>
