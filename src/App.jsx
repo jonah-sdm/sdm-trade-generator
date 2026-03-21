@@ -107,7 +107,7 @@ function AppHeader({ onReset, phase, onNavigate }) {
     { label: "Home",          phase: "home" },
     { label: "Market Brief",  phase: "market_brief" },
     { label: "Derivatives",   phase: "select" },
-    { label: "Options",       phase: "options_pricer" },
+    { label: "Options Pricer", phase: "options_pricer" },
     { label: "Lending",       phase: "lending_configure" },
     { label: "Library",       phase: "sales_library" },
   ];
@@ -778,8 +778,33 @@ ${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]
 
 // ── MB Export helpers ─────────────────────────────────────────────────────────
 function buildExportHTML(rootEl, date) {
+  // Snapshot all canvases to data-URL images BEFORE cloning (canvas content doesn't survive cloneNode)
+  const canvases = rootEl.querySelectorAll("canvas");
+  const snapshots = [];
+  canvases.forEach(c => {
+    try {
+      const dataUrl = c.toDataURL("image/png");
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.style.cssText = `width:${c.offsetWidth}px;height:${c.offsetHeight}px;display:block;`;
+      img.setAttribute("data-canvas-snapshot", "true");
+      c.parentNode.insertBefore(img, c);
+      c.style.display = "none";
+      snapshots.push({ canvas: c, img });
+    } catch (e) { /* cross-origin canvas — skip */ }
+  });
+
   const clone = rootEl.cloneNode(true);
   clone.querySelectorAll(".noprint").forEach(el => el.remove());
+  // Remove the hidden original canvases from the clone
+  clone.querySelectorAll("canvas").forEach(el => el.remove());
+
+  // Restore the original DOM (put canvases back, remove temp images)
+  snapshots.forEach(({ canvas, img }) => {
+    canvas.style.display = "";
+    img.remove();
+  });
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
