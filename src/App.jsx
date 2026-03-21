@@ -8,7 +8,6 @@ import LendingReport from "./LendingReport";
 import PayoffChart from "./PayoffChart";
 import MBChartSection06 from "./MBChartSection06";
 import MBChartSection07 from "./MBChartSection07";
-import ConferenceLeads from "./ConferenceLeads";
 import OptionsPricer from "./OptionsPricer";
 import "./index.css";
 
@@ -40,7 +39,6 @@ const PHASES = {
   LENDING_GENERATING: "lending_generating",
   LENDING_RESULT: "lending_result",
   SALES_LIBRARY: "sales_library",
-  CONFERENCE_LEADS: "conference_leads",
   OPTIONS_PRICER: "options_pricer",
   AI_CONFIGURE: "ai_configure",
   AI_GENERATING: "ai_generating",
@@ -2171,34 +2169,6 @@ export default function App() {
               </div>
             </button>
 
-            {/* Conference Leads */}
-            <button
-              onClick={() => navigateTo(PHASES.CONFERENCE_LEADS)}
-              style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#ffcc36"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                </div>
-                <span style={{ ...S.pill, background: "#ffcc36", color: "#111" }}>LEADS</span>
-              </div>
-              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Conference Leads</h2>
-              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Scrape attendee lists from conference videos, then enrich with LinkedIn URLs, company websites, and industry tags.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
-                Scrape &amp; enrich leads <span>&rarr;</span>
-              </div>
-            </button>
-
             {/* Options Pricer */}
             <button
               onClick={() => navigateTo(PHASES.OPTIONS_PRICER)}
@@ -2228,10 +2198,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ═══ PHASE: CONFERENCE_LEADS ═══ */}
-      {phase === PHASES.CONFERENCE_LEADS && (
-        <ConferenceLeads onBack={() => navigateTo(PHASES.HOME)} />
-      )}
 
       {/* ═══ PHASE: OPTIONS_PRICER ═══ */}
       {phase === PHASES.OPTIONS_PRICER && (
