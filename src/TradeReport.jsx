@@ -4,15 +4,16 @@ import { computeLendingProposal, fmt as lendFmt } from "./lendingEngine";
 
 // ─── LIGHT THEME TOKENS ───
 const THEME = {
-  bg: "#FFFFFF",
-  bg2: "#FAFAFA",
-  bg3: "#F5F5F5",
-  border: "#E8E8E8",
-  borderLight: "#F0F0F0",
-  text: "#111111",
-  textMuted: "#888888",
-  textDim: "#AAAAAA",
+  bg: "#FDFCF7",
+  bg2: "#F5F4EF",
+  bg3: "#F5F4EF",
+  border: "#E8E7E2",
+  borderLight: "#E8E7E2",
+  text: "#1A1A18",
+  textMuted: "#8A8A88",
+  textDim: "#8A8A88",
   gold: "#FFC32C",
+  goldText: "#7A5500",
   positive: "#16a34a",
   negative: "#dc2626",
 };
@@ -21,19 +22,19 @@ const THEME = {
 function RichTextToolbar() {
   const exec = (cmd, val) => document.execCommand(cmd, false, val || null);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderBottom: "none" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", background: "#F5F4EF", border: "1px solid #E8E7E2", borderBottom: "none" }}>
       <button type="button" onMouseDown={e => { e.preventDefault(); exec("bold"); }} title="Bold" style={toolbarBtnStyle}><strong>B</strong></button>
       <button type="button" onMouseDown={e => { e.preventDefault(); exec("italic"); }} title="Italic" style={toolbarBtnStyle}><em>I</em></button>
       <button type="button" onMouseDown={e => { e.preventDefault(); exec("underline"); }} title="Underline" style={toolbarBtnStyle}><u>U</u></button>
-      <div style={{ width: 1, height: 16, background: "#E8E8E8", margin: "0 4px" }} />
+      <div style={{ width: 1, height: 16, background: "#E8E7E2", margin: "0 4px" }} />
       <button type="button" onMouseDown={e => { e.preventDefault(); exec("formatBlock", "<h3>"); }} title="Heading" style={toolbarBtnStyle}>H</button>
       <button type="button" onMouseDown={e => { e.preventDefault(); exec("formatBlock", "<p>"); }} title="Normal text" style={toolbarBtnStyle}>P</button>
-      <div style={{ width: 1, height: 16, background: "#E8E8E8", margin: "0 4px" }} />
+      <div style={{ width: 1, height: 16, background: "#E8E7E2", margin: "0 4px" }} />
       <button type="button" onMouseDown={e => { e.preventDefault(); exec("insertUnorderedList"); }} title="Bullet list" style={toolbarBtnStyle}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
       </button>
-      <div style={{ width: 1, height: 16, background: "#E8E8E8", margin: "0 4px" }} />
-      <select onChange={e => { exec("fontSize", e.target.value); e.target.value = ""; }} defaultValue="" style={{ fontSize: 11, border: "1px solid #E8E8E8", borderRadius: 2, padding: "2px 6px", fontFamily: "'Poppins',sans-serif", background: "#FFFFFF", color: "#555", cursor: "pointer" }}>
+      <div style={{ width: 1, height: 16, background: "#E8E7E2", margin: "0 4px" }} />
+      <select onChange={e => { exec("fontSize", e.target.value); e.target.value = ""; }} defaultValue="" style={{ fontSize: 11, border: "1px solid #E8E7E2", borderRadius: 2, padding: "2px 6px", fontFamily: "'Poppins',sans-serif", background: "#FDFCF7", color: "#4A4A48", cursor: "pointer" }}>
         <option value="" disabled>Size</option>
         <option value="2">Small</option>
         <option value="3">Normal</option>
@@ -46,7 +47,7 @@ function RichTextToolbar() {
 
 const toolbarBtnStyle = {
   background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
-  fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", borderRadius: 2,
+  fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4,
 };
 
 // ─── SVG PAYOFF CHART (light theme) ───
@@ -159,7 +160,7 @@ function PayoffChart({ analysis, accentColor }) {
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: "#FFFFFF" }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: "#FDFCF7" }}>
       <defs>
         <linearGradient id="greenGradLight" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#16a34a" stopOpacity="0.18" />
@@ -173,23 +174,23 @@ function PayoffChart({ analysis, accentColor }) {
 
       {yGridLines.map((g, i) => (
         <g key={`yg${i}`}>
-          <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y} stroke="#E8E8E8" strokeWidth="1" />
-          <text x={PAD.left - 10} y={g.y + 4} textAnchor="end" fill="#AAAAAA" fontSize="10" fontFamily="'Poppins', sans-serif">
+          <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y} stroke="#E8E7E2" strokeWidth="1" />
+          <text x={PAD.left - 10} y={g.y + 4} textAnchor="end" fill="#8A8A88" fontSize="10" fontFamily="'Poppins', sans-serif">
             {fmtAxis(g.val)}
           </text>
         </g>
       ))}
       {xGridLines.map((g, i) => (
         <g key={`xg${i}`}>
-          <line x1={g.x} y1={PAD.top} x2={g.x} y2={H - PAD.bottom} stroke="#F0F0F0" strokeWidth="1" />
-          <text x={g.x} y={H - PAD.bottom + 18} textAnchor="middle" fill="#AAAAAA" fontSize="10" fontFamily="'Poppins', sans-serif">
+          <line x1={g.x} y1={PAD.top} x2={g.x} y2={H - PAD.bottom} stroke="#E8E7E2" strokeWidth="1" />
+          <text x={g.x} y={H - PAD.bottom + 18} textAnchor="middle" fill="#8A8A88" fontSize="10" fontFamily="'Poppins', sans-serif">
             {fmtPrice(g.val)}
           </text>
         </g>
       ))}
 
       <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY}
-        stroke="#CCCCCC" strokeWidth="1" strokeDasharray="4,3" />
+        stroke="#C8C7C2" strokeWidth="1" strokeDasharray="4,3" />
 
       <path d={greenFill} fill="url(#greenGradLight)" />
       <path d={redFill} fill="url(#redGradLight)" />
@@ -197,9 +198,9 @@ function PayoffChart({ analysis, accentColor }) {
       {/* Long Spot reference line */}
       {spotLinePath && !analysis.chartLabel && (
         <g>
-          <path d={spotLinePath} fill="none" stroke="#CCCCCC" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
+          <path d={spotLinePath} fill="none" stroke="#C8C7C2" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
           <text x={scaleX(maxPrice) - 4} y={scaleY((maxPrice - spot) * spotMultiplier) - 6}
-            textAnchor="end" fill="#AAAAAA" fontSize="8" fontFamily="'Poppins', sans-serif" fontWeight="500">
+            textAnchor="end" fill="#8A8A88" fontSize="8" fontFamily="'Poppins', sans-serif" fontWeight="500">
             Long Spot
           </text>
         </g>
@@ -213,10 +214,10 @@ function PayoffChart({ analysis, accentColor }) {
       {spot > minPrice && spot < maxPrice && (
         <g>
           <line x1={scaleX(spot)} y1={PAD.top} x2={scaleX(spot)} y2={H - PAD.bottom}
-            stroke="#888888" strokeWidth="1" strokeDasharray="6,4" />
-          <rect x={scaleX(spot) - 24} y={H - PAD.bottom + 26} width="48" height="18" rx="2" fill="#F0F0F0" />
+            stroke="#8A8A88" strokeWidth="1" strokeDasharray="6,4" />
+          <rect x={scaleX(spot) - 24} y={H - PAD.bottom + 26} width="48" height="18" rx="2" fill="#F5F4EF" />
           <text x={scaleX(spot)} y={H - PAD.bottom + 38} textAnchor="middle"
-            fill="#555" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">
+            fill="#4A4A48" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">
             SPOT
           </text>
         </g>
@@ -273,8 +274,8 @@ function PayoffChart({ analysis, accentColor }) {
         )
       ))}
 
-      <text x={PAD.left - 10} y={12} textAnchor="end" fill="#AAAAAA" fontSize="9" fontFamily="'Poppins', sans-serif">P&amp;L</text>
-      <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end" fill="#AAAAAA" fontSize="9" fontFamily="'Poppins', sans-serif">Price</text>
+      <text x={PAD.left - 10} y={12} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">P&amp;L</text>
+      <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">Price</text>
     </svg>
   );
 }
@@ -316,34 +317,17 @@ function buildStandaloneHtml(reportRef, trade) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #FFFFFF; color: #111111; font-family: 'Poppins', sans-serif; margin: 0; padding: 32px; -webkit-font-smoothing: antialiased; }
+body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .noprint { display: none !important; }
 ${cssText}
-.share-header {
-  display: flex !important;
-  align-items: center; justify-content: space-between;
-  padding: 14px 0; margin: 0 0 28px;
-  border-bottom: 3px solid #111;
-}
-.share-header::after { content: ''; display: block; height: 2px; background: #FFC32C; margin-top: 2px; }
-.share-header img { height: 28px; width: auto; display: block; }
-.share-header-right { text-align: right; font-family: 'Poppins', sans-serif; font-size: 11px; color: #888; line-height: 1.5; }
-.share-header-right .doc-name { color: #111; font-weight: 500; font-size: 12px; }
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   @page { size: A4; margin: 18mm 15mm; }
-  body { background: #fff !important; padding: 0 !important; }
+  body { background: #FDFCF7 !important; padding: 0 !important; }
 }
 </style>
 </head>
 <body>
-<div class="share-header">
-  <img src="${SDM_LOGO_SVG}" alt="SDM" />
-  <div class="share-header-right">
-    <div class="doc-name">${trade.label}</div>
-    <div>${footerDate} &middot; ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</div>
-  </div>
-</div>
 ${reportHtml}
 </body>
 </html>`;
@@ -392,13 +376,13 @@ function handleExportPDF(reportRef, trade) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #FFFFFF; color: #111111; font-family: 'Poppins', sans-serif; margin: 0; padding: 32px 36px; -webkit-font-smoothing: antialiased; }
+body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; margin: 0; padding: 32px 36px; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .noprint { display: none !important; }
 ${cssText}
 @media print {
   @page { size: A4; margin: 0 !important; }
   *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background: #FFFFFF !important; padding: 12mm !important; }
+  body { background: #FDFCF7 !important; padding: 12mm !important; }
 }
 </style>
 </head>
@@ -422,8 +406,8 @@ function handleShare(platform, trade, analysis) {
 }
 
 // ─── Styles ───
-const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 };
-const sectionTitle = { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111" };
+const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 };
+const sectionTitle = { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18" };
 
 // ─── MAIN REPORT ───
 export default function TradeReport({ trade, fieldValues, loanComponent, onBack, onReset }) {
@@ -479,18 +463,18 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
   );
 
   return (
-    <div style={{ background: "#FFFFFF", minHeight: "100vh" }}>
+    <div style={{ background: "#FDFCF7", minHeight: "100vh" }}>
       {/* ─── Sticky Action Bar ─── */}
       <div className="noprint" style={{
         position: "sticky", top: 0, zIndex: 100,
-        background: "#111", padding: "10px 48px",
+        background: "#1A1A18", padding: "10px 48px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         borderBottom: "2px solid #FFC32C",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {onBack && (
             <button onClick={onBack} style={{
-              background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2,
+              background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6,
               color: "rgba(255,255,255,0.7)", padding: "7px 14px",
               fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer",
               display: "flex", alignItems: "center", gap: 6,
@@ -507,47 +491,68 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => handleShare("telegram", trade, analysis)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => handleShare("telegram", trade, analysis)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
             Telegram
           </button>
-          <button onClick={() => handleShare("whatsapp", trade, analysis)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => handleShare("whatsapp", trade, analysis)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
             WhatsApp
           </button>
-          <button onClick={() => handleShare("email", trade, analysis)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => handleShare("email", trade, analysis)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
             Email
           </button>
-          <button onClick={() => handleExportPDF(reportRef, trade)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => handleExportPDF(reportRef, trade)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             PDF
           </button>
-          <button onClick={() => handleShareLink(reportRef, trade, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 2, color: "#111", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
+          <button onClick={() => handleShareLink(reportRef, trade, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 999, color: "#111", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
             {linkText}
           </button>
-          <button onClick={onReset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.5)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer" }}>
+          <button onClick={onReset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.5)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer" }}>
             New Trade
           </button>
         </div>
       </div>
 
       {/* ─── Report Content ─── */}
-      <div ref={reportRef} style={{ maxWidth: 900, margin: "0 auto", padding: "40px 48px" }}>
+      <div ref={reportRef} style={{ background: "#FDFCF7" }}>
 
-        {/* Report Header */}
-        <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid #E8E8E8" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-            <div style={{ fontSize: 28 }}>{trade.icon}</div>
-            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600, background: "#F5F5F5", padding: "4px 10px", borderRadius: 2 }}>{trade.tag}</span>
+        {/* Dark Masthead */}
+        <div style={{ background: "#1A1A18", padding: "28px 40px 24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="36" height="36" style={{ flexShrink: 0 }}>
+                <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+                <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+              </svg>
+              <div>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, letterSpacing: 3, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 2 }}>SECURE DIGITAL MARKETS</div>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", letterSpacing: 1, textTransform: "uppercase" }}>Trade Structuring Report</div>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{dateStr}</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>Ref: SDM-{trade.tag?.replace(/\s+/g, "-").toUpperCase()}-{now.getFullYear()}</div>
+            </div>
           </div>
-          <h1 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 28, color: "#111", marginBottom: 6 }}>{trade.label}</h1>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#888", fontWeight: 300 }}>{trade.category} — {trade.description}</p>
         </div>
+        {/* Gold gradient rule */}
+        <div style={{ height: 3, background: "linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)" }} />
+        {/* Hero */}
+        <div style={{ padding: "36px 40px 32px", borderBottom: "0.5px solid #E8E7E2", background: "#FDFCF7" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, letterSpacing: 2, color: "#7A5500", textTransform: "uppercase", fontWeight: 700, background: "rgba(255,195,44,0.15)", padding: "5px 14px", borderRadius: 999, display: "inline-block", marginBottom: 20 }}>{trade.tag}</span>
+          <h1 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 30, color: "#1A1A18", marginBottom: 10, lineHeight: 1.1 }}>{trade.label}</h1>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#8A8A88", fontWeight: 300 }}>{trade.category} — {trade.description}</p>
+        </div>
+
+        {/* ─── Padded report body ─── */}
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 48px" }}>
 
         {/* Executive Summary */}
         <div
-          style={{ marginBottom: 32, padding: 24, background: "#FAFAFA", border: "1px solid #E8E8E8", borderLeft: "3px solid #FFC32C", borderRadius: 2, position: "relative" }}
+          style={{ marginBottom: 32, padding: 24, background: "rgba(255,195,44,0.06)", border: "0.5px solid #E8E7E2", borderLeft: "3px solid #FFC32C", borderRadius: "0 10px 10px 0", position: "relative" }}
           onMouseEnter={() => setExecHover(true)}
           onMouseLeave={() => setExecHover(false)}
         >
@@ -565,8 +570,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             onBlur={handleExecBlur}
             style={{
               fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#333", outline: "none",
-              background: execHover ? "#FFFFFF" : "transparent",
-              border: execHover ? "1px solid #E8E8E8" : "1px solid transparent",
+              background: execHover ? "#FDFCF7" : "transparent",
+              border: execHover ? "1px solid #E8E7E2" : "1px solid transparent",
               borderRadius: 2, padding: "12px 14px", minHeight: 80,
               transition: "background 0.15s, border-color 0.15s",
               cursor: "text",
@@ -574,27 +579,23 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           />
         </div>
 
-        {/* KPI Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
-          {analysis.metrics.map((m, i) => (
+        {/* Metrics Strip */}
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(analysis.metrics.length, 6)}, 1fr)`, borderBottom: "0.5px solid #E8E7E2", marginBottom: 32, marginLeft: -48, marginRight: -48 }}>
+          {analysis.metrics.slice(0, 6).map((m, i, arr) => (
             <div key={i} style={{
-              background: "#FFFFFF", border: "1px solid #E8E8E8",
-              borderTop: `3px solid ${m.positive ? "#16a34a" : m.negative ? "#dc2626" : "#FFC32C"}`,
-              borderRadius: 2, padding: "16px 18px",
+              padding: "18px 20px",
+              borderRight: i < arr.length - 1 ? "0.5px solid #E8E7E2" : "none",
             }}>
-              <div style={{ ...sectionLabel, marginBottom: 8 }}>{m.label}</div>
-              <div style={{
-                fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 20, color: m.positive ? "#16a34a" : m.negative ? "#dc2626" : "#111",
-                marginBottom: 4,
-              }}>{m.value}</div>
-              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888" }}>{m.sub}</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{m.label}</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 17, color: m.positive ? "#16a34a" : m.negative ? "#dc2626" : "#1A1A18", marginBottom: 4 }}>{m.value}</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#8A8A88" }}>{m.sub}</div>
             </div>
           ))}
         </div>
 
         {/* Payoff Diagram */}
-        <div style={{ marginBottom: 32, border: "1px solid #E8E8E8", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #E8E8E8", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FAFAFA" }}>
+        <div style={{ marginBottom: 32, border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "0.5px solid #E8E7E2", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#F5F4EF" }}>
             <div>
               <div style={sectionLabel}>{analysis.chartLabel ? "Margin Health vs. Price" : "Payoff at Expiry"}</div>
             </div>
@@ -623,14 +624,14 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
         {/* Trade Structure */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Trade Structure</div>
-          <div style={{ border: "1px solid #E8E8E8", borderRadius: 2, overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "100px 140px 1fr", padding: "10px 16px", background: "#FAFAFA", borderBottom: "1px solid #E8E8E8" }}>
+          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "100px 140px 1fr", padding: "10px 16px", background: "#F5F4EF", borderBottom: "0.5px solid #E8E7E2" }}>
               <span style={{ ...sectionLabel }}>Action</span>
               <span style={{ ...sectionLabel }}>Instrument</span>
               <span style={{ ...sectionLabel }}>Detail</span>
             </div>
             {analysis.legs.map((leg, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "100px 140px 1fr", padding: "12px 16px", borderBottom: i < analysis.legs.length - 1 ? "1px solid #F0F0F0" : "none", alignItems: "center" }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "100px 140px 1fr", padding: "12px 16px", borderBottom: i < analysis.legs.length - 1 ? "0.5px solid #E8E7E2" : "none", alignItems: "center" }}>
                 <span style={{
                   fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase",
                   color: leg.action.toLowerCase() === "buy" || leg.action.toLowerCase() === "long" ? "#16a34a" : "#dc2626",
@@ -650,7 +651,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Risk Summary</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
             {analysis.breakevens && analysis.breakevens.length > 0 && (
-              <div style={{ background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, padding: "14px 16px" }}>
+              <div style={{ background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={sectionLabel}>Breakeven</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#ca8a04", marginTop: 6 }}>
                   ${analysis.breakevens.map(b => Math.abs(b) < 1 && b !== 0 ? b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })).join(", ")}
@@ -658,14 +659,14 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               </div>
             )}
             {analysis.metrics.filter(m => m.negative).map((m, i) => (
-              <div key={i} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 2, padding: "14px 16px" }}>
+              <div key={i} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={sectionLabel}>{m.label}</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#dc2626", marginTop: 6 }}>{m.value}</div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", marginTop: 2 }}>{m.sub}</div>
               </div>
             ))}
             {analysis.metrics.filter(m => m.positive).map((m, i) => (
-              <div key={i} style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 2, padding: "14px 16px" }}>
+              <div key={i} style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={sectionLabel}>{m.label}</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#16a34a", marginTop: 6 }}>{m.value}</div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", marginTop: 2 }}>{m.sub}</div>
@@ -734,7 +735,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
         })()}
 
         {/* Disclaimer */}
-        <div style={{ padding: "16px 20px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, marginBottom: 24 }}>
+        <div style={{ padding: "16px 20px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, marginBottom: 24 }}>
           <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", lineHeight: 1.6 }}>
             SDM — Internal Use Only. This document does not constitute investment advice. Generated {dateStr} at {timeStr}.
           </p>
@@ -766,6 +767,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             </div>
           </div>
           <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#AAAAAA", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
+        </div>
         </div>
       </div>
     </div>

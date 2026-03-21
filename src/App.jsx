@@ -101,22 +101,71 @@ function SDMLogo({ width = 140 }) {
   );
 }
 
-// ─── MarketBeat Header ───
-function AppHeader({ onReset }) {
+// ─── App Header ───
+function AppHeader({ onReset, phase, onNavigate }) {
+  const NAV_TABS = [
+    { label: "Home",          phase: "home" },
+    { label: "Market Brief",  phase: "market_brief" },
+    { label: "Derivatives",   phase: "select" },
+    { label: "Options",       phase: "options_pricer" },
+    { label: "Lending",       phase: "lending_configure" },
+    { label: "Library",       phase: "sales_library" },
+  ];
+  const activeTab = NAV_TABS.find(t => t.phase === phase)?.phase || "home";
   return (
-    <header style={{ background: "#FFFFFF", borderBottom: "1px solid #E8E8E8" }}>
-      <div style={{ height: 3, background: "#111" }} />
-      <div style={{ height: 2, background: "#ffcc36" }} />
-      <div style={{ padding: "16px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div onClick={onReset}>
-          <SDMLogo width={140} />
-        </div>
-        <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>
-          Trade Idea Studio
-        </div>
+    <header style={{
+      position: "sticky", top: 0, zIndex: 200,
+      background: "rgba(253,252,247,0.92)",
+      backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)",
+      borderBottom: "0.5px solid #E8E7E2",
+      padding: "0 32px",
+      height: 60,
+      display: "flex", alignItems: "center", gap: 24,
+    }}>
+      <div onClick={onReset} style={{ cursor: "pointer", flexShrink: 0 }}>
+        <SDMLogo width={120} />
       </div>
-      <div style={{ height: 2, background: "#ffcc36" }} />
-      <div style={{ height: 3, background: "#111" }} />
+      <nav style={{
+        flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 2,
+          background: "#1A1A18", borderRadius: 999, padding: "4px",
+        }}>
+          {NAV_TABS.map(tab => (
+            <button
+              key={tab.phase}
+              onClick={() => tab.phase === "home" ? onReset() : onNavigate(tab.phase)}
+              style={{
+                padding: "7px 16px", borderRadius: 999, border: "none",
+                fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600,
+                letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
+                background: activeTab === tab.phase ? "#FFFFFF" : "transparent",
+                color: activeTab === tab.phase ? "#1A1A18" : "rgba(255,255,255,0.55)",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { if (activeTab !== tab.phase) { e.currentTarget.style.color = "rgba(255,255,255,0.9)"; } }}
+              onMouseLeave={e => { if (activeTab !== tab.phase) { e.currentTarget.style.color = "rgba(255,255,255,0.55)"; } }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+      <button
+        onClick={() => onNavigate("ai_configure")}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: "#FFC32C", color: "#1A1A18", border: "none", borderRadius: 999,
+          padding: "8px 18px", fontFamily: "'Montserrat',sans-serif", fontSize: 11,
+          fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+        Ask AI
+      </button>
     </header>
   );
 }
@@ -126,28 +175,27 @@ function TradeCard({ trade, selected, onClick }) {
     <button
       onClick={onClick}
       style={{
-        background: "#FFFFFF",
-        border: selected ? "2px solid #111" : "1px solid #E8E8E8",
-        borderTop: selected ? "3px solid #ffcc36" : "3px solid transparent",
-        borderRadius: 2,
+        background: "#FDFCF7",
+        border: selected ? "1.5px solid #FFC32C" : "0.5px solid #E8E7E2",
+        borderRadius: 14,
         padding: "24px 20px",
         textAlign: "left",
         cursor: "pointer",
-        transition: "border-color 0.15s, box-shadow 0.15s",
-        boxShadow: selected ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+        transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
+        boxShadow: selected ? "0 4px 20px rgba(255,195,44,0.2)" : "none",
         display: "flex",
         flexDirection: "column",
         gap: 6,
       }}
-      onMouseEnter={e => { if (!selected) { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.borderTopColor = "#ffcc36"; } }}
-      onMouseLeave={e => { if (!selected) { e.currentTarget.style.borderColor = "#E8E8E8"; e.currentTarget.style.borderTopColor = "transparent"; } }}
+      onMouseEnter={e => { if (!selected) { e.currentTarget.style.background = "rgba(255,195,44,0.04)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.08)"; } }}
+      onMouseLeave={e => { if (!selected) { e.currentTarget.style.background = "#FDFCF7"; e.currentTarget.style.boxShadow = "none"; } }}
     >
       <div style={{ fontSize: 22, marginBottom: 4 }}>{trade.icon}</div>
-      <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 }}>{trade.tag}</div>
-      <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 15, color: "#111", lineHeight: 1.2 }}>{trade.label}</div>
-      <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", fontWeight: 400 }}>{trade.category}</div>
-      <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", lineHeight: 1.5, marginTop: 4 }}>{trade.description}</div>
-      {selected && <div style={{ marginTop: 8, height: 2, background: "#ffcc36", borderRadius: 1 }} />}
+      <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, letterSpacing: 2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 }}>{trade.tag}</div>
+      <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 15, color: "#1A1A18", lineHeight: 1.2 }}>{trade.label}</div>
+      <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", fontWeight: 400 }}>{trade.category}</div>
+      <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", lineHeight: 1.5, marginTop: 4 }}>{trade.description}</div>
+      {selected && <div style={{ marginTop: 8, height: 2, background: "#FFC32C", borderRadius: 1 }} />}
     </button>
   );
 }
@@ -294,35 +342,35 @@ const LENDING_FIELDS = [
 
 // ─── Styles ───
 const S = {
-  page: { background: "#EFEFEF", minHeight: "100vh", fontFamily: "'Poppins',sans-serif" },
+  page: { background: "#FDFCF7", minHeight: "100vh", fontFamily: "'Poppins',sans-serif" },
   main: { maxWidth: 1100, margin: "0 auto", padding: "40px 48px" },
   mainWide: { maxWidth: 1200, margin: "0 auto", padding: "40px 48px" },
-  sectionLabel: { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 },
-  heading1: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 28, color: "#111", letterSpacing: -0.5 },
-  heading2: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 20, color: "#111" },
-  subtext: { fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#888", fontWeight: 300, lineHeight: 1.6 },
-  card: { background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "24px" },
+  sectionLabel: { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 },
+  heading1: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 28, color: "#1A1A18", letterSpacing: -0.5 },
+  heading2: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 20, color: "#1A1A18" },
+  subtext: { fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#8A8A88", fontWeight: 300, lineHeight: 1.6 },
+  card: { background: "#FFFFFF", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: "24px" },
   btnPrimary: {
-    background: "#111", color: "#FFFFFF", border: "none", borderRadius: 2,
-    padding: "12px 28px", fontFamily: "'Montserrat',sans-serif", fontWeight: 600,
+    background: "#FFC32C", color: "#1A1A18", border: "none", borderRadius: 999,
+    padding: "12px 28px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700,
     fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
     display: "inline-flex", alignItems: "center", gap: 8,
   },
   btnSecondary: {
-    background: "#FFFFFF", color: "#111", border: "1px solid #111", borderRadius: 2,
+    background: "#F5F4EF", color: "#1A1A18", border: "0.5px solid #E8E7E2", borderRadius: 999,
     padding: "10px 20px", fontFamily: "'Montserrat',sans-serif", fontWeight: 600,
     fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
     display: "inline-flex", alignItems: "center", gap: 6,
   },
   btnBack: {
-    background: "#FFFFFF", color: "#888", border: "1px solid #E8E8E8", borderRadius: 2,
+    background: "#FDFCF7", color: "#8A8A88", border: "0.5px solid #E8E7E2", borderRadius: 999,
     padding: "8px 16px", fontFamily: "'Poppins',sans-serif", fontWeight: 400,
     fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
   },
-  divider: { height: 1, background: "#E8E8E8", margin: "32px 0" },
-  pill: { display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 2, fontSize: 10, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" },
-  genStep: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #E8E8E8", fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#888" },
-  genStepDone: { color: "#111" },
+  divider: { height: "0.5px", background: "#E8E7E2", margin: "32px 0" },
+  pill: { display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, fontSize: 10, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" },
+  genStep: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "0.5px solid #E8E7E2", fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#8A8A88" },
+  genStepDone: { color: "#1A1A18" },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -330,15 +378,15 @@ const S = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ── MB Design tokens ──────────────────────────────────────────────────────────
-const MB_INK        = "#000000";
-const MB_MID        = "#4D4D4D";
-const MB_MUTED      = "#888888";
-const MB_RULE       = "#E8E8E8";
-const MB_RULEG      = "#F2F2F2";
-const MB_BG         = "#FFFFFF";
-const MB_BGOFF      = "#F7F7F7";
-const MB_GOLD       = "#ffcc36";
-const MB_GOLD_TEXT  = "#7a5c10";
+const MB_INK        = "#1A1A18";
+const MB_MID        = "#4A4A48";
+const MB_MUTED      = "#8A8A88";
+const MB_RULE       = "#E8E7E2";
+const MB_RULEG      = "#F5F4EF";
+const MB_BG         = "#FDFCF7";
+const MB_BGOFF      = "#F5F4EF";
+const MB_GOLD       = "#FFC32C";
+const MB_GOLD_TEXT  = "#7A5500";
 const MB_BLUE       = "#1851EB";
 const MB_POS        = "#16a34a";
 const MB_NEG        = "#dc2626";
@@ -732,7 +780,7 @@ function buildExportHTML(rootEl, date) {
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"/>
-<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#fff;font-family:'Poppins',sans-serif;}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#FDFCF7;font-family:'Poppins',sans-serif;}</style>
 </head><body>${clone.outerHTML}</body></html>`;
 }
 
@@ -1264,24 +1312,24 @@ function MarketBriefReport({ data, onBack }) {
       <div className="noprint" style={{position:"sticky",top:0,zIndex:100,background:MB_INK,
         padding:"10px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <button onClick={onBack} style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
-          border:`1px solid rgba(255,255,255,0.2)`,borderRadius:2,padding:"6px 14px",cursor:"pointer"}}>
+          border:`1px solid rgba(255,255,255,0.2)`,borderRadius:6,padding:"6px 14px",cursor:"pointer"}}>
           ← Back to Studio
         </button>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {shareMsg && <span style={{fontFamily:MB_BODY,fontSize:11,color:MB_GOLD}}>{shareMsg}</span>}
           <button onClick={handleShare} disabled={exporting}
             style={{fontFamily:MB_BODY,fontSize:12,color:MB_INK,background:MB_GOLD,border:"none",
-              borderRadius:2,padding:"7px 16px",cursor:"pointer",fontWeight:600}}>
+              borderRadius:999,padding:"7px 16px",cursor:"pointer",fontWeight:600}}>
             Share Link
           </button>
           <button onClick={handleExportHTML}
             style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
-              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:2,padding:"7px 16px",cursor:"pointer"}}>
+              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:6,padding:"7px 16px",cursor:"pointer"}}>
             Export HTML
           </button>
           <button onClick={()=>window.print()}
             style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
-              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:2,padding:"7px 16px",cursor:"pointer"}}>
+              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:6,padding:"7px 16px",cursor:"pointer"}}>
             Export PDF
           </button>
         </div>
@@ -1291,25 +1339,27 @@ function MarketBriefReport({ data, onBack }) {
         style={{maxWidth:860,margin:"0 auto",background:MB_BG,boxShadow:"0 2px 40px rgba(0,0,0,0.08)",
           paddingBottom:48}}>
 
-        <div style={{padding:"40px 64px 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-            <SDMLogo width={150}/>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:MB_HEAD,fontSize:18,fontWeight:700,color:MB_INK,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
-                MarketBeat
+        {/* Dark Masthead */}
+        <div style={{background:"#1A1A18",padding:"28px 40px 24px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="36" height="36" style={{flexShrink:0}}>
+                <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+                <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+              </svg>
+              <div>
+                <div style={{fontFamily:MB_HEAD,fontSize:9,letterSpacing:3,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",marginBottom:2}}>SECURE DIGITAL MARKETS</div>
+                <div style={{fontFamily:MB_HEAD,fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.9)",letterSpacing:1,textTransform:"uppercase"}}>Daily Market Brief</div>
               </div>
-              <div style={{fontFamily:MB_HEAD,fontSize:13,fontWeight:600,color:MB_INK}}>{mbFmtLong(date)}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:MB_HEAD,fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.8)"}}>{mbFmtLong(date)}</div>
+              <div style={{fontFamily:MB_BODY,fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:3}}>Institutional Research · Internal distribution only</div>
             </div>
           </div>
-          <div style={{borderTop:`3px solid ${MB_INK}`}}/>
-          <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3,marginBottom:20}}/>
-          <h1 style={{fontFamily:MB_HEAD,fontSize:28,fontWeight:700,color:MB_INK,letterSpacing:-0.3,marginBottom:4}}>
-            Daily Market Brief
-          </h1>
-          <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MUTED,marginBottom:24}}>
-            Secure Digital Markets · Institutional Research · For internal distribution only
-          </div>
         </div>
+        {/* Gold gradient rule */}
+        <div style={{height:3,background:"linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)"}}/>
 
         {/* Executive Summary */}
         <div style={{padding:W,paddingBottom:0,paddingTop:32}}>
@@ -1930,13 +1980,13 @@ export default function App() {
 
   // ─── Breadcrumb ───
   const Breadcrumb = ({ items }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "1px solid #E8E8E8", background: "#EFEFEF" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "0.5px solid #E8E7E2", background: "#F5F4EF" }}>
       <button style={S.btnBack} onClick={handleReset}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </button>
       {items.map((item, i) => (
         <span key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#E8E8E8", fontSize: 12 }}>&rsaquo;</span>
+          <span style={{ color: "#E8E7E2", fontSize: 12 }}>&rsaquo;</span>
           {item.onClick ? (
             <button onClick={item.onClick} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#111" : "#888", fontWeight: item.active ? 500 : 400 }}>{item.label}</button>
           ) : (
@@ -1964,8 +2014,8 @@ export default function App() {
 
   // ─── Sidebar (configure screens) ───
   const ConfigureSidebar = ({ icon, tag, label, category, description, outputItems, backLabel, onBack }) => (
-    <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E8E8E8", padding: "32px 28px", background: "#EFEFEF" }}>
-      <div style={{ borderTop: "3px solid #ffcc36", paddingTop: 16, marginBottom: 20 }}>
+    <div style={{ width: 280, flexShrink: 0, borderRight: "0.5px solid #E8E7E2", padding: "32px 28px", background: "#F5F4EF" }}>
+      <div style={{ borderTop: "3px solid #FFC32C", paddingTop: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
         <div style={S.sectionLabel}>{tag}</div>
         <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 6 }}>{label}</div>
@@ -2009,8 +2059,8 @@ export default function App() {
           <div key={i} style={{ ...S.genStep, ...(currentStep > i ? S.genStepDone : {}), borderBottom: i < steps.length - 1 ? "1px solid #F0F0F0" : "none" }}>
             <div style={{
               width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-              background: currentStep > i ? "#111" : currentStep === i ? "#ffcc36" : "#F0F0F0",
-              color: currentStep > i ? "#fff" : "#111",
+              background: currentStep > i ? "#1A1A18" : currentStep === i ? "#FFC32C" : "#F0F0F0",
+              color: currentStep > i ? "#fff" : "#1A1A18",
               fontSize: 10, fontWeight: 700,
             }}>
               {currentStep > i ? "✓" : currentStep === i ? (
@@ -2025,13 +2075,13 @@ export default function App() {
   );
 
   const inputStyle = {
-    width: "100%", background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2,
-    padding: "10px 12px", fontSize: 13, color: "#111", fontFamily: "'Poppins',sans-serif", outline: "none",
+    width: "100%", background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 6,
+    padding: "10px 12px", fontSize: 13, color: "#1A1A18", fontFamily: "'Poppins',sans-serif", outline: "none",
   };
 
   return (
     <div style={S.page}>
-      <AppHeader onReset={handleReset} />
+      <AppHeader onReset={handleReset} phase={phase} onNavigate={navigateTo} />
 
       {/* Breadcrumbs */}
       {isTradingPhase && renderTradingBreadcrumb()}
@@ -2049,7 +2099,7 @@ export default function App() {
             <p style={{ ...S.subtext, maxWidth: 520, margin: "0 auto" }}>Generate institutional-grade trade reports, lending proposals, and sales collateral in seconds.</p>
           </div>
 
-          <div style={{ height: 1, background: "#E8E8E8", marginBottom: 40 }} />
+          <div style={{ ...S.divider, marginBottom: 40 }} />
 
           <div style={{ ...S.sectionLabel, marginBottom: 24, textAlign: "center" }}>Select a Product</div>
 
@@ -2058,21 +2108,22 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.AI_CONFIGURE)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+                background: "#1A1A18", border: "0.5px solid #1A1A18", borderRadius: 14,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer",
+                transition: "box-shadow 0.15s, transform 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#ffcc36"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.18)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+                <div style={{ width: 40, height: 40, background: "rgba(255,195,44,0.15)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#111", color: "#ffcc36" }}>AI BETA</span>
+                <span style={{ ...S.pill, background: "rgba(255,195,44,0.2)", color: "#FFC32C" }}>AI BETA</span>
               </div>
-              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Ask AI</h2>
-              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Paste meeting notes and let AI recommend the optimal trade structure, strikes, and summary.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+              <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6, color: "#FFFFFF" }}>Ask AI</h2>
+              <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16, color: "rgba(255,255,255,0.55)" }}>Paste meeting notes and let AI recommend the optimal trade structure, strikes, and summary.</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#FFC32C", letterSpacing: 1, textTransform: "uppercase" }}>
                 Start AI analysis <span>&rarr;</span>
               </div>
             </button>
@@ -2081,21 +2132,22 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.MARKET_BRIEF)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #ffcc36", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+                background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer",
+                transition: "box-shadow 0.15s, transform 0.15s, background 0.15s",
               }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,195,44,0.04)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#FDFCF7"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
+                <div style={{ width: 40, height: 40, background: "rgba(255,195,44,0.12)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M4 13h8"/><path d="M4 17h5"/><path d="M4 9h16"/><rect x="2" y="7" width="8" height="16" rx="2"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#111", color: "#ffcc36" }}>LIVE</span>
+                <span style={{ ...S.pill, background: "rgba(255,195,44,0.15)", color: "#7A5500" }}>LIVE</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Daily Market Brief</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>AI-written institutional crypto brief with live market data, ETF flows, derivatives, geopolitics, and news summaries.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#1A1A18", letterSpacing: 1, textTransform: "uppercase" }}>
                 Generate brief <span>&rarr;</span>
               </div>
             </button>
@@ -2104,21 +2156,22 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.SELECT)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #111", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+                background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer",
+                transition: "box-shadow 0.15s, transform 0.15s, background 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.borderTopColor = "#ffcc36"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderTopColor = "#111"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,195,44,0.04)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#FDFCF7"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                <div style={{ width: 40, height: 40, background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="1.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#F0F0F0", color: "#111" }}>DERIVATIVES</span>
+                <span style={{ ...S.pill, background: "#F5F4EF", color: "#1A1A18" }}>DERIVATIVES</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Derivatives Studio</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Generate institutional-grade trade reports with payoff diagrams, risk metrics, and executive summaries.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#1A1A18", letterSpacing: 1, textTransform: "uppercase" }}>
                 Create a trade report <span>&rarr;</span>
               </div>
             </button>
@@ -2127,14 +2180,15 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.LENDING_CONFIGURE)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #16a34a", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+                background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer",
+                transition: "box-shadow 0.15s, transform 0.15s, background 0.15s",
               }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,195,44,0.04)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#FDFCF7"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 40, height: 40, background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>
                 </div>
                 <span style={{ ...S.pill, background: "#dcfce7", color: "#16a34a" }}>LENDING</span>
@@ -2150,21 +2204,22 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.SALES_LIBRARY)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #ffcc36", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+                background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer",
+                transition: "box-shadow 0.15s, transform 0.15s, background 0.15s",
               }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,195,44,0.04)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#FDFCF7"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
+                <div style={{ width: 40, height: 40, background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
                 </div>
-                <span style={{ ...S.pill, background: "#ffcc36", color: "#111" }}>SALES</span>
+                <span style={{ ...S.pill, background: "rgba(255,195,44,0.15)", color: "#7A5500" }}>SALES</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Sales Library</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Browse and share pitch decks, one-pagers, and sales collateral from the SDM document vault.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#1A1A18", letterSpacing: 1, textTransform: "uppercase" }}>
                 Browse documents <span>&rarr;</span>
               </div>
             </button>
@@ -2173,24 +2228,25 @@ export default function App() {
             <button
               onClick={() => navigateTo(PHASES.OPTIONS_PRICER)}
               style={{
-                background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: "3px solid #FFC32C", borderRadius: 2,
-                padding: "28px 24px", textAlign: "left", cursor: "pointer", transition: "box-shadow 0.15s",
+                background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14,
+                padding: "28px 24px", textAlign: "left", cursor: "pointer",
+                transition: "box-shadow 0.15s, transform 0.15s, background 0.15s",
               }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,195,44,0.04)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(26,26,24,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#FDFCF7"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, background: "#111", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 40, height: 40, background: "#1A1A18", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5">
                     <path d="M3 3v18h18"/>
                     <path d="M7 16l4-4 4 4 5-5"/>
                   </svg>
                 </div>
-                <span style={{ ...S.pill, background: "#111", color: "#FFC32C" }}>OPTIONS</span>
+                <span style={{ ...S.pill, background: "#1A1A18", color: "#FFC32C" }}>OPTIONS</span>
               </div>
               <h2 style={{ ...S.heading2, fontSize: 17, marginBottom: 6 }}>Options Pricer</h2>
               <p style={{ ...S.subtext, fontSize: 13, marginBottom: 16 }}>Multi-leg Black-Scholes pricer for vanilla crypto options. Greeks, net P&amp;L, and scenario analysis at expiry.</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#111", letterSpacing: 1, textTransform: "uppercase" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "#1A1A18", letterSpacing: 1, textTransform: "uppercase" }}>
                 Price options <span>&rarr;</span>
               </div>
             </button>

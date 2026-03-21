@@ -3,33 +3,33 @@ import { fmt, fmtInt } from "./lendingEngine";
 
 // ─── Light theme tokens ───
 const THEME = {
-  bg: "#FFFFFF",
-  bg2: "#FAFAFA",
-  border: "#E8E8E8",
-  borderLight: "#F0F0F0",
-  text: "#111111",
-  textMuted: "#888888",
+  bg: "#FDFCF7",
+  bg2: "#F5F4EF",
+  border: "#E8E7E2",
+  borderLight: "#E8E7E2",
+  text: "#1A1A18",
+  textMuted: "#8A8A88",
   gold: "#FFC32C",
   positive: "#16a34a",
   negative: "#dc2626",
 };
 
-const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#888", textTransform: "uppercase", fontWeight: 600 };
-const sectionTitle = { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111" };
+const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 };
+const sectionTitle = { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18" };
 
 // ─── RICH TEXT TOOLBAR ───
 function RichTextToolbar() {
   const exec = (cmd, val) => document.execCommand(cmd, false, val || null);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderBottom: "none" }}>
-      <button type="button" onMouseDown={e => { e.preventDefault(); exec("bold"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", borderRadius: 2 }}><strong>B</strong></button>
-      <button type="button" onMouseDown={e => { e.preventDefault(); exec("italic"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", borderRadius: 2 }}><em>I</em></button>
-      <button type="button" onMouseDown={e => { e.preventDefault(); exec("underline"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", borderRadius: 2 }}><u>U</u></button>
-      <div style={{ width: 1, height: 16, background: "#E8E8E8", margin: "0 4px" }} />
-      <button type="button" onMouseDown={e => { e.preventDefault(); exec("formatBlock", "<h3>"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", borderRadius: 2 }}>H</button>
-      <button type="button" onMouseDown={e => { e.preventDefault(); exec("formatBlock", "<p>"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", borderRadius: 2 }}>P</button>
-      <div style={{ width: 1, height: 16, background: "#E8E8E8", margin: "0 4px" }} />
-      <button type="button" onMouseDown={e => { e.preventDefault(); exec("insertUnorderedList"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", color: "#555", borderRadius: 2 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 10px", background: "#F5F4EF", border: "1px solid #E8E7E2", borderBottom: "none" }}>
+      <button type="button" onMouseDown={e => { e.preventDefault(); exec("bold"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4 }}><strong>B</strong></button>
+      <button type="button" onMouseDown={e => { e.preventDefault(); exec("italic"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4 }}><em>I</em></button>
+      <button type="button" onMouseDown={e => { e.preventDefault(); exec("underline"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4 }}><u>U</u></button>
+      <div style={{ width: 1, height: 16, background: "#E8E7E2", margin: "0 4px" }} />
+      <button type="button" onMouseDown={e => { e.preventDefault(); exec("formatBlock", "<h3>"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4 }}>H</button>
+      <button type="button" onMouseDown={e => { e.preventDefault(); exec("formatBlock", "<p>"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4 }}>P</button>
+      <div style={{ width: 1, height: 16, background: "#E8E7E2", margin: "0 4px" }} />
+      <button type="button" onMouseDown={e => { e.preventDefault(); exec("insertUnorderedList"); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", color: "#4A4A48", borderRadius: 4 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
       </button>
     </div>
@@ -56,12 +56,12 @@ function handleExportPDF(reportRef) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #FFFFFF; color: #111; font-family: 'Poppins', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 ${cssText}
 @media print {
   @page { size: A4; margin: 0 !important; }
   *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background: #FFFFFF !important; padding: 12mm !important; }
+  body { background: #FDFCF7 !important; padding: 12mm !important; }
   .noprint, .report-actions { display: none !important; }
 }
 </style>
@@ -95,7 +95,7 @@ function buildLendingStandaloneHtml(reportRef) {
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #FFFFFF; color: #111; font-family: 'Poppins', sans-serif; padding: 32px; }
+body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; padding: 32px; }
 .noprint, .report-actions { display: none !important; }
 ${cssText}
 </style></head>
@@ -163,17 +163,17 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
   );
 
   return (
-    <div style={{ background: "#FFFFFF", minHeight: "100vh" }}>
+    <div style={{ background: "#FDFCF7", minHeight: "100vh" }}>
       {/* ─── Sticky Action Bar ─── */}
       <div className="noprint" style={{
         position: "sticky", top: 0, zIndex: 100,
-        background: "#111", padding: "10px 48px",
+        background: "#1A1A18", padding: "10px 48px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         borderBottom: "2px solid #FFC32C",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {onBack && (
-            <button onClick={onBack} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={onBack} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
               Edit
             </button>
@@ -182,75 +182,93 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: 600, color: "#FFFFFF" }}>{data.collateralAsset}-Backed Loan Facility</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => window.open(`https://t.me/share/url?text=${encodeURIComponent(`SDM Lending Proposal: ${data.collateralAsset}-Backed Loan — ${data.borrowerName}`)}`, "_blank")} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => window.open(`https://t.me/share/url?text=${encodeURIComponent(`SDM Lending Proposal: ${data.collateralAsset}-Backed Loan — ${data.borrowerName}`)}`, "_blank")} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
             Telegram
           </button>
-          <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`SDM Lending Proposal: ${data.collateralAsset}-Backed Loan — ${data.borrowerName}`)}`, "_blank")} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`SDM Lending Proposal: ${data.collateralAsset}-Backed Loan — ${data.borrowerName}`)}`, "_blank")} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
             WhatsApp
           </button>
-          <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(`SDM Lending Proposal: ${data.collateralAsset}-Backed Loan`)}&body=${encodeURIComponent(`Lending proposal for ${data.borrowerName}`)}`, "_blank")} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(`SDM Lending Proposal: ${data.collateralAsset}-Backed Loan`)}&body=${encodeURIComponent(`Lending proposal for ${data.borrowerName}`)}`, "_blank")} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
             Email
           </button>
-          <button onClick={() => handleExportPDF(reportRef)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={() => handleExportPDF(reportRef)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.7)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             PDF
           </button>
-          <button onClick={() => handleLendingShareLink(reportRef, data, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 2, color: "#111", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
+          <button onClick={() => handleLendingShareLink(reportRef, data, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 999, color: "#111", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
             {linkText}
           </button>
-          <button onClick={onReset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, color: "rgba(255,255,255,0.5)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer" }}>
+          <button onClick={onReset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.5)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer" }}>
             New Proposal
           </button>
         </div>
       </div>
 
       {/* ─── Report Content ─── */}
-      <div ref={reportRef} style={{ maxWidth: 900, margin: "0 auto", padding: "40px 48px" }}>
+      <div ref={reportRef} style={{ background: "#FDFCF7" }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid #E8E8E8" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-            <div style={{ color: "#16a34a" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="12" cy="16" r="2"/></svg>
+        {/* Dark Masthead */}
+        <div style={{ background: "#1A1A18", padding: "28px 40px 24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="36" height="36" style={{ flexShrink: 0 }}>
+                <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+                <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+              </svg>
+              <div>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, letterSpacing: 3, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 2 }}>SECURE DIGITAL MARKETS</div>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", letterSpacing: 1, textTransform: "uppercase" }}>Lending Proposal</div>
+              </div>
             </div>
-            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, letterSpacing: 2, color: "#16a34a", textTransform: "uppercase", fontWeight: 600, background: "#dcfce7", padding: "4px 10px", borderRadius: 2 }}>LENDING PROPOSAL</span>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{dateStr}</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>Ref: SDM-LOAN-{new Date().getFullYear()}</div>
+            </div>
           </div>
-          <h1 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 28, color: "#111", marginBottom: 6 }}>
+        </div>
+        {/* Gold gradient rule */}
+        <div style={{ height: 3, background: "linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)" }} />
+        {/* Hero */}
+        <div style={{ padding: "36px 40px 32px", borderBottom: "0.5px solid #E8E7E2", background: "#FDFCF7" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, letterSpacing: 2, color: "#16a34a", textTransform: "uppercase", fontWeight: 700, background: "#dcfce7", padding: "5px 14px", borderRadius: 999, display: "inline-block", marginBottom: 20 }}>LENDING PROPOSAL</span>
+          <h1 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 30, color: "#1A1A18", marginBottom: 10, lineHeight: 1.1 }}>
             {data.collateralAsset}-Backed Loan Facility
           </h1>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#888", fontWeight: 300 }}>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#8A8A88", fontWeight: 300 }}>
             Prepared for {data.borrowerName} &mdash; {data.termMonths}-Month Secured Lending Arrangement
           </p>
         </div>
 
-        {/* KPI Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
+        {/* ─── Padded report body ─── */}
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 48px" }}>
+
+        {/* Metrics Strip */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", borderBottom: "0.5px solid #E8E7E2", marginBottom: 32, marginLeft: -48, marginRight: -48 }}>
           {[
             { label: "Net Loan Proceeds", value: $k(data.netLoanProceeds), sub: data.loanCurrency, color: "#16a34a" },
             { label: "Collateral Value", value: $k(data.collateralValue), sub: `${fmt(data.collateralUnits)} ${data.collateralAsset}`, color: "#FFC32C" },
-            { label: "LTV Ratio", value: `${(data.ltv * 100).toFixed(0)}%`, sub: "Loan-to-Value", color: "#111" },
-            { label: "Annual Rate", value: `${(data.annualRate * 100).toFixed(0)}%`, sub: "Paid quarterly in arrears", color: "#111" },
+            { label: "LTV Ratio", value: `${(data.ltv * 100).toFixed(0)}%`, sub: "Loan-to-Value", color: "#1A1A18" },
+            { label: "Annual Rate", value: `${(data.annualRate * 100).toFixed(0)}%`, sub: "Paid quarterly in arrears", color: "#1A1A18" },
             { label: "All-In Cost", value: $k(data.totalCost), sub: "Fee + interest over term", color: "#dc2626" },
-            { label: "Effective Rate", value: `${data.effectiveRate.toFixed(2)}%`, sub: "Annualized all-in cost", color: "#111" },
-          ].map((kpi, i) => (
+            { label: "Effective Rate", value: `${data.effectiveRate.toFixed(2)}%`, sub: "Annualized all-in cost", color: "#1A1A18" },
+          ].map((kpi, i, arr) => (
             <div key={i} style={{
-              background: "#FFFFFF", border: "1px solid #E8E8E8",
-              borderTop: `3px solid ${kpi.color}`,
-              borderRadius: 2, padding: "16px 18px",
+              padding: "18px 20px",
+              borderRight: i < arr.length - 1 ? "0.5px solid #E8E7E2" : "none",
             }}>
-              <div style={{ ...sectionLabel, marginBottom: 8 }}>{kpi.label}</div>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 20, color: kpi.color, marginBottom: 4 }}>{kpi.value}</div>
-              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888" }}>{kpi.sub}</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{kpi.label}</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 17, color: kpi.color, marginBottom: 4 }}>{kpi.value}</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#8A8A88" }}>{kpi.sub}</div>
             </div>
           ))}
         </div>
 
         {/* Executive Summary */}
         <div
-          style={{ marginBottom: 32, padding: 24, background: "#FAFAFA", border: "1px solid #E8E8E8", borderLeft: "3px solid #FFC32C", borderRadius: 2, position: "relative" }}
+          style={{ marginBottom: 32, padding: 24, background: "rgba(255,195,44,0.06)", border: "0.5px solid #E8E7E2", borderLeft: "3px solid #FFC32C", borderRadius: "0 10px 10px 0", position: "relative" }}
           onMouseEnter={() => setExecHover(true)}
           onMouseLeave={() => setExecHover(false)}
         >
@@ -266,8 +284,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             onBlur={handleExecBlur}
             style={{
               fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#333", outline: "none",
-              background: execHover ? "#FFFFFF" : "transparent",
-              border: execHover ? "1px solid #E8E8E8" : "1px solid transparent",
+              background: execHover ? "#FDFCF7" : "transparent",
+              border: execHover ? "1px solid #E8E7E2" : "1px solid transparent",
               borderRadius: 2, padding: "12px 14px", minHeight: 80, marginTop: 12,
               transition: "background 0.15s, border-color 0.15s",
               cursor: "text",
@@ -278,7 +296,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         {/* Loan Structure */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Loan Structure</div>
-          <div style={{ border: "1px solid #E8E8E8", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
             {[
               { label: "Collateral Asset", value: data.collateralAsset },
               { label: "Collateral Units", value: fmt(data.collateralUnits) },
@@ -291,7 +309,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             ].map(({ label, value, negative, highlight }, i) => (
               <div key={i} style={{
                 display: "flex", justifyContent: "space-between", padding: "12px 20px",
-                borderBottom: "1px solid #F0F0F0",
+                borderBottom: "0.5px solid #E8E7E2",
                 background: highlight ? "#f0fdf4" : "transparent",
               }}>
                 <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#888" }}>{label}</span>
@@ -307,7 +325,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         {/* Cost of Borrowing */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Cost of Borrowing</div>
-          <div style={{ border: "1px solid #E8E8E8", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
             {[
               { label: "Arrangement Fee", value: $(data.arrangementFeeAmount) },
               { label: "Quarterly Interest Payment", value: $(data.quarterlyPayment) },
@@ -318,7 +336,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             ].map(({ label, value, highlight }, i) => (
               <div key={i} style={{
                 display: "flex", justifyContent: "space-between", padding: "12px 20px",
-                borderBottom: "1px solid #F0F0F0",
+                borderBottom: "0.5px solid #E8E7E2",
                 background: highlight ? "#fef2f2" : "transparent",
               }}>
                 <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#888" }}>{label}</span>
@@ -331,18 +349,18 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         {/* Payment Schedule */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Payment Schedule</div>
-          <div style={{ border: "1px solid #E8E8E8", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "#FAFAFA" }}>
+                <tr style={{ background: "#F5F4EF" }}>
                   {["Quarter", "Month", "Interest Due", "Cumulative Interest", "Outstanding Principal"].map((h, i) => (
-                    <th key={i} style={{ padding: "10px 16px", textAlign: i === 0 || i === 1 ? "left" : "right", ...sectionLabel, borderBottom: "1px solid #E8E8E8", fontWeight: 600 }}>{h}</th>
+                    <th key={i} style={{ padding: "10px 16px", textAlign: i === 0 || i === 1 ? "left" : "right", ...sectionLabel, borderBottom: "0.5px solid #E8E7E2", fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {data.schedule.map((row, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #F0F0F0" }}>
+                  <tr key={i} style={{ borderBottom: "0.5px solid #E8E7E2" }}>
                     <td style={{ padding: "10px 16px", color: "#111", fontWeight: 500 }}>Q{row.quarter}</td>
                     <td style={{ padding: "10px 16px", color: "#888" }}>Month {row.monthEnd}</td>
                     <td style={{ padding: "10px 16px", textAlign: "right", color: "#111" }}>{$(row.interestPayment)}</td>
@@ -350,7 +368,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
                     <td style={{ padding: "10px 16px", textAlign: "right", color: "#555" }}>{$(row.outstandingPrincipal)}</td>
                   </tr>
                 ))}
-                <tr style={{ background: "#FAFAFA", borderTop: "2px solid #E8E8E8" }}>
+                <tr style={{ background: "#F5F4EF", borderTop: "1px solid #E8E7E2" }}>
                   <td colSpan="2" style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 12, color: "#111" }}>Maturity</td>
                   <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#111" }}>{$(data.totalInterest)}</td>
                   <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#111" }}>{$(data.totalInterest)}</td>
@@ -367,10 +385,10 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
             {[
               { label: "Margin Call Trigger", value: $(data.marginCallPrice), sub: "70% of FMP for 3 consecutive business days", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
-              { label: "Cure Period", value: `${data.marginCureDays} days`, sub: "Business days to remedy margin notice", color: "#111", bg: "#FAFAFA", border: "#E8E8E8" },
+              { label: "Cure Period", value: `${data.marginCureDays} days`, sub: "Business days to remedy margin notice", color: "#1A1A18", bg: "#F5F4EF", border: "#E8E7E2" },
               { label: "Price Buffer", value: `${((1 - data.marginCallPrice / data.pricePerUnit) * 100).toFixed(1)}%`, sub: `Decline from ${$(data.pricePerUnit)} before trigger`, color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
             ].map((card, i) => (
-              <div key={i} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 2, padding: "16px 18px" }}>
+              <div key={i} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 10, padding: "16px 18px" }}>
                 <div style={sectionLabel}>{card.label}</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 22, color: card.color, margin: "8px 0 4px" }}>{card.value}</div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", lineHeight: 1.4 }}>{card.sub}</div>
@@ -378,15 +396,15 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             ))}
           </div>
 
-          <div style={{ border: "1px solid #E8E8E8", borderRadius: 2, padding: "20px 24px" }}>
+          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "20px 24px" }}>
             <div style={{ ...sectionLabel, marginBottom: 14 }}>Default Cure Options</div>
             {[
               { num: "1", title: "Partial Repayment", desc: "Return a portion of loan proceeds in stablecoins (USDC/USDT) or fiat (USD/CAD/EUR/GBP)" },
               { num: "2", title: "Additional Collateral", desc: `Transfer additional ${data.collateralAsset} to restore the margin threshold` },
               { num: "3", title: "Walk Away", desc: "Retain loan proceeds and forfeit collateral (all outstanding interest must be current)" },
             ].map((opt, i) => (
-              <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 2 ? "1px solid #F0F0F0" : "none" }}>
-                <div style={{ width: 24, height: 24, background: "#111", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#FFFFFF" }}>{opt.num}</div>
+              <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 2 ? "0.5px solid #E8E7E2" : "none" }}>
+                <div style={{ width: 24, height: 24, background: "#1A1A18", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#FFFFFF" }}>{opt.num}</div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", lineHeight: 1.5 }}>
                   <strong style={{ color: "#111" }}>{opt.title}</strong> &mdash; {opt.desc}
                 </div>
@@ -398,7 +416,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         {/* Key Terms */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Key Terms &amp; Conditions</div>
-          <div style={{ border: "1px solid #E8E8E8", borderRadius: 2, padding: "20px 24px" }}>
+          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "20px 24px" }}>
             {[
               "Minimum loan size: $500,000 USD",
               "No collateral rebalancing on the upside — if collateral appreciates, no automatic withdrawal",
@@ -407,7 +425,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
               "Collateral returned at maturity assuming all interest paid and principal returned within 7 days",
               "Settlement: test transfer followed by final balance to dedicated SDM Lending Wallet",
             ].map((term, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < 5 ? "1px solid #F0F0F0" : "none", alignItems: "flex-start" }}>
+              <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < 5 ? "0.5px solid #E8E7E2" : "none", alignItems: "flex-start" }}>
                 <span style={{ width: 4, height: 4, background: "#FFC32C", borderRadius: "50%", marginTop: 7, flexShrink: 0 }} />
                 <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", lineHeight: 1.5 }}>{term}</span>
               </div>
@@ -416,7 +434,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
         </div>
 
         {/* Disclaimer */}
-        <div style={{ padding: "16px 20px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, marginBottom: 24 }}>
+        <div style={{ padding: "16px 20px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, marginBottom: 24 }}>
           <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", lineHeight: 1.6 }}>
             This material is for informational use only and does not constitute financial or investment advice. The terms, conditions, and policies outlined herein are subject to change without notice. Digital assets used as collateral may fluctuate significantly due to market volatility. Crypto-backed lending involves substantial risk and may not be suitable for all borrowers.
           </p>
@@ -448,6 +466,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             </div>
           </div>
           <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#AAAAAA", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
+        </div>
         </div>
       </div>
     </div>
