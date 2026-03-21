@@ -209,33 +209,33 @@ export default function MBChartSection06() {
   useEffect(() => {
     if (!lwcLoaded) return;
     setLoading(true);
-    // Try CoinGecko first, fall back to Kraken OHLC (real data)
+
+    // Kraken OHLC fetcher (reliable, no auth needed)
+    const krakenOHLC = (interval, days) =>
+      fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=${interval}&since=${Math.floor(Date.now()/1000) - days*86400}`)
+        .then(r => r.json())
+        .then(json => {
+          const key = Object.keys(json.result || {}).find(k => k !== "last");
+          return (json.result?.[key] || []).map(([ts,o,h,l,c]) => ({ time: Number(ts), open: +o, high: +h, low: +l, close: +c }));
+        });
+
+    // Try CoinGecko first, fall back to Kraken
     const fetchDaily = cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90")
       .then(d => toCandles(d))
-      .catch(() =>
-        fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=1440&since=${Math.floor(Date.now()/1000) - 90*86400}`)
-          .then(r => r.json())
-          .then(json => {
-            const key = Object.keys(json.result).find(k => k !== "last");
-            return (json.result[key] || []).map(([ts,o,h,l,c]) => ({ time: Number(ts), open: +o, high: +h, low: +l, close: +c }));
-          })
-      );
+      .catch(() => krakenOHLC(1440, 90));
+
     const fetch4H = cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30")
       .then(d => toCandles(d))
-      .catch(() =>
-        fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=240&since=${Math.floor(Date.now()/1000) - 30*86400}`)
-          .then(r => r.json())
-          .then(json => {
-            const key = Object.keys(json.result).find(k => k !== "last");
-            return (json.result[key] || []).map(([ts,o,h,l,c]) => ({ time: Number(ts), open: +o, high: +h, low: +l, close: +c }));
-          })
-      );
-    Promise.all([fetchDaily, fetch4H]).then(([d90, d30]) => {
-      if (!d90?.length && !d30?.length) { setError("Unable to load chart data — CoinGecko and Kraken both unavailable"); setLoading(false); return; }
-      setDaily(d90?.length ? d90 : null);
-      setFourH(d30?.length ? d30 : null);
+      .catch(() => krakenOHLC(240, 30));
+
+    Promise.allSettled([fetchDaily, fetch4H]).then(([dailyResult, fourHResult]) => {
+      const d90 = dailyResult.status === "fulfilled" && dailyResult.value?.length ? dailyResult.value : null;
+      const d30 = fourHResult.status === "fulfilled" && fourHResult.value?.length ? fourHResult.value : null;
+      if (!d90 && !d30) { setError("Unable to load chart data — CoinGecko and Kraken both unavailable"); setLoading(false); return; }
+      setDaily(d90);
+      setFourH(d30);
       setLoading(false);
-    }).catch(e => { setError(e.message); setLoading(false); });
+    });
   }, [lwcLoaded]);
 
   return (
@@ -267,10 +267,10 @@ export default function MBChartSection06() {
       {loading && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", padding: 20, textAlign: "center" }}>Loading BTC charts from CoinGecko...</div>}
       {error && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#dc2626", padding: 20 }}>Chart error: {error}</div>}
 
-      {!loading && !error && daily && fourH && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true} />
-          <ChartPanel title="BTC 4H — 30 Days" candles={fourH} showLevels={false} />
+      {!loading && !error && (daily || fourH) && (
+        <div style={{ display: "grid", gridTemplateColumns: daily && fourH ? "1fr 1fr" : "1fr", gap: 16 }}>
+          {daily && <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true} />}
+          {fourH && <ChartPanel title="BTC 4H — 30 Days" candles={fourH} showLevels={false} />}
         </div>
       )}
 
