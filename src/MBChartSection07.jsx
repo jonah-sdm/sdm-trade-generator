@@ -153,20 +153,20 @@ export default function MBChartSection07() {
 
   return (
     <>
-      <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12.5, color: "#333", lineHeight: 1.7, marginBottom: 16 }}>
+      <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12.5, color: "#1A1A18", lineHeight: 1.7, marginBottom: 16 }}>
         Hourly close prices for 24 major cryptocurrencies, normalized to percentage change from the start of the 5-day window.
         Excludes stablecoins (flat line), BNB (not listed on Kraken), and HYPE/USDS/MNT (not available). Data: Kraken public OHLC API.
       </p>
 
-      <div style={{ background: "#fafbfc", border: "1px solid #e4e8ed", borderRadius: 4, padding: "12px 8px", position: "relative" }}>
+      <div style={{ background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: "12px 8px", position: "relative" }}>
         {/* Status bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, padding: "0 8px" }}>
-          <span style={{ fontFamily: "'Courier New',monospace", fontSize: 10, color: "#888" }}>
+          <span style={{ fontFamily: "'Courier New',monospace", fontSize: 10, color: "#8A8A88" }}>
             {status === "loading" ? "Fetching all coins in parallel\u2026" : status}
           </span>
           <button
             onClick={load}
-            style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, padding: "3px 10px", border: "1px solid #ddd", borderRadius: 3, background: "#fff", cursor: "pointer", color: "#555" }}
+            style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, padding: "3px 10px", border: "0.5px solid #E8E7E2", borderRadius: 6, background: "#FDFCF7", cursor: "pointer", color: "#4A4A48" }}
           >
             Refresh
           </button>
@@ -184,8 +184,8 @@ export default function MBChartSection07() {
             {/* Y grid + labels */}
             {yTicks.map(v => (
               <g key={v}>
-                <line x1={PL} y1={yp(v)} x2={W - PR} y2={yp(v)} stroke={v === 0 ? "#bbb" : "#f0f3f5"} strokeWidth={v === 0 ? 0.8 : 0.5} strokeDasharray={v === 0 ? "4,3" : "none"} />
-                <text x={PL - 4} y={yp(v) + 3.5} fontSize="9.5" fill="#888" textAnchor="end" fontFamily="'Courier New',monospace">{v >= 0 ? "+" : ""}{v.toFixed(0)}%</text>
+                <line x1={PL} y1={yp(v)} x2={W - PR} y2={yp(v)} stroke={v === 0 ? "#8A8A88" : "#E8E7E2"} strokeWidth={v === 0 ? 0.8 : 0.5} strokeDasharray={v === 0 ? "4,3" : "none"} />
+                <text x={PL - 4} y={yp(v) + 3.5} fontSize="9.5" fill="#8A8A88" textAnchor="end" fontFamily="'Courier New',monospace">{v >= 0 ? "+" : ""}{v.toFixed(0)}%</text>
               </g>
             ))}
 
@@ -193,7 +193,7 @@ export default function MBChartSection07() {
             {xTicks.map(t => {
               const d = new Date(t * 1000);
               return (
-                <text key={t} x={xp(t)} y={H - PB + 16} fontSize="9" fill="#888" textAnchor="middle" fontFamily="'Courier New',monospace">
+                <text key={t} x={xp(t)} y={H - PB + 16} fontSize="9" fill="#8A8A88" textAnchor="middle" fontFamily="'Courier New',monospace">
                   {d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </text>
               );
@@ -240,7 +240,7 @@ export default function MBChartSection07() {
         )}
 
         {status === "loading" && (
-          <div style={{ padding: 40, textAlign: "center", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>
+          <div style={{ padding: 40, textAlign: "center", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88" }}>
             Loading 24 coins from Kraken...
           </div>
         )}
@@ -258,14 +258,14 @@ export default function MBChartSection07() {
                 key={sym}
                 style={{
                   display: "flex", alignItems: "center", gap: 5, padding: "4px 6px", borderRadius: 3, cursor: "pointer",
-                  background: isHov ? "#f0f0f0" : "transparent",
+                  background: isHov ? "#E8E7E2" : "transparent",
                   transition: "background 0.15s",
                 }}
                 onMouseEnter={() => setHovered(sym)}
                 onMouseLeave={() => setHovered(null)}
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, color: "#333" }}>{sym}</span>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, color: "#1A1A18" }}>{sym}</span>
                 <span style={{ fontFamily: "'Courier New',monospace", fontSize: 10, color: p.final >= 0 ? "#16a34a" : "#dc2626", marginLeft: "auto" }}>
                   {p.final >= 0 ? "+" : ""}{p.final.toFixed(1)}%
                 </span>
@@ -275,7 +275,7 @@ export default function MBChartSection07() {
         </div>
       )}
 
-      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#888", marginTop: 12 }}>
+      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#8A8A88", marginTop: 12 }}>
         Source: Kraken Public OHLC API · Hourly candles · 24 coins · Normalized to % from T-5 days
       </div>
     </>

@@ -248,7 +248,7 @@ export default function PayoffChart({ strategy, fields }) {
       break;
     case "covered_call":
       if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#E24B4A", label: "Call" });
-      if (n(fields.cost_basis)) annotations.push({ strike: n(fields.cost_basis), color: "#888", label: "Basis" });
+      if (n(fields.cost_basis)) annotations.push({ strike: n(fields.cost_basis), color: "#8A8A88", label: "Basis" });
       break;
     case "cash_secured_put":
       if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#378ADD", label: "Put" });
@@ -267,7 +267,7 @@ export default function PayoffChart({ strategy, fields }) {
       break;
     case "wheel":
       if (n(fields.current_strike)) annotations.push({ strike: n(fields.current_strike), color: "#378ADD", label: "Strike" });
-      if (n(fields.cost_basis)) annotations.push({ strike: n(fields.cost_basis), color: "#888", label: "Basis" });
+      if (n(fields.cost_basis)) annotations.push({ strike: n(fields.cost_basis), color: "#8A8A88", label: "Basis" });
       break;
     case "earnings_play":
       if (n(fields.strike)) annotations.push({ strike: n(fields.strike), color: "#FBBF24", label: "Strike" });
@@ -302,9 +302,9 @@ export default function PayoffChart({ strategy, fields }) {
   return (
     <div style={{
       marginBottom: 24,
-      background: "#FAFAFA",
-      border: "1px solid #E8E8E8",
-      borderRadius: 2,
+      background: "#F5F4EF",
+      border: "0.5px solid #E8E7E2",
+      borderRadius: 14,
       overflow: "hidden",
       maxWidth: 480,
     }}>
@@ -313,17 +313,17 @@ export default function PayoffChart({ strategy, fields }) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        borderBottom: "1px solid #F0F0F0",
+        borderBottom: "0.5px solid #E8E7E2",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A8A88" strokeWidth="2">
             <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
           </svg>
-          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#888", textTransform: "uppercase" }}>
+          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#8A8A88", textTransform: "uppercase" }}>
             Payoff at Expiry
           </span>
         </div>
-        <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#AAA" }}>
+        <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#8A8A88" }}>
           {strategyLabels[strategy] || strategy} {fields.direction ? `· ${fields.direction}` : ""}
         </span>
       </div>

@@ -141,8 +141,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
   if (!data || data.error) {
     return (
       <div style={{ textAlign: "center", padding: "40px", fontFamily: "'Poppins',sans-serif" }}>
-        <p style={{ color: "#888", marginBottom: 16 }}>{data?.error || "No data"}</p>
-        <button onClick={onBack} style={{ background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "8px 16px", color: "#111", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>Back</button>
+        <p style={{ color: "#8A8A88", marginBottom: 16 }}>{data?.error || "No data"}</p>
+        <button onClick={onBack} style={{ background: "#FDFCF7", border: "1px solid #E8E7E2", borderRadius: 6, padding: "8px 16px", color: "#1A1A18", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>Back</button>
       </div>
     );
   }
@@ -198,7 +198,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             PDF
           </button>
-          <button onClick={() => handleLendingShareLink(reportRef, data, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 999, color: "#111", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
+          <button onClick={() => handleLendingShareLink(reportRef, data, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 999, color: "#1A1A18", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
             {linkText}
           </button>
           <button onClick={onReset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.5)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer" }}>
@@ -283,10 +283,10 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             dangerouslySetInnerHTML={{ __html: execHtml || data.summary.split("\n\n").map(p => `<p>${p}</p>`).join("") }}
             onBlur={handleExecBlur}
             style={{
-              fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#333", outline: "none",
+              fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#1A1A18", outline: "none",
               background: execHover ? "#FDFCF7" : "transparent",
               border: execHover ? "1px solid #E8E7E2" : "1px solid transparent",
-              borderRadius: 2, padding: "12px 14px", minHeight: 80, marginTop: 12,
+              borderRadius: 6, padding: "12px 14px", minHeight: 80, marginTop: 12,
               transition: "background 0.15s, border-color 0.15s",
               cursor: "text",
             }}
@@ -312,10 +312,10 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
                 borderBottom: "0.5px solid #E8E7E2",
                 background: highlight ? "#f0fdf4" : "transparent",
               }}>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#888" }}>{label}</span>
+                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#8A8A88" }}>{label}</span>
                 <span style={{
                   fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: highlight ? 700 : 600,
-                  color: negative ? "#dc2626" : highlight ? "#16a34a" : "#111",
+                  color: negative ? "#dc2626" : highlight ? "#16a34a" : "#1A1A18",
                 }}>{value}</span>
               </div>
             ))}
@@ -339,8 +339,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
                 borderBottom: "0.5px solid #E8E7E2",
                 background: highlight ? "#fef2f2" : "transparent",
               }}>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#888" }}>{label}</span>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: highlight ? 700 : 600, color: highlight ? "#dc2626" : "#111" }}>{value}</span>
+                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#8A8A88" }}>{label}</span>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: highlight ? 700 : 600, color: highlight ? "#dc2626" : "#1A1A18" }}>{value}</span>
               </div>
             ))}
           </div>
@@ -361,17 +361,17 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
               <tbody>
                 {data.schedule.map((row, i) => (
                   <tr key={i} style={{ borderBottom: "0.5px solid #E8E7E2" }}>
-                    <td style={{ padding: "10px 16px", color: "#111", fontWeight: 500 }}>Q{row.quarter}</td>
-                    <td style={{ padding: "10px 16px", color: "#888" }}>Month {row.monthEnd}</td>
-                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#111" }}>{$(row.interestPayment)}</td>
-                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#555" }}>{$(row.cumulativeInterest)}</td>
-                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#555" }}>{$(row.outstandingPrincipal)}</td>
+                    <td style={{ padding: "10px 16px", color: "#1A1A18", fontWeight: 500 }}>Q{row.quarter}</td>
+                    <td style={{ padding: "10px 16px", color: "#8A8A88" }}>Month {row.monthEnd}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#1A1A18" }}>{$(row.interestPayment)}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#4A4A48" }}>{$(row.cumulativeInterest)}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#4A4A48" }}>{$(row.outstandingPrincipal)}</td>
                   </tr>
                 ))}
                 <tr style={{ background: "#F5F4EF", borderTop: "1px solid #E8E7E2" }}>
-                  <td colSpan="2" style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 12, color: "#111" }}>Maturity</td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#111" }}>{$(data.totalInterest)}</td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#111" }}>{$(data.totalInterest)}</td>
+                  <td colSpan="2" style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 12, color: "#1A1A18" }}>Maturity</td>
+                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#1A1A18" }}>{$(data.totalInterest)}</td>
+                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#1A1A18" }}>{$(data.totalInterest)}</td>
                   <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#16a34a" }}>{$(data.grossLoan)} (returned)</td>
                 </tr>
               </tbody>
@@ -391,7 +391,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
               <div key={i} style={{ background: card.bg, border: `1px solid ${card.border}`, borderRadius: 10, padding: "16px 18px" }}>
                 <div style={sectionLabel}>{card.label}</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 22, color: card.color, margin: "8px 0 4px" }}>{card.value}</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", lineHeight: 1.4 }}>{card.sub}</div>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", lineHeight: 1.4 }}>{card.sub}</div>
               </div>
             ))}
           </div>
@@ -405,8 +405,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             ].map((opt, i) => (
               <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 2 ? "0.5px solid #E8E7E2" : "none" }}>
                 <div style={{ width: 24, height: 24, background: "#1A1A18", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#FFFFFF" }}>{opt.num}</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", lineHeight: 1.5 }}>
-                  <strong style={{ color: "#111" }}>{opt.title}</strong> &mdash; {opt.desc}
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", lineHeight: 1.5 }}>
+                  <strong style={{ color: "#1A1A18" }}>{opt.title}</strong> &mdash; {opt.desc}
                 </div>
               </div>
             ))}
@@ -427,7 +427,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             ].map((term, i) => (
               <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < 5 ? "0.5px solid #E8E7E2" : "none", alignItems: "flex-start" }}>
                 <span style={{ width: 4, height: 4, background: "#FFC32C", borderRadius: "50%", marginTop: 7, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", lineHeight: 1.5 }}>{term}</span>
+                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", lineHeight: 1.5 }}>{term}</span>
               </div>
             ))}
           </div>
@@ -435,37 +435,37 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
 
         {/* Disclaimer */}
         <div style={{ padding: "16px 20px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, marginBottom: 24 }}>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", lineHeight: 1.6 }}>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", lineHeight: 1.6 }}>
             This material is for informational use only and does not constitute financial or investment advice. The terms, conditions, and policies outlined herein are subject to change without notice. Digital assets used as collateral may fluctuate significantly due to market volatility. Crypto-backed lending involves substantial risk and may not be suitable for all borrowers.
           </p>
         </div>
 
         {/* Footer */}
-        <div style={{ borderTop: "3px solid #111", paddingTop: 2 }}>
+        <div style={{ borderTop: "3px solid #1A1A18", paddingTop: 2 }}>
           <div style={{ height: 2, background: "#FFC32C", marginBottom: 20 }} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 2, color: "#111" }}>SECURE DIGITAL MARKETS</div>
-              <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", marginTop: 4 }}>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 2, color: "#1A1A18" }}>SECURE DIGITAL MARKETS</div>
+              <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", marginTop: 4 }}>
                 The Institutional Choice for <strong style={{ color: "#FFC32C" }}>Digital</strong> Asset Trading
               </p>
             </div>
             <div style={{ display: "flex", gap: 20 }}>
-              <a href="mailto:sales@sdm.co" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", textDecoration: "none" }}>
+              <a href="mailto:sales@sdm.co" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
                 sales@sdm.co
               </a>
-              <a href="https://twitter.com/SD_Markets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", textDecoration: "none" }}>
+              <a href="https://twitter.com/SD_Markets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 @SD_Markets
               </a>
-              <a href="https://t.me/SecureDigitalMarkets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", textDecoration: "none" }}>
+              <a href="https://t.me/SecureDigitalMarkets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
                 Telegram
               </a>
             </div>
           </div>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#AAAAAA", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
         </div>
         </div>
       </div>

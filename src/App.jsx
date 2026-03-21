@@ -25,7 +25,7 @@ const ASK_AI_PRESETS = [
 ];
 
 const AI_RESPONSE_THEMES = {
-  light: { bg: "#EFEFEF", surface: "#EFEFEF", card: "#FFFFFF", border: "#E8E8E8", accent: "#ffcc36", text: "#111111", muted: "#888888" },
+  light: { bg: "#F5F4EF", surface: "#F5F4EF", card: "#FDFCF7", border: "#E8E7E2", accent: "#FFC32C", text: "#1A1A18", muted: "#8A8A88" },
 };
 
 const PHASES = {
@@ -230,12 +230,12 @@ function FieldInput({ field, value, onChange }) {
 
   const inputStyle = {
     width: "100%",
-    background: "#FFFFFF",
-    border: "1px solid #E8E8E8",
-    borderRadius: 2,
+    background: "#FDFCF7",
+    border: "1px solid #E8E7E2",
+    borderRadius: 6,
     padding: "10px 12px",
     fontSize: 13,
-    color: "#111",
+    color: "#1A1A18",
     fontFamily: "'Poppins',sans-serif",
     outline: "none",
     transition: "border-color 0.15s",
@@ -244,7 +244,7 @@ function FieldInput({ field, value, onChange }) {
   if (field.type === "textarea") {
     return (
       <div className="field-group field-group-wide">
-        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#888", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
+        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
         <RichTextFieldToolbar />
         <div
           ref={editorRef}
@@ -263,7 +263,7 @@ function FieldInput({ field, value, onChange }) {
   if (field.type === "select") {
     return (
       <div className="field-group">
-        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#888", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
+        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
         <select
           style={{ ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
           value={value || ""}
@@ -281,15 +281,15 @@ function FieldInput({ field, value, onChange }) {
     : (value || "");
   return (
     <div className="field-group">
-      <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#888", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
+      <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
       <input
         style={inputStyle}
         type="text"
         inputMode={isNum ? "decimal" : undefined}
         placeholder={field.placeholder}
         value={displayValue}
-        onFocus={e => { e.target.style.borderColor = "#111"; e.target.style.outline = "none"; }}
-        onBlur={e => { e.target.style.borderColor = "#E8E8E8"; }}
+        onFocus={e => { e.target.style.borderColor = "#1A1A18"; e.target.style.outline = "none"; }}
+        onBlur={e => { e.target.style.borderColor = "#E8E7E2"; }}
         onChange={e => {
           const raw = isNum ? e.target.value.replace(/,/g, "") : e.target.value;
           if (isNum && raw !== "" && !/^-?\d*\.?\d*$/.test(raw)) return;
@@ -349,7 +349,7 @@ const S = {
   heading1: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 28, color: "#1A1A18", letterSpacing: -0.5 },
   heading2: { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 20, color: "#1A1A18" },
   subtext: { fontFamily: "'Poppins',sans-serif", fontSize: 14, color: "#8A8A88", fontWeight: 300, lineHeight: 1.6 },
-  card: { background: "#FFFFFF", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: "24px" },
+  card: { background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: "24px" },
   btnPrimary: {
     background: "#FFC32C", color: "#1A1A18", border: "none", borderRadius: 999,
     padding: "12px 28px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700,
@@ -1999,9 +1999,9 @@ export default function App() {
         <span key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ color: "#E8E7E2", fontSize: 12 }}>&rsaquo;</span>
           {item.onClick ? (
-            <button onClick={item.onClick} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#111" : "#888", fontWeight: item.active ? 500 : 400 }}>{item.label}</button>
+            <button onClick={item.onClick} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#1A1A18" : "#8A8A88", fontWeight: item.active ? 500 : 400 }}>{item.label}</button>
           ) : (
-            <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#111" : "#888", fontWeight: item.active ? 500 : 400 }}>{item.label}</span>
+            <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: item.active ? "#1A1A18" : "#8A8A88", fontWeight: item.active ? 500 : 400 }}>{item.label}</span>
           )}
         </span>
       ))}
@@ -2029,16 +2029,16 @@ export default function App() {
       <div style={{ borderTop: "3px solid #FFC32C", paddingTop: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
         <div style={S.sectionLabel}>{tag}</div>
-        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 6 }}>{label}</div>
-        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", marginTop: 2 }}>{category}</div>
+        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18", marginTop: 6 }}>{label}</div>
+        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", marginTop: 2 }}>{category}</div>
       </div>
       <p style={{ ...S.subtext, fontSize: 13, marginBottom: 24 }}>{description}</p>
       {outputItems && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...S.sectionLabel, marginBottom: 10 }}>Report Includes</div>
           {outputItems.map((item, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #F0F0F0", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555" }}>
-              <span style={{ width: 4, height: 4, background: "#ffcc36", borderRadius: "50%", flexShrink: 0 }} />
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "0.5px solid #E8E7E2", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48" }}>
+              <span style={{ width: 4, height: 4, background: "#FFC32C", borderRadius: "50%", flexShrink: 0 }} />
               {item}
             </div>
           ))}
@@ -2067,15 +2067,15 @@ export default function App() {
       </div>
       <div style={{ width: "100%", maxWidth: 420 }}>
         {steps.map((step, i) => (
-          <div key={i} style={{ ...S.genStep, ...(currentStep > i ? S.genStepDone : {}), borderBottom: i < steps.length - 1 ? "1px solid #F0F0F0" : "none" }}>
+          <div key={i} style={{ ...S.genStep, ...(currentStep > i ? S.genStepDone : {}), borderBottom: i < steps.length - 1 ? "0.5px solid #E8E7E2" : "none" }}>
             <div style={{
               width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-              background: currentStep > i ? "#1A1A18" : currentStep === i ? "#FFC32C" : "#F0F0F0",
+              background: currentStep > i ? "#1A1A18" : currentStep === i ? "#FFC32C" : "#E8E7E2",
               color: currentStep > i ? "#fff" : "#1A1A18",
               fontSize: 10, fontWeight: 700,
             }}>
               {currentStep > i ? "✓" : currentStep === i ? (
-                <span style={{ width: 8, height: 8, border: "2px solid #111", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+                <span style={{ width: 8, height: 8, border: "2px solid #1A1A18", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
               ) : i + 1}
             </div>
             <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>{step}</span>
@@ -2086,7 +2086,7 @@ export default function App() {
   );
 
   const inputStyle = {
-    width: "100%", background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 6,
+    width: "100%", background: "#FDFCF7", border: "1px solid #E8E7E2", borderRadius: 6,
     padding: "10px 12px", fontSize: 13, color: "#1A1A18", fontFamily: "'Poppins',sans-serif", outline: "none",
   };
 
@@ -2276,7 +2276,7 @@ export default function App() {
         <div style={{ ...S.main, display: "flex", justifyContent: "center", paddingTop: 60 }}>
           <div style={{ ...S.card, maxWidth: 480, width: "100%", textAlign: "center" }}>
             <div style={{ marginBottom: 16 }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
             <h2 style={{ ...S.heading2, marginBottom: 8 }}>{uploadedFile ? uploadedFile.name : "Linked Document"}</h2>
             {uploadedFile && <p style={{ ...S.subtext, marginBottom: 8 }}>{(uploadedFile.size / 1024).toFixed(1)} KB</p>}
@@ -2310,22 +2310,22 @@ export default function App() {
           <button
             onClick={() => navigateTo(PHASES.AI_CONFIGURE)}
             style={{
-              width: "100%", background: "#111", border: "none", borderRadius: 2,
+              width: "100%", background: "#1A1A18", border: "none", borderRadius: 14,
               padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
               cursor: "pointer", marginBottom: 32, color: "#FFFFFF",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 14, color: "#FFFFFF", display: "flex", alignItems: "center", gap: 10 }}>
                   Ask AI
-                  <span style={{ ...S.pill, background: "#ffcc36", color: "#111", fontSize: 9 }}>BETA</span>
+                  <span style={{ ...S.pill, background: "#FFC32C", color: "#1A1A18", fontSize: 9 }}>BETA</span>
                 </div>
                 <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>Describe what your client needs and let AI suggest the best trade structure</div>
               </div>
             </div>
-            <span style={{ color: "#ffcc36", fontSize: 18 }}>&rarr;</span>
+            <span style={{ color: "#FFC32C", fontSize: 18 }}>&rarr;</span>
           </button>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
@@ -2349,7 +2349,7 @@ export default function App() {
               <div style={{ ...S.sectionLabel, marginBottom: 8 }}>AI Trade Advisor</div>
               <h1 style={{ ...S.heading1, display: "flex", alignItems: "center", gap: 12 }}>
                 Ask AI
-                <span style={{ ...S.pill, background: "#111", color: "#ffcc36", fontSize: 9 }}>BETA</span>
+                <span style={{ ...S.pill, background: "#1A1A18", color: "#FFC32C", fontSize: 9 }}>BETA</span>
               </h1>
               <p style={{ ...S.subtext, marginTop: 6 }}>Tell us about your client and what they're looking for. AI will suggest the best derivatives structure and pre-fill the report.</p>
             </div>
@@ -2409,10 +2409,10 @@ export default function App() {
                     }
                   }}
                   style={{
-                    background: activePreset === p.id ? "#111" : "#EFEFEF",
-                    color: activePreset === p.id ? "#FFFFFF" : "#555",
-                    border: activePreset === p.id ? "1px solid #111" : "1px solid #E8E8E8",
-                    borderRadius: 2, padding: "7px 14px",
+                    background: activePreset === p.id ? "#1A1A18" : "#F5F4EF",
+                    color: activePreset === p.id ? "#FFFFFF" : "#4A4A48",
+                    border: activePreset === p.id ? "1px solid #1A1A18" : "0.5px solid #E8E7E2",
+                    borderRadius: 6, padding: "7px 14px",
                     fontFamily: "'Poppins',sans-serif", fontSize: 12,
                     cursor: "pointer", transition: "all 0.15s",
                   }}
@@ -2423,7 +2423,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setPresetsExpanded(v => !v)}
-              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", display: "flex", alignItems: "center", gap: 6 }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", display: "flex", alignItems: "center", gap: 6 }}
             >
               {presetsExpanded ? "Show less" : "More templates"}
               <svg style={{ transform: presetsExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} width="12" height="12" viewBox="0 0 12 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 1.5l5 5 5-5"/></svg>
@@ -2443,7 +2443,7 @@ export default function App() {
               onInput={() => { if (aiPromptRef.current) setAiForm(p => ({ ...p, prompt: aiPromptRef.current.innerText })); setActivePreset(null); }}
               style={{
                 ...inputStyle, minHeight: 120, padding: "12px", lineHeight: 1.6,
-                border: "1px solid #E8E8E8", outline: "none",
+                border: "1px solid #E8E7E2", outline: "none",
               }}
             />
           </div>
@@ -2458,16 +2458,16 @@ export default function App() {
 
           {/* AI Response */}
           {(aiResponseLoading || aiResponse) && (
-            <div style={{ marginTop: 28, border: "1px solid #E8E8E8", borderTop: "3px solid #ffcc36", borderRadius: 2, background: "#EFEFEF" }}>
+            <div style={{ marginTop: 28, border: "0.5px solid #E8E7E2", borderTop: "3px solid #FFC32C", borderRadius: 14, background: "#F5F4EF" }}>
               {aiResponseLoading ? (
-                <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: 12, color: "#888", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
-                  <span style={{ width: 16, height: 16, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+                <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: 12, color: "#8A8A88", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+                  <span style={{ width: 16, height: 16, border: "2px solid #E8E7E2", borderTopColor: "#1A1A18", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
                   Analyzing your brief with Claude AI...
                 </div>
               ) : (
                 <div style={{ padding: "24px" }}>
                   <div style={{ ...S.sectionLabel, marginBottom: 12 }}>AI Analysis</div>
-                  <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", lineHeight: 1.7 }}>
+                  <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", lineHeight: 1.7 }}>
                     {aiResponse.split("\n").filter(Boolean).map((para, i) => <p key={i} style={{ marginBottom: 10 }}>{para}</p>)}
                   </div>
                   <button style={{ ...S.btnPrimary, marginTop: 16 }} onClick={proceedToAiReview}>
@@ -2505,8 +2505,8 @@ export default function App() {
           <div style={{ flex: 1, padding: "40px 48px", overflowY: "auto" }}>
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffcc36" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
-                <span style={{ ...S.pill, background: "#111", color: "#ffcc36" }}>AI GENERATED</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFC32C" strokeWidth="1.5"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/></svg>
+                <span style={{ ...S.pill, background: "#1A1A18", color: "#FFC32C" }}>AI GENERATED</span>
               </div>
               <h2 style={S.heading2}>Review & Confirm Trade</h2>
               <p style={{ ...S.subtext, marginTop: 6 }}>AI has suggested a <strong>{selectedTrade.label}</strong> based on your client brief. Review the parameters below — edit anything that needs adjusting, then generate your report.</p>
@@ -2524,7 +2524,7 @@ export default function App() {
             }
 
             {/* Loan Component Panel */}
-            <div style={{ marginBottom: 28, padding: 20, background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2 }}>
+            <div style={{ marginBottom: 28, padding: 20, background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 14 }}>
               <button
                 onClick={() => {
                   const next = !showLoanPanel;
@@ -2577,9 +2577,9 @@ export default function App() {
                       const gross = units * price * ltv;
                       const net = gross * (1 - fee);
                       return (
-                        <div style={{ display: "flex", gap: 24, marginTop: 12, padding: "12px 16px", background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2 }}>
-                          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555" }}>Gross Loan: <strong style={{ color: "#111" }}>${gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
-                          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555" }}>Net Proceeds: <strong style={{ color: "#111" }}>${net.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+                        <div style={{ display: "flex", gap: 24, marginTop: 12, padding: "12px 16px", background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 6 }}>
+                          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48" }}>Gross Loan: <strong style={{ color: "#1A1A18" }}>${gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
+                          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48" }}>Net Proceeds: <strong style={{ color: "#1A1A18" }}>${net.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
                         </div>
                       );
                     }
@@ -2686,14 +2686,14 @@ export default function App() {
             </div>
 
             {lendingValues.collateralUnits && lendingValues.pricePerUnit && (
-              <div style={{ display: "flex", gap: 24, padding: "16px 20px", background: "#EFEFEF", border: "1px solid #E8E8E8", borderRadius: 2, marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 24, padding: "16px 20px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, marginBottom: 20 }}>
                 <div>
                   <div style={S.sectionLabel}>Collateral Value</div>
-                  <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 4 }}>
+                  <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18", marginTop: 4 }}>
                     ${(parseFloat(lendingValues.collateralUnits.replace(/,/g,"")) * parseFloat(lendingValues.pricePerUnit.replace(/,/g,""))).toLocaleString(undefined, {maximumFractionDigits: 0})}
                   </div>
                 </div>
-                <div style={{ width: 1, background: "#E8E8E8" }} />
+                <div style={{ width: 1, background: "#E8E7E2" }} />
                 <div>
                   <div style={S.sectionLabel}>Est. Net Proceeds</div>
                   <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#16a34a", marginTop: 4 }}>
@@ -2769,10 +2769,10 @@ export default function App() {
                   key={cat}
                   onClick={() => setSalesCategory(cat)}
                   style={{
-                    background: salesCategory === cat ? "#111" : "#EFEFEF",
-                    color: salesCategory === cat ? "#FFFFFF" : "#555",
-                    border: salesCategory === cat ? "1px solid #111" : "1px solid #E8E8E8",
-                    borderRadius: 2, padding: "8px 16px",
+                    background: salesCategory === cat ? "#1A1A18" : "#F5F4EF",
+                    color: salesCategory === cat ? "#FFFFFF" : "#4A4A48",
+                    border: salesCategory === cat ? "1px solid #1A1A18" : "0.5px solid #E8E7E2",
+                    borderRadius: 6, padding: "8px 16px",
                     fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600,
                     letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
                   }}
@@ -2785,8 +2785,8 @@ export default function App() {
 
           {salesLoading ? (
             <div style={{ textAlign: "center", padding: "60px 0" }}>
-              <span style={{ width: 24, height: 24, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
-              <p style={{ color: "#888", marginTop: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>Loading documents...</p>
+              <span style={{ width: 24, height: 24, border: "2px solid #E8E7E2", borderTopColor: "#1A1A18", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+              <p style={{ color: "#8A8A88", marginTop: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>Loading documents...</p>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
@@ -2797,30 +2797,30 @@ export default function App() {
                   const meta = getDocMeta(doc.name);
                   const desc = doc.description || meta.desc;
                   return (
-                    <a key={i} href={doc.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", flexDirection: "column", background: "#FFFFFF", border: "1px solid #E8E8E8", borderTop: `3px solid ${meta.color}`, borderRadius: 2, overflow: "hidden", transition: "box-shadow 0.15s" }}
+                    <a key={i} href={doc.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "flex", flexDirection: "column", background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderTop: `3px solid ${meta.color}`, borderRadius: 14, overflow: "hidden", transition: "box-shadow 0.15s" }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
                     >
-                      <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid #F0F0F0" }}>
+                      <div style={{ padding: "20px 20px 12px", borderBottom: "0.5px solid #E8E7E2" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                           <div style={{ color: meta.color }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                           </div>
                           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: meta.color }}>{meta.type}</span>
                         </div>
-                        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, fontSize: 14, color: "#111", marginBottom: 6 }}>{doc.name}</div>
-                        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", lineHeight: 1.5 }}>{desc}</div>
+                        <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 600, fontSize: 14, color: "#1A1A18", marginBottom: 6 }}>{doc.name}</div>
+                        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", lineHeight: 1.5 }}>{desc}</div>
                       </div>
                       <div style={{ padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888" }}>docsend.com</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88" }}>docsend.com</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A8A88" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                       </div>
                     </a>
                   );
                 })
               }
               {salesDocs.length === 0 && !salesLoading && (
-                <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: "#888", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+                <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: "#8A8A88", fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
                   No documents found. Make sure the Google Sheet is shared publicly and the Sheet ID is configured.
                 </div>
               )}
@@ -2837,8 +2837,8 @@ export default function App() {
       {/* ─── Canva Exporting Overlay ─── */}
       {canvaExporting && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "40px", textAlign: "center", minWidth: 280 }}>
-            <span style={{ width: 28, height: 28, border: "2px solid #E8E8E8", borderTopColor: "#111", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
+          <div style={{ background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: "40px", textAlign: "center", minWidth: 280 }}>
+            <span style={{ width: 28, height: 28, border: "2px solid #E8E7E2", borderTopColor: "#1A1A18", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
             <h3 style={{ ...S.heading2, fontSize: 16, marginBottom: 8 }}>Exporting to Canva</h3>
             <p style={{ ...S.subtext, fontSize: 13 }}>Cloning template and injecting trade data...</p>
           </div>
@@ -2848,24 +2848,24 @@ export default function App() {
       {/* ─── Canva Result Toast ─── */}
       {canvaResult && (
         <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000 }}>
-          <div style={{ background: "#111", color: "#FFFFFF", borderRadius: 2, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
+          <div style={{ background: "#1A1A18", color: "#FFFFFF", borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, fontFamily: "'Poppins',sans-serif", fontSize: 13 }}>
             <span style={{ color: "#16a34a" }}>&#10003;</span>
             <span>Exported to Canva</span>
-            <a href={canvaResult.editUrl} target="_blank" rel="noreferrer" style={{ color: "#ffcc36", textDecoration: "none", fontWeight: 600 }}>Open &rarr;</a>
-            <button onClick={() => setCanvaResult(null)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>&times;</button>
+            <a href={canvaResult.editUrl} target="_blank" rel="noreferrer" style={{ color: "#FFC32C", textDecoration: "none", fontWeight: 600 }}>Open &rarr;</a>
+            <button onClick={() => setCanvaResult(null)} style={{ background: "none", border: "none", color: "#8A8A88", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>&times;</button>
           </div>
         </div>
       )}
 
       {/* ─── Footer ─── */}
-      <footer style={{ borderTop: "1px solid #E8E8E8", padding: "20px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#EFEFEF" }}>
-        <div style={{ height: 2, background: "#ffcc36", width: 24 }} />
+      <footer style={{ borderTop: "0.5px solid #E8E7E2", padding: "20px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#F5F4EF" }}>
+        <div style={{ height: 2, background: "#FFC32C", width: 24 }} />
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>SDM — Internal Use Only</span>
-          <span style={{ color: "#E8E8E8" }}>&middot;</span>
-          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>SDM Studio v2.0</span>
+          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88" }}>SDM — Internal Use Only</span>
+          <span style={{ color: "#E8E7E2" }}>&middot;</span>
+          <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88" }}>SDM Studio v2.0</span>
         </div>
-        <div style={{ height: 2, background: "#111", width: 24 }} />
+        <div style={{ height: 2, background: "#1A1A18", width: 24 }} />
       </footer>
 
       {/* ─── Feedback Modal ─── */}
@@ -2873,7 +2873,7 @@ export default function App() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
           onClick={(e) => e.target === e.currentTarget && setShowFeedback(false)}
         >
-          <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E8", borderRadius: 2, padding: "32px", width: 480, maxWidth: "90vw" }}>
+          <div style={{ background: "#FDFCF7", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: "32px", width: 480, maxWidth: "90vw" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
               <h3 style={{ ...S.heading2, fontSize: 16 }}>Feedback & Bug Reports</h3>
               <button onClick={() => { setShowFeedback(false); setFeedbackSent(false); setFeedbackText(""); setFeedbackFiles([]); }}
@@ -2893,10 +2893,10 @@ export default function App() {
                   {["feedback", "bug", "feature"].map(type => (
                     <button key={type} onClick={() => setFeedbackType(type)}
                       style={{
-                        padding: "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", borderRadius: 2,
-                        background: feedbackType === type ? "#111" : "#EFEFEF",
-                        color: feedbackType === type ? "#FFFFFF" : "#555",
-                        border: feedbackType === type ? "1px solid #111" : "1px solid #E8E8E8",
+                        padding: "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer", borderRadius: 6,
+                        background: feedbackType === type ? "#1A1A18" : "#F5F4EF",
+                        color: feedbackType === type ? "#FFFFFF" : "#4A4A48",
+                        border: feedbackType === type ? "1px solid #1A1A18" : "0.5px solid #E8E7E2",
                         textTransform: "capitalize",
                       }}
                     >
@@ -2918,9 +2918,9 @@ export default function App() {
                     <input type="file" multiple hidden onChange={(e) => setFeedbackFiles(prev => [...prev, ...Array.from(e.target.files)])} />
                   </label>
                   {feedbackFiles.map((f, i) => (
-                    <span key={i} style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555", display: "flex", alignItems: "center", gap: 4, background: "#F0F0F0", padding: "4px 10px", borderRadius: 2 }}>
+                    <span key={i} style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48", display: "flex", alignItems: "center", gap: 4, background: "#F5F4EF", padding: "4px 10px", borderRadius: 6 }}>
                       {f.name}
-                      <button onClick={() => setFeedbackFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 14 }}>&times;</button>
+                      <button onClick={() => setFeedbackFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A8A88", fontSize: 14 }}>&times;</button>
                     </span>
                   ))}
                 </div>

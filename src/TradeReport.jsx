@@ -207,7 +207,7 @@ function PayoffChart({ analysis, accentColor }) {
       )}
 
       {/* Strategy payoff line */}
-      <path d={linePath} fill="none" stroke={accentColor || "#111111"} strokeWidth="2.5"
+      <path d={linePath} fill="none" stroke={accentColor || "#1A1A18"} strokeWidth="2.5"
         strokeLinejoin="round" strokeLinecap="round" />
 
       {/* Spot price vertical */}
@@ -446,10 +446,10 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
       style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: "8px 16px",
-        background: variant === "primary" ? "#111" : "#FFFFFF",
-        color: variant === "primary" ? "#FFFFFF" : "#111",
-        border: variant === "primary" ? "none" : "1px solid #E8E8E8",
-        borderRadius: 2,
+        background: variant === "primary" ? "#1A1A18" : "#FDFCF7",
+        color: variant === "primary" ? "#FFFFFF" : "#1A1A18",
+        border: variant === "primary" ? "none" : "0.5px solid #E8E7E2",
+        borderRadius: 6,
         fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600,
         letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
         transition: "opacity 0.15s",
@@ -507,7 +507,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             PDF
           </button>
-          <button onClick={() => handleShareLink(reportRef, trade, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 999, color: "#111", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
+          <button onClick={() => handleShareLink(reportRef, trade, setLinkText)} style={{ background: "#FFC32C", border: "none", borderRadius: 999, color: "#1A1A18", padding: "8px 20px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}>
             {linkText}
           </button>
           <button onClick={onReset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, color: "rgba(255,255,255,0.5)", padding: "7px 14px", fontFamily: "'Poppins',sans-serif", fontSize: 12, cursor: "pointer" }}>
@@ -569,10 +569,10 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               : execSummary) || "" }}
             onBlur={handleExecBlur}
             style={{
-              fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#333", outline: "none",
+              fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#4A4A48", outline: "none",
               background: execHover ? "#FDFCF7" : "transparent",
               border: execHover ? "1px solid #E8E7E2" : "1px solid transparent",
-              borderRadius: 2, padding: "12px 14px", minHeight: 80,
+              borderRadius: 6, padding: "12px 14px", minHeight: 80,
               transition: "background 0.15s, border-color 0.15s",
               cursor: "text",
             }}
@@ -602,16 +602,16 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
               {analysis.chartLabel ? (
                 <>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />Safe</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFC32C", display: "inline-block" }} />Warning</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#dc2626", display: "inline-block" }} />Liquidation</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />Safe</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFC32C", display: "inline-block" }} />Warning</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#dc2626", display: "inline-block" }} />Liquidation</span>
                 </>
               ) : (
                 <>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />Profit</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#dc2626", display: "inline-block" }} />Loss</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ca8a04", display: "inline-block" }} />Breakeven</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#555" }}><span style={{ width: 24, height: 1, background: "#CCCCCC", display: "inline-block" }} />Long Spot</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />Profit</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#dc2626", display: "inline-block" }} />Loss</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ca8a04", display: "inline-block" }} />Breakeven</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 24, height: 1, background: "#C8C7C2", display: "inline-block" }} />Long Spot</span>
                 </>
               )}
             </div>
@@ -636,8 +636,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                   fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase",
                   color: leg.action.toLowerCase() === "buy" || leg.action.toLowerCase() === "long" ? "#16a34a" : "#dc2626",
                 }}>{leg.action}</span>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555" }}>{leg.type}</span>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#111", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48" }}>{leg.type}</span>
+                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#1A1A18", display: "flex", alignItems: "center", gap: 10 }}>
                   {leg.label}
                   <span style={{ width: 4, height: 4, borderRadius: "50%", background: leg.color, display: "inline-block", flexShrink: 0 }} />
                 </span>
@@ -662,14 +662,14 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               <div key={i} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={sectionLabel}>{m.label}</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#dc2626", marginTop: 6 }}>{m.value}</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", marginTop: 2 }}>{m.sub}</div>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 2 }}>{m.sub}</div>
               </div>
             ))}
             {analysis.metrics.filter(m => m.positive).map((m, i) => (
               <div key={i} style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 16px" }}>
                 <div style={sectionLabel}>{m.label}</div>
                 <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#16a34a", marginTop: 6 }}>{m.value}</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", marginTop: 2 }}>{m.sub}</div>
+                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 2 }}>{m.sub}</div>
               </div>
             ))}
           </div>
@@ -689,7 +689,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           if (loan.error) return null;
           const $k = v => `$${typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : v}`;
           return (
-            <div style={{ marginBottom: 32, border: "1px solid #E8E8E8", borderTop: "3px solid #16a34a", borderRadius: 2, padding: "24px" }}>
+            <div style={{ marginBottom: 32, border: "0.5px solid #E8E7E2", borderTop: "3px solid #16a34a", borderRadius: 14, padding: "24px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
                 <h2 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#16a34a" }}>Loan Structure</h2>
@@ -701,10 +701,10 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                   { label: "Quarterly Interest", value: $k(loan.quarterlyPayment), sub: `${(loan.annualRate * 100).toFixed(0)}% p.a.` },
                   { label: "Margin Call", value: $k(loan.marginCallPrice), sub: "70% of FMP trigger" },
                 ].map((kpi, i) => (
-                  <div key={i} style={{ background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2, padding: "14px 16px" }}>
+                  <div key={i} style={{ background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "14px 16px" }}>
                     <div style={sectionLabel}>{kpi.label}</div>
-                    <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#111", marginTop: 6 }}>{kpi.value}</div>
-                    <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", marginTop: 2 }}>{kpi.sub}</div>
+                    <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18", marginTop: 6 }}>{kpi.value}</div>
+                    <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 2 }}>{kpi.sub}</div>
                   </div>
                 ))}
               </div>
@@ -719,14 +719,14 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                   ["All-In Cost", `$${lendFmt(loan.totalCost)}`],
                   ["Effective Rate", `${loan.effectiveRate.toFixed(2)}% p.a.`],
                 ].map(([label, val], i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #F0F0F0" }}>
-                    <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888" }}>{label}</span>
-                    <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 12, fontWeight: 600, color: "#111" }}>{val}</span>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "0.5px solid #E8E7E2" }}>
+                    <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88" }}>{label}</span>
+                    <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 12, fontWeight: 600, color: "#1A1A18" }}>{val}</span>
                   </div>
                 ))}
               </div>
               {loanComponent.useOfProceeds && (
-                <div style={{ marginTop: 16, fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#555", padding: "12px 16px", background: "#FAFAFA", border: "1px solid #E8E8E8", borderRadius: 2 }}>
+                <div style={{ marginTop: 16, fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", padding: "12px 16px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10 }}>
                   <strong>Use of Proceeds:</strong> {loanComponent.useOfProceeds}
                 </div>
               )}
@@ -736,37 +736,37 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
 
         {/* Disclaimer */}
         <div style={{ padding: "16px 20px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, marginBottom: 24 }}>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#888", lineHeight: 1.6 }}>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", lineHeight: 1.6 }}>
             SDM — Internal Use Only. This document does not constitute investment advice. Generated {dateStr} at {timeStr}.
           </p>
         </div>
 
         {/* Footer */}
-        <div style={{ borderTop: "3px solid #111", paddingTop: 2 }}>
+        <div style={{ borderTop: "3px solid #1A1A18", paddingTop: 2 }}>
           <div style={{ height: 2, background: "#FFC32C", marginBottom: 20 }} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 2, color: "#111" }}>SECURE DIGITAL MARKETS</div>
-              <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", marginTop: 4 }}>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 2, color: "#1A1A18" }}>SECURE DIGITAL MARKETS</div>
+              <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", marginTop: 4 }}>
                 The Institutional Choice for <strong style={{ color: "#FFC32C" }}>Digital</strong> Asset Trading
               </p>
             </div>
             <div style={{ display: "flex", gap: 20 }}>
-              <a href="mailto:sales@sdm.co" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", textDecoration: "none" }}>
+              <a href="mailto:sales@sdm.co" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
                 sales@sdm.co
               </a>
-              <a href="https://twitter.com/SD_Markets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", textDecoration: "none" }}>
+              <a href="https://twitter.com/SD_Markets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 @SD_Markets
               </a>
-              <a href="https://t.me/SecureDigitalMarkets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#555", textDecoration: "none" }}>
+              <a href="https://t.me/SecureDigitalMarkets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
                 Telegram
               </a>
             </div>
           </div>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#AAAAAA", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
         </div>
         </div>
       </div>

@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 
 const CHART_THEME = {
-  layout: { background: { color: "#fafbfc" }, textColor: "#555e6b", fontSize: 10 },
-  grid: { vertLines: { color: "#f0f3f5" }, horzLines: { color: "#f0f3f5" } },
-  crosshair: { vertLine: { color: "#aab0b8", labelBackgroundColor: "#000" }, horzLine: { color: "#aab0b8", labelBackgroundColor: "#000" } },
-  timeScale: { borderColor: "#dde1e6", timeVisible: true },
-  rightPriceScale: { borderColor: "#dde1e6" },
+  layout: { background: { color: "#F5F4EF" }, textColor: "#4A4A48", fontSize: 10 },
+  grid: { vertLines: { color: "#E8E7E2" }, horzLines: { color: "#E8E7E2" } },
+  crosshair: { vertLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" }, horzLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" } },
+  timeScale: { borderColor: "#E8E7E2", timeVisible: true },
+  rightPriceScale: { borderColor: "#E8E7E2" },
 };
 
 const SR_LEVELS = [
@@ -172,9 +172,9 @@ function ChartPanel({ title, candles, showLevels }) {
   const pct = last && prev ? ((last.close - prev.close) / prev.close * 100).toFixed(2) : null;
 
   return (
-    <div ref={containerRef} style={{ background: "#fafbfc", border: "1px solid #e4e8ed", borderRadius: 4, padding: 12, minWidth: 0 }}>
+    <div ref={containerRef} style={{ background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: 12, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</span>
+        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#1A1A18", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</span>
         {last && (
           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 12, fontWeight: 700 }}>
             ${last.close.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -183,7 +183,7 @@ function ChartPanel({ title, candles, showLevels }) {
         )}
       </div>
       <div ref={chartRef} />
-      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#888", margin: "4px 0 2px", textAlign: "center" }}>RSI (14)</div>
+      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#8A8A88", margin: "4px 0 2px", textAlign: "center" }}>RSI (14)</div>
       <div ref={rsiRef} />
     </div>
   );
@@ -256,7 +256,7 @@ export default function MBChartSection06() {
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           {[{ label: "EMA 20", color: "#2563eb" }, { label: "EMA 50", color: "#d97706" }, { label: "EMA 200", color: "#7c3aed" }].map(e => (
-            <span key={e.label} style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#555" }}>
+            <span key={e.label} style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#4A4A48" }}>
               <span style={{ width: 16, height: 2, background: e.color, display: "inline-block" }} />
               {e.label}
             </span>
@@ -264,7 +264,7 @@ export default function MBChartSection06() {
         </div>
       </div>
 
-      {loading && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#888", padding: 20, textAlign: "center" }}>Loading BTC charts from CoinGecko...</div>}
+      {loading && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", padding: 20, textAlign: "center" }}>Loading BTC charts from CoinGecko...</div>}
       {error && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#dc2626", padding: 20 }}>Chart error: {error}</div>}
 
       {!loading && !error && daily && fourH && (
@@ -274,7 +274,7 @@ export default function MBChartSection06() {
         </div>
       )}
 
-      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#888", marginTop: 12 }}>
+      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#8A8A88", marginTop: 12 }}>
         Source: CoinGecko OHLC API · EMA &amp; RSI computed client-side · Key levels are indicative only
       </div>
     </>
