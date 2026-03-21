@@ -716,11 +716,18 @@ Return ONLY a valid JSON object (no code fences, no extra text) with exactly thi
     { "headline": "insight headline 4", "summary": "1-2 sentences: content + implication", "source": "Source name" },
     { "headline": "insight headline 5", "summary": "1-2 sentences: content + implication", "source": "Source name" }
   ],
-  "geo_bullets": ["bullet 1 — geopolitical event + crypto/market implication, 15-20 words", "bullet 2", "bullet 3", "bullet 4", "bullet 5"]
+  "geo_intro": "2-3 sentences on macro/geopolitical landscape and implications for digital assets. Reference specific data points (DXY, yields, oil, equities) where relevant.",
+  "geo_bullets": ["bullet 1 — geopolitical event + crypto/market implication, 15-20 words", "bullet 2", "bullet 3", "bullet 4", "bullet 5"],
+  "macro_tiles": [
+    { "label": "10Y Treasury", "value": "4.38%", "sub": "+3bps from prior close" },
+    { "label": "S&P 500", "value": "5,284", "sub": "+0.34% pre-market" },
+    { "label": "Gold (XAU)", "value": "$3,042", "sub": "+0.91% (risk-off bid)" }
+  ]
 }
 
 CRITICAL: news_summaries MUST contain exactly ${totalNews} entries — one per article listed below.
 CRITICAL: geo_bullets MUST contain exactly 5 tight declarative bullets drawn from the geopolitical news below.
+CRITICAL: macro_tiles MUST contain exactly 3 tiles with current indicative macro data points (10Y Treasury yield, S&P 500 level, Gold/XAU price). Use realistic current values.
 
 DATA FOR ${date}:
 TOP COINS: ${(mkt.coins||[]).map(c=>`${c.symbol} $${c.price>=1000?mbF(c.price,0):mbF(c.price,2)} (${mbPct(c.change24h)})`).join(" | ")}
@@ -780,7 +787,7 @@ function buildExportHTML(rootEl, date) {
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"/>
-<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#FDFCF7;font-family:'Poppins',sans-serif;}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#FDFCF7;font-family:'Poppins',sans-serif;}@media print{@page{margin:8mm 10mm;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
 </head><body>${clone.outerHTML}</body></html>`;
 }
 
@@ -1260,6 +1267,80 @@ function MBGeneratingScreen({ steps }) {
   );
 }
 
+// ── MB Section Header with Icon ───────────────────────────────────────────────
+function MBSectionHeader({ icon, title }) {
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+      <div style={{width:28,height:28,background:MB_GOLD,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        {icon}
+      </div>
+      <div style={{fontFamily:MB_HEAD,fontSize:10,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",color:MB_INK}}>{title}</div>
+    </div>
+  );
+}
+
+// ── MB Data Card (white bordered card) ────────────────────────────────────────
+function MBDataCard({ title, children }) {
+  return (
+    <div style={{background:"#fff",border:`0.5px solid ${MB_RULE}`,borderRadius:10,overflow:"hidden",pageBreakInside:"avoid",breakInside:"avoid"}}>
+      {title && <div style={{padding:"14px 18px",borderBottom:`0.5px solid ${MB_RULE}`,fontFamily:MB_HEAD,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:MB_MUTED}}>{title}</div>}
+      {children}
+    </div>
+  );
+}
+
+// ── MB Data Row ───────────────────────────────────────────────────────────────
+function MBDataRow({ label, value, valueColor, valueStyle, isLast }) {
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 18px",borderBottom:isLast?"none":`0.5px solid ${MB_RULE}`}}>
+      <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MID}}>{label}</div>
+      <div style={{fontFamily:MB_HEAD,fontSize:12,fontWeight:600,color:valueColor||MB_INK,...(valueStyle||{})}}>{value}</div>
+    </div>
+  );
+}
+
+// ── MB Signal Badge ───────────────────────────────────────────────────────────
+function MBSignalBadge({ label, type }) {
+  const colors = { bull: { bg:"rgba(22,163,74,0.1)", color:MB_POS }, bear: { bg:"rgba(220,38,38,0.1)", color:MB_NEG }, neu: { bg:MB_BGOFF, color:MB_MUTED } };
+  const c = colors[type] || colors.neu;
+  return (
+    <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:20,fontFamily:MB_HEAD,fontSize:9,fontWeight:700,letterSpacing:"0.06em",background:c.bg,color:c.color}}>{label}</span>
+  );
+}
+
+// ── MB Signal Row ─────────────────────────────────────────────────────────────
+function MBSignalRow({ label, value, valueColor, badge, badgeType, isLast }) {
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 18px",borderBottom:isLast?"none":`0.5px solid ${MB_RULE}`}}>
+      <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MID}}>{label}</div>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{fontFamily:MB_HEAD,fontSize:12,fontWeight:600,color:valueColor||MB_INK}}>{value}</div>
+        {badge && <MBSignalBadge label={badge} type={badgeType}/>}
+      </div>
+    </div>
+  );
+}
+
+// ── MB Callout ────────────────────────────────────────────────────────────────
+function MBCallout({ children }) {
+  return (
+    <div style={{background:"rgba(255,195,44,0.08)",borderLeft:`3px solid ${MB_GOLD}`,borderRadius:"0 6px 6px 0",padding:"14px 18px",margin:"16px 0"}}>
+      <div style={{fontFamily:MB_BODY,fontSize:13,lineHeight:1.7,color:MB_INK,fontWeight:400}}>{children}</div>
+    </div>
+  );
+}
+
+// ── MB Macro Tile ─────────────────────────────────────────────────────────────
+function MBMacroTile({ label, value, sub, subColor }) {
+  return (
+    <div style={{background:"#fff",border:`0.5px solid ${MB_RULE}`,borderRadius:10,padding:16,pageBreakInside:"avoid",breakInside:"avoid"}}>
+      <div style={{fontFamily:MB_HEAD,fontSize:8,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:MB_MUTED,marginBottom:8}}>{label}</div>
+      <div style={{fontFamily:MB_HEAD,fontSize:18,fontWeight:700,color:MB_INK,letterSpacing:"-0.01em",marginBottom:3}}>{value}</div>
+      <div style={{fontFamily:MB_BODY,fontSize:11,color:subColor||MB_MUTED}}>{sub}</div>
+    </div>
+  );
+}
+
 // ── MarketBriefReport component ────────────────────────────────────────────────
 function MarketBriefReport({ data, onBack }) {
   const { date, mkt, drv, btcF, ethF, solF, polyD, news, commentary, geoNews=[] } = data;
@@ -1308,18 +1389,26 @@ function MarketBriefReport({ data, onBack }) {
   const fFlowVal = v => (v>=0?"+$":"-$") + Math.abs(v).toLocaleString("en-US",{maximumFractionDigits:0});
   const fFlow = n => { const v=parseFloat(n); return isNaN(v) ? "—" : fFlowVal(v); };
 
-  const etfRows = (tickers, flows) => tickers.map(k => {
-    const v = parseFloat(flows[k]);
-    return [k, isNaN(v) ? "—" : { value:fFlowVal(v), style:{color:netColor(v)} }];
-  });
+  // Ticker data from live market
+  const btcCoin = (mkt.coins||[]).find(c=>c.symbol==="BTC");
+  const ethCoin = (mkt.coins||[]).find(c=>c.symbol==="ETH");
+  const solCoin = (mkt.coins||[]).find(c=>c.symbol==="SOL");
+  const btcDom = mkt.dominance || mkt.btcDominance || 0;
 
-  const W = "0 64px";
-  const divider = <div style={{height:"0.5px",background:MB_RULE,margin:"28px 64px 0"}}/>;
+  // SVG icons for section headers
+  const iconChart = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
+  const iconAlert = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+  const iconGlobe = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+  const iconFlow = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>;
+  const iconCal = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+  const iconNews = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/><line x1="10" y1="14" x2="18" y2="14"/></svg>;
+  const iconDerivatives = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" strokeWidth="2.2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>;
 
   return (
     <div style={{background:MB_BGOFF,minHeight:"100vh"}}>
-      <style>{`@page{margin:0;size:auto;}@media print{.noprint{display:none!important;}body{margin:0;padding:0;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}#mb-report-root{box-shadow:none!important;padding:32px 48px 32px 48px!important;max-width:100%!important;}}`}</style>
+      <style>{`@media print{@page{margin:8mm 10mm;}.noprint{display:none!important;}nav,header,footer{display:none!important;}body{margin:0;padding:0;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}#mb-report-root{box-shadow:none!important;max-width:100%!important;}}`}</style>
 
+      {/* Sticky toolbar */}
       <div className="noprint" style={{position:"sticky",top:0,zIndex:100,background:MB_INK,
         padding:"10px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <button onClick={onBack} style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
@@ -1347,277 +1436,344 @@ function MarketBriefReport({ data, onBack }) {
       </div>
 
       <div ref={rootRef} id="mb-report-root"
-        style={{maxWidth:860,margin:"0 auto",background:MB_BG,boxShadow:"0 2px 40px rgba(0,0,0,0.08)",
-          paddingBottom:48}}>
+        style={{maxWidth:860,margin:"0 auto",background:MB_BG,boxShadow:"0 2px 40px rgba(0,0,0,0.08)"}}>
 
-        {/* Dark Masthead */}
-        <div style={{background:"#1A1A18",padding:"28px 40px 24px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        {/* ── MASTHEAD ── */}
+        <div style={{background:MB_INK,padding:"28px 40px 24px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:16}}>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="36" height="36" style={{flexShrink:0}}>
-                <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
-                <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
-              </svg>
-              <div>
-                <div style={{fontFamily:MB_HEAD,fontSize:9,letterSpacing:3,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",marginBottom:2}}>SECURE DIGITAL MARKETS</div>
-                <div style={{fontFamily:MB_HEAD,fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.9)",letterSpacing:1,textTransform:"uppercase"}}>Daily Market Brief</div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <svg viewBox="62 68 110 106" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+                  <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+                </svg>
+                <span style={{fontFamily:MB_HEAD,fontSize:13,fontWeight:700,color:"#fff",letterSpacing:"0.08em"}}>SECURE DIGITAL MARKETS</span>
               </div>
+              <div style={{width:1,height:28,background:"rgba(255,255,255,0.15)"}}/>
+              <div style={{fontFamily:MB_HEAD,fontSize:9,fontWeight:600,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)"}}>Daily Market Brief</div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:MB_HEAD,fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.8)"}}>{mbFmtLong(date)}</div>
-              <div style={{fontFamily:MB_BODY,fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:3}}>Institutional Research · Internal distribution only</div>
+              <div style={{fontFamily:MB_HEAD,fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.5)",letterSpacing:"0.05em"}}>{mbFmtLong(date)}</div>
+              <div style={{fontFamily:MB_BODY,fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:2}}>Morning Edition · Generated by SDM Trade Studio</div>
             </div>
           </div>
         </div>
-        {/* Gold gradient rule */}
-        <div style={{height:3,background:"linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)"}}/>
+        {/* Gold rule */}
+        <div style={{height:3,background:"linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.3) 60%, transparent 100%)"}}/>
 
-        {/* Executive Summary */}
-        <div style={{padding:W,paddingBottom:0,paddingTop:32}}>
-          <div style={{marginBottom:24}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:10}}>
-              <span style={{fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_INK,letterSpacing:0.3,textTransform:"uppercase"}}>
-                Daily Market Brief
-              </span>
+        {/* ── TICKER BAR ── */}
+        <div style={{background:MB_BGOFF,borderBottom:`0.5px solid ${MB_RULE}`,display:"flex",overflowX:"auto"}}>
+          {[
+            { label:"BTC / USD", price: btcCoin ? `$${mbF(btcCoin.price,0)}` : "—", chg: btcCoin ? mbPct(btcCoin.change24h) : "—", up: btcCoin?.change24h >= 0 },
+            { label:"ETH / USD", price: ethCoin ? `$${mbF(ethCoin.price,0)}` : "—", chg: ethCoin ? mbPct(ethCoin.change24h) : "—", up: ethCoin?.change24h >= 0 },
+            { label:"SOL / USD", price: solCoin ? `$${mbF(solCoin.price,2)}` : "—", chg: solCoin ? mbPct(solCoin.change24h) : "—", up: solCoin?.change24h >= 0 },
+            { label:"BTC Dom.", price: `${btcDom.toFixed(1)}%`, chg: "", up: true },
+            { label:"BTC Funding", price: `${mbF(drv.btcFunding,4)}%`, chg: drv.btcFunding > 0 ? "Longs pay" : "Shorts pay", up: drv.btcFunding > 0 },
+            { label:"CME Basis", price: `${mbF(drv.cmeBasis,2)}%`, chg: `${mbF(drv.cmeAnnualized,1)}% ann.`, up: true },
+            { label:"Net ETF Flow", price: `${fFlowVal(allNet)}M`, chg: allNet >= 0 ? "Inflow" : "Outflow", up: allNet >= 0 },
+          ].map((tick, i, arr) => (
+            <div key={i} style={{padding:"12px 20px",borderRight:i<arr.length-1?`0.5px solid ${MB_RULE}`:"none",minWidth:110,flexShrink:0}}>
+              <div style={{fontFamily:MB_HEAD,fontSize:8,fontWeight:700,letterSpacing:"0.12em",color:MB_MUTED,textTransform:"uppercase",marginBottom:4}}>{tick.label}</div>
+              <div style={{fontFamily:MB_HEAD,fontSize:14,fontWeight:700,color:MB_INK,letterSpacing:"-0.01em"}}>{tick.price}</div>
+              {tick.chg && <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:500,marginTop:1,color:tick.up?MB_POS:MB_NEG}}>{tick.chg}</div>}
             </div>
-            <div style={{height:2,background:MB_GOLD,marginBottom:16}}/>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {commentary?._err && (
-                <div style={{background:"#fee2e2", border:`1px solid ${MB_NEG}`, borderRadius:4, padding:"14px 18px"}}>
-                  <div style={{fontFamily:MB_BODY,fontSize:13,fontWeight:600,color:MB_INK,marginBottom:4}}>
-                    AI commentary failed
-                  </div>
-                  <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MID,lineHeight:1.5}}>
-                    {commentary._err === "api_error" ? `API error: ${commentary.msg}` : `Error: ${commentary.msg || commentary._err}`}
-                  </div>
-                </div>
-              )}
-              {(Array.isArray(commentary?.executive_summary) ? commentary.executive_summary : []).map((bullet, i) => (
-                <div key={i} style={{
-                  display:"flex",alignItems:"flex-start",gap:12,
-                  background:i===0?MB_GOLD+"14":MB_BGOFF,
-                  border:`1px solid ${i===0?MB_GOLD+"55":MB_RULE}`,
-                  borderRadius:6,padding:"11px 14px",
-                }}>
-                  <span style={{fontFamily:MB_MONO,fontSize:9,fontWeight:700,color:i===0?MB_GOLD_TEXT:MB_MUTED,marginTop:2,flexShrink:0,letterSpacing:1}}>◆</span>
-                  <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:12.5,color:MB_INK,lineHeight:1.65,fontWeight:i===0?600:400}}>
-                    {bullet}
-                  </MBRichTextBlock>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Geopolitics Bullets */}
-        {Array.isArray(commentary?.geo_bullets) && commentary.geo_bullets.length > 0 && (
-          <div style={{padding:W, paddingBottom:0, paddingTop:32}}>
-            <div style={{marginBottom:24}}>
-              <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:10}}>
-                <span style={{fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_INK,letterSpacing:0.3,textTransform:"uppercase"}}>
-                  Geopolitics — Market Implications
-                </span>
+        {/* ── CONTENT ── */}
+        <div style={{padding:40}}>
+
+          {/* ── HEADLINE + KEY TAKEAWAYS (merged) ── */}
+          <div style={{marginBottom:36,paddingBottom:28,borderBottom:`0.5px solid ${MB_RULE}`}}>
+            <div style={{fontFamily:MB_HEAD,fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:MB_GOLD,marginBottom:10}}>SDM Research · Institutional Digital Assets</div>
+            {commentary?._err && (
+              <div style={{background:"#fee2e2",border:`1px solid ${MB_NEG}`,borderRadius:6,padding:"14px 18px",marginBottom:16}}>
+                <div style={{fontFamily:MB_BODY,fontSize:13,fontWeight:600,color:MB_INK,marginBottom:4}}>AI commentary failed</div>
+                <div style={{fontFamily:MB_BODY,fontSize:12,color:MB_MID,lineHeight:1.5}}>{commentary._err === "api_error" ? `API error: ${commentary.msg}` : `Error: ${commentary.msg || commentary._err}`}</div>
               </div>
-              <div style={{height:2,background:MB_GOLD,marginBottom:16}}/>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {commentary.geo_bullets.map((bullet, i) => (
-                  <div key={i} style={{
-                    display:"flex",alignItems:"flex-start",gap:12,
-                    background:MB_BGOFF, border:`1px solid ${MB_RULE}`,
-                    borderRadius:6,padding:"11px 14px",
-                  }}>
-                    <span style={{fontFamily:MB_MONO,fontSize:9,fontWeight:700,color:MB_MUTED,marginTop:2,flexShrink:0,letterSpacing:1}}>◆</span>
-                    <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:12.5,color:MB_INK,lineHeight:1.65,fontWeight:400}}>
-                      {bullet}
-                    </MBRichTextBlock>
-                  </div>
+            )}
+            {/* Title from first AI bullet */}
+            {(Array.isArray(commentary?.executive_summary) && commentary.executive_summary.length > 0) ? (
+              <MBRichTextBlock style={{fontFamily:MB_HEAD,fontSize:28,fontWeight:800,color:MB_INK,lineHeight:1.2,letterSpacing:"-0.02em",marginBottom:16}}>
+                {commentary.executive_summary[0]}
+              </MBRichTextBlock>
+            ) : (
+              <div style={{fontFamily:MB_HEAD,fontSize:28,fontWeight:800,color:MB_INK,lineHeight:1.2,letterSpacing:"-0.02em",marginBottom:16}}>
+                Daily Market Brief — {mbFmtLong(date)}
+              </div>
+            )}
+
+            {/* Key metrics tiles */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20}}>
+              <MBMacroTile
+                label="BTC Price"
+                value={btcCoin ? `$${mbF(btcCoin.price,0)}` : "—"}
+                sub={btcCoin ? mbPct(btcCoin.change24h) + " (24h)" : "—"}
+                subColor={btcCoin && btcCoin.change24h >= 0 ? MB_POS : MB_NEG}
+              />
+              <MBMacroTile
+                label="Perp Funding Rate"
+                value={`${mbF(drv.btcFunding * 100, 0)}bp`}
+                sub={drv.btcFunding > 0.01 ? "Elevated · longs pay" : drv.btcFunding < 0 ? "Negative · shorts pay" : "Normalized · 8h rate"}
+              />
+              <MBMacroTile
+                label="ETF Flow (24h)"
+                value={`${fFlowVal(allNet)}M`}
+                sub={allNet >= 0 ? "Net inflow" : "Net outflow"}
+                subColor={allNet >= 0 ? MB_POS : MB_NEG}
+              />
+            </div>
+
+            {/* 5 Key Takeaways — merged from AI summary bullets + news summaries */}
+            {(() => {
+              const MOCK_NEWS = [
+                {headline:"Bitcoin consolidates near key support as macro uncertainty weighs"},
+                {headline:"Ethereum ETF inflows pick up pace amid renewed institutional interest"},
+                {headline:"CME Bitcoin futures open interest climbs to multi-month high"},
+                {headline:"SEC review timeline for altcoin ETF applications under scrutiny"},
+                {headline:"Stablecoin supply expands as on-chain activity rebounds"},
+              ];
+              // Pool: AI exec summary bullets (skip first = title), then AI news headlines, then RSS, then mock
+              const pool = [];
+              const used = new Set();
+              // AI summary bullets (after the title)
+              (Array.isArray(commentary?.executive_summary) ? commentary.executive_summary.slice(1) : []).forEach(b => {
+                if (pool.length < 5 && !used.has(b)) { pool.push(b); used.add(b); }
+              });
+              // AI news summaries (headline only)
+              (commentary?.news_summaries || []).forEach(n => {
+                if (pool.length < 5 && !used.has(n.headline)) { pool.push(n.headline); used.add(n.headline); }
+              });
+              // Raw RSS headlines
+              news.forEach(n => {
+                if (pool.length < 5 && !used.has(n.title)) { pool.push(n.title); used.add(n.title); }
+              });
+              // Mock fallback
+              MOCK_NEWS.forEach(n => {
+                if (pool.length < 5 && !used.has(n.headline)) { pool.push(n.headline); used.add(n.headline); }
+              });
+              return (
+                <MBDataCard>
+                  {pool.slice(0, 5).map((bullet, i, arr) => (
+                    <div key={i} style={{padding:"12px 18px",borderBottom:i<arr.length-1?`0.5px solid ${MB_RULE}`:"none"}}>
+                      <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,color:MB_MID,lineHeight:1.7,fontWeight:300}}>
+                        {bullet}
+                      </MBRichTextBlock>
+                    </div>
+                  ))}
+                </MBDataCard>
+              );
+            })()}
+            <div style={{fontFamily:MB_BODY,fontSize:9,color:MB_MUTED,marginTop:10}}>
+              Source: SDM Research · The Block · CoinDesk · Cointelegraph · Blockworks · Summarized by Claude (Anthropic)
+            </div>
+          </div>
+
+          {/* ── MACRO & GEOPOLITICAL (moved up) ── */}
+          <div style={{marginBottom:32}}>
+            <MBSectionHeader icon={iconGlobe} title="Macro & Geopolitical"/>
+            {/* Intro paragraph */}
+            {commentary?.geo_intro && (
+              <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,lineHeight:1.8,color:MB_MID,fontWeight:300,marginBottom:16}}>
+                {commentary.geo_intro}
+              </MBRichTextBlock>
+            )}
+            {/* Macro tiles */}
+            {Array.isArray(commentary?.macro_tiles) && commentary.macro_tiles.length > 0 && (
+              <div style={{display:"grid",gridTemplateColumns:`repeat(${commentary.macro_tiles.length}, 1fr)`,gap:12,marginBottom:20}}>
+                {commentary.macro_tiles.map((tile,i) => (
+                  <MBMacroTile key={i} label={tile.label} value={tile.value} sub={tile.sub}
+                    subColor={tile.sub && (tile.sub.startsWith("+")||tile.sub.includes("risk-off")) ? MB_POS : undefined}/>
                 ))}
-                <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:4}}>
+              </div>
+            )}
+            {/* Geo bullets */}
+            {Array.isArray(commentary?.geo_bullets) && commentary.geo_bullets.length > 0 && (
+              <>
+                <MBDataCard>
+                  {commentary.geo_bullets.map((bullet, i) => (
+                    <div key={i} style={{padding:"12px 18px",borderBottom:i<commentary.geo_bullets.length-1?`0.5px solid ${MB_RULE}`:"none"}}>
+                      <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:12.5,color:MB_MID,lineHeight:1.7,fontWeight:300}}>
+                        {bullet}
+                      </MBRichTextBlock>
+                    </div>
+                  ))}
+                </MBDataCard>
+                <div style={{fontFamily:MB_BODY,fontSize:9,color:MB_MUTED,marginTop:8}}>
                   Source: Reuters · Foreign Policy · BBC World · The Guardian · CFR · Summarized by Claude (Anthropic)
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
-        )}
 
-        {divider}
+          {/* ── MARKET OVERVIEW ── */}
+          <div style={{marginBottom:32}}>
+            <MBSectionHeader icon={iconChart} title="Market Overview"/>
+            {commentary?.market?.intro && (
+              <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,lineHeight:1.8,color:MB_MID,fontWeight:300,marginBottom:16}}>
+                {commentary.market.intro}
+              </MBRichTextBlock>
+            )}
+          </div>
 
-        {/* 01 — Market Snapshot */}
-        {!hiddenSections.has(1) && <MBReportSection number={1} title="Market Snapshot" intro={commentary?.market?.intro}>
+          {/* BTC Technical Analysis Chart */}
           <div style={{marginBottom:28}}>
-            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>BTC Technical Analysis — Daily &amp; 4H</div>
+            <div style={{fontFamily:MB_HEAD,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:MB_MUTED,marginBottom:12}}>BTC Technical Analysis — Daily & 4H</div>
             <MBChartSection06 />
           </div>
+
+          {/* Top Coins Performance Chart */}
           <div style={{marginBottom:28}}>
-            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Top Coins — 5-Day Normalized Returns</div>
+            <div style={{fontFamily:MB_HEAD,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:MB_MUTED,marginBottom:12}}>Top Coins — 5-Day Normalized Returns</div>
             <MBChartSection07 />
           </div>
-          <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
-            Top 10 by Market Cap
+
+          {/* Top 10 + Stablecoins in two-column cards */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:32}}>
+            <MBDataCard title="Top 10 by Market Cap">
+              {(mkt.coins||[]).map((c,i,arr) => (
+                <MBDataRow key={i} label={`${c.rank}. ${c.name} (${c.symbol})`}
+                  value={`$${c.price >= 1000 ? mbF(c.price,0) : c.price >= 1 ? mbF(c.price,2) : mbF(c.price,4)}`}
+                  valueColor={c.change24h >= 0 ? MB_POS : MB_NEG}
+                  valueStyle={{fontSize:11}}
+                  isLast={i===arr.length-1}/>
+              ))}
+            </MBDataCard>
+            <MBDataCard title="Stablecoins — Top 5">
+              {(mkt.stables||[]).map((c,i,arr) => (
+                <MBDataRow key={i} label={`${c.name} (${c.symbol})`}
+                  value={`$${mbF(c.price,4)}`}
+                  valueColor={c.dev > 0.05 ? MB_NEG : MB_INK}
+                  isLast={i===arr.length-1}/>
+              ))}
+            </MBDataCard>
           </div>
-          <MBDataTable
-            headers={["#","Asset","Price (USD)","24h Change","Market Cap"]}
-            rows={(mkt.coins||[]).map(c=>[
-              {value:String(c.rank), style:{color:MB_MUTED}},
-              `${c.name} (${c.symbol})`,
-              `$${c.price >= 1000 ? mbF(c.price,0) : c.price >= 1 ? mbF(c.price,2) : mbF(c.price,4)}`,
-              { value:mbPct(c.change24h), style:{color:c.change24h>=0?MB_POS:MB_NEG, fontWeight:600} },
-              mbFmcap(c.mcap),
-            ])}
-            footer={["","Total Market Cap", mbFT(mkt.totalMarketCap), "—", "—"]}
-          />
-          <div style={{height:20}}/>
-          <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
-            Stablecoins — Top 5 by Market Cap
-          </div>
-          <MBDataTable
-            headers={["#","Asset","Price (USD)","Market Cap","Peg Dev."]}
-            rows={(mkt.stables||[]).map(c=>[
-              {value:String(c.rank), style:{color:MB_MUTED}},
-              `${c.name} (${c.symbol})`,
-              {value:`$${mbF(c.price,4)}`, style:{color: c.dev > 0.05 ? MB_NEG : MB_INK}},
-              mbFmcap(c.mcap),
-              {value: c.dev < 0.01 ? "—" : `${c.dev.toFixed(2)}%`,
-               style:{color: c.dev > 0.1 ? MB_NEG : c.dev > 0.05 ? MB_GOLD_TEXT : MB_MUTED}},
-            ])}
-          />
-        </MBReportSection>}
 
-        {divider}
-
-        {/* 02 — Derivatives */}
-        {!hiddenSections.has(2) && <MBReportSection number={2} title="Derivatives — Funding, CME Basis & Open Interest" intro={commentary?.derivatives?.intro}>
-          <MBDataTable
-            headers={["Metric","Value","Context"]}
-            rows={[
-              ["BTC Perp Funding (8h)", `${mbF(drv.btcFunding,4)}%`,
-                drv.btcFunding>0.01?"Elevated — longs paying premium":drv.btcFunding<0?"Negative — shorts paying":"Neutral"],
-              ["ETH Perp Funding (8h)", `${mbF(drv.ethFunding,4)}%`,
-                drv.ethFunding>0.01?"Elevated":drv.ethFunding<0?"Negative":"Neutral"],
-              ["CME Front-Month Basis",  `${mbF(drv.cmeBasis,2)}%`, "vs. spot"],
-              ["CME Annualised Premium", `${mbF(drv.cmeAnnualized,2)}%`, "carry equivalent"],
-              ["BTC Open Interest", `$${mbF(drv.btcOI,1)}B`, "perpetual + futures"],
-              ["ETH Open Interest", `$${mbF(drv.ethOI,1)}B`, "perpetual + futures"],
-            ]}
-          />
-        </MBReportSection>}
-
-        {divider}
-
-        {/* 03 — ETF Flows */}
-        {!hiddenSections.has(3) && <MBReportSection number={3} title="ETF Flows & Approval Odds" intro={commentary?.etf?.intro}>
-          <div style={{marginBottom:20}}>
-            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
-              Combined Net Flow Today
+          {/* ── DERIVATIVES ── */}
+          <div style={{marginBottom:32}}>
+            <MBSectionHeader icon={iconDerivatives} title="Derivatives — Funding, CME Basis & Open Interest"/>
+            {commentary?.derivatives?.intro && (
+              <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,lineHeight:1.8,color:MB_MID,fontWeight:300,marginBottom:16}}>
+                {commentary.derivatives.intro}
+              </MBRichTextBlock>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+              <MBDataCard title="Funding & Basis">
+                <MBDataRow label="BTC Perp Funding (8h)" value={`${mbF(drv.btcFunding,4)}%`}
+                  valueColor={drv.btcFunding>0.01?MB_NEG:drv.btcFunding<0?MB_POS:MB_INK} isLast={false}/>
+                <MBDataRow label="ETH Perp Funding (8h)" value={`${mbF(drv.ethFunding,4)}%`}
+                  valueColor={drv.ethFunding>0.01?MB_NEG:drv.ethFunding<0?MB_POS:MB_INK} isLast={false}/>
+                <MBDataRow label="CME Front-Month Basis" value={`${mbF(drv.cmeBasis,2)}%`} isLast={false}/>
+                <MBDataRow label="CME Annualised Premium" value={`${mbF(drv.cmeAnnualized,2)}%`} isLast={true}/>
+              </MBDataCard>
+              <MBDataCard title="Open Interest">
+                <MBSignalRow label="BTC Open Interest" value={`$${mbF(drv.btcOI,1)}B`}
+                  badge="Perps + Futures" badgeType="neu" isLast={false}/>
+                <MBSignalRow label="ETH Open Interest" value={`$${mbF(drv.ethOI,1)}B`}
+                  badge="Perps + Futures" badgeType="neu" isLast={true}/>
+              </MBDataCard>
             </div>
-            <span style={{fontFamily:MB_HEAD,fontSize:26,fontWeight:700,color:netColor(allNet)}}>
-              {fFlowVal(allNet)}M
-            </span>
-            <span style={{fontFamily:MB_BODY,fontSize:12,color:MB_MUTED,marginLeft:8}}>USD · BTC + ETH + SOL</span>
           </div>
-          <div style={{display:"flex",gap:20,flexWrap:"wrap",marginBottom:20}}>
-            {[
-              {label:"BTC Spot ETFs", tickers:MB_ETF_BTC, flows:btcF, net:btcNet},
-              {label:"ETH Spot ETFs", tickers:MB_ETF_ETH, flows:ethF, net:ethNet},
-              {label:"SOL Spot ETFs", tickers:MB_ETF_SOL, flows:solF, net:solNet},
-            ].map(({label,tickers,flows,net})=>(
-              <div key={label} style={{flex:"1 1 180px"}}>
-                <MBDataTable
-                  headers={[label, "Flow ($M)"]}
-                  rows={etfRows(tickers, flows)}
-                  footer={["Net Total", { value:fFlowVal(net)+"M", style:{color:netColor(net)} }]}
-                />
-              </div>
-            ))}
-          </div>
-          <div style={{marginTop:8}}>
-            <div style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_MID,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>
-              Polymarket — ETF Approval Probability
+
+          {/* ── ETF FLOWS ── */}
+          <div style={{marginBottom:32}}>
+            <MBSectionHeader icon={iconFlow} title="ETF Flows & Approval Odds"/>
+            {commentary?.etf?.intro && (
+              <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,lineHeight:1.8,color:MB_MID,fontWeight:300,marginBottom:16}}>
+                {commentary.etf.intro}
+              </MBRichTextBlock>
+            )}
+
+            {/* Combined net flow callout */}
+            <MBCallout>
+              <span style={{fontWeight:600}}>Combined Net ETF Flow Today: </span>
+              <span style={{fontFamily:MB_HEAD,fontWeight:700,color:netColor(allNet)}}>{fFlowVal(allNet)}M</span>
+              <span style={{color:MB_MID}}> USD — BTC + ETH + SOL Spot ETFs</span>
+            </MBCallout>
+
+            {/* Three ETF cards side-by-side */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:20}}>
+              {[
+                {label:"BTC Spot ETFs", tickers:MB_ETF_BTC, flows:btcF, net:btcNet},
+                {label:"ETH Spot ETFs", tickers:MB_ETF_ETH, flows:ethF, net:ethNet},
+                {label:"SOL Spot ETFs", tickers:MB_ETF_SOL, flows:solF, net:solNet},
+              ].map(({label,tickers,flows,net})=>(
+                <MBDataCard key={label} title={label}>
+                  {tickers.map((k,i) => {
+                    const v = parseFloat(flows[k]);
+                    const display = isNaN(v) ? "—" : fFlowVal(v)+"M";
+                    return <MBDataRow key={k} label={k} value={display}
+                      valueColor={isNaN(v)?MB_MUTED:netColor(v)}
+                      isLast={i===tickers.length-1}/>;
+                  })}
+                  <div style={{padding:"10px 18px",borderTop:`1px solid ${MB_INK}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontFamily:MB_BODY,fontSize:11,fontWeight:600,color:MB_INK}}>Net Total</span>
+                    <span style={{fontFamily:MB_HEAD,fontSize:14,fontWeight:700,color:netColor(net)}}>{fFlowVal(net)}M</span>
+                  </div>
+                </MBDataCard>
+              ))}
             </div>
-            <MBDataTable
-              headers={["Market","Approval Odds","Source"]}
-              rows={MB_POLY.map(p=>[
-                p.label,
-                { value:`${polyD[p.id]||p.fb}%`, style:{
-                  color: (polyD[p.id]||p.fb) >= 75 ? MB_POS : (polyD[p.id]||p.fb) >= 50 ? MB_GOLD_TEXT : MB_NEG,
-                  fontWeight:"bold"
-                }},
-                "Polymarket",
-              ])}
-            />
+
+            {/* Polymarket approval odds */}
+            <MBDataCard title="Polymarket — ETF Approval Probability">
+              {MB_POLY.map((p,i) => {
+                const odds = polyD[p.id]||p.fb;
+                return <MBSignalRow key={i} label={p.label} value={`${odds}%`}
+                  valueColor={odds>=75?MB_POS:odds>=50?MB_GOLD_TEXT:MB_NEG}
+                  badge={odds>=75?"Likely":odds>=50?"Possible":"Unlikely"}
+                  badgeType={odds>=75?"bull":odds>=50?"neu":"bear"}
+                  isLast={i===MB_POLY.length-1}/>;
+              })}
+            </MBDataCard>
           </div>
-        </MBReportSection>}
 
-        {divider}
-
-        {/* 04 — Economic Calendar */}
-        {!hiddenSections.has(4) && <MBReportSection number={4} title="Economic Calendar" intro={commentary?.calendar?.intro}>
-          <MBDataTable
-            headers={["Date","Event","Category","Time","Days Away"]}
-            rows={upcoming.map(e=>[
-              new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}),
-              e.ev,
-              { value:e.cat, style:{
-                color:MB_BG, background:MB_CAT_BG[e.cat]||"#333",
-                padding:"2px 8px", borderRadius:2, fontSize:9,
-                fontFamily:MB_MONO, letterSpacing:1
-              }},
-              e.time,
-              { value: mbDue(e.date)===0?"Today":`${mbDue(e.date)}d`, style:{
-                color:mbDue(e.date)<=3?MB_NEG:mbDue(e.date)<=7?MB_GOLD_TEXT:MB_MID,
-                fontWeight:mbDue(e.date)<=3?"bold":"normal"
-              }},
-            ])}
-          />
-          <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:8}}>
-            Source: Federal Reserve · BLS · BEA · SEC.gov
-          </div>
-        </MBReportSection>}
-
-        {divider}
-
-        {/* 05 — Market News */}
-        {!hiddenSections.has(5) && <MBReportSection number={5} title="Market News — Key Takeaways" intro={commentary?.news?.intro}>
-          {(() => {
-            const MOCK = [
-              {headline:"Bitcoin consolidates near key support as macro uncertainty weighs",summary:"Bitcoin traded sideways near critical support levels as investors assessed Federal Reserve policy signals.",source:"CoinDesk"},
-              {headline:"Ethereum ETF inflows pick up pace amid renewed institutional interest",summary:"Spot Ethereum ETFs recorded their strongest week of inflows in over a month.",source:"CoinDesk"},
-              {headline:"CME Bitcoin futures open interest climbs to multi-month high",summary:"Open interest in CME Bitcoin futures reached its highest level in several months.",source:"The Block"},
-              {headline:"SEC review timeline for altcoin ETF applications under scrutiny",summary:"Market participants are monitoring the SEC review cadence for pending spot ETF applications.",source:"The Block"},
-              {headline:"Stablecoin supply expands as on-chain activity rebounds",summary:"Total stablecoin supply across major networks expanded this week.",source:"CoinDesk"},
-            ];
-            const rawItems = news.map(n=>({headline:n.title,summary:n.description,source:n.src}));
-            const aiItems = commentary?.news_summaries || [];
-            // Start with AI items, pad with raw RSS, then pad with mock — ALWAYS 5
-            const pool = [...aiItems];
-            const usedHeadlines = new Set(pool.map(a => a.headline));
-            for (const item of rawItems) { if (pool.length >= 5) break; if (!usedHeadlines.has(item.headline)) { pool.push(item); usedHeadlines.add(item.headline); } }
-            for (const item of MOCK) { if (pool.length >= 5) break; if (!usedHeadlines.has(item.headline)) { pool.push(item); usedHeadlines.add(item.headline); } }
-            return pool.slice(0, 5).map((item, i) => hiddenArticles.has(i) ? null : (
-              <MBArticleItem key={i} item={item} index={i} onDelete={()=>hideArticle(i)}/>
-            ));
-          })()}
-          <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:16}}>
-            Source: The Block · CoinDesk · Cointelegraph · Blockworks · Decrypt · CryptoSlate · Summarized by Claude (Anthropic)
-          </div>
-        </MBReportSection>}
-
-        {/* Footer */}
-        <div style={{margin:"32px 64px 0"}}>
-          <div style={{borderTop:`3px solid ${MB_INK}`}}/>
-          <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:16}}>
-            <SDMLogo width={80}/>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:MB_BODY,fontSize:10,color:MB_MUTED}}>
-                {mbFmtLong(date)} · Institutional Research
-              </div>
-              <div style={{fontFamily:MB_MONO,fontSize:9,color:MB_MUTED,marginTop:3}}>
-                Not investment advice · For internal distribution only
-              </div>
+          {/* ── ECONOMIC CALENDAR ── */}
+          <div style={{marginBottom:32}}>
+            <MBSectionHeader icon={iconCal} title="Economic Calendar"/>
+            {commentary?.calendar?.intro && (
+              <MBRichTextBlock style={{fontFamily:MB_BODY,fontSize:13,lineHeight:1.8,color:MB_MID,fontWeight:300,marginBottom:16}}>
+                {commentary.calendar.intro}
+              </MBRichTextBlock>
+            )}
+            <MBDataCard title="Upcoming Events (30 Days)">
+              {upcoming.map((e,i) => {
+                const due = mbDue(e.date);
+                return (
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 18px",borderBottom:i<upcoming.length-1?`0.5px solid ${MB_RULE}`:"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12,flex:1}}>
+                      <span style={{fontFamily:MB_HEAD,fontSize:10,fontWeight:600,color:MB_MID,minWidth:50}}>
+                        {new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+                      </span>
+                      <span style={{fontFamily:MB_BODY,fontSize:12,color:MB_INK}}>{e.ev}</span>
+                      <span style={{fontFamily:MB_HEAD,fontSize:9,fontWeight:700,letterSpacing:"0.06em",
+                        color:MB_BG,background:MB_CAT_BG[e.cat]||"#333",padding:"2px 8px",borderRadius:20}}>{e.cat}</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontFamily:MB_BODY,fontSize:11,color:MB_MUTED}}>{e.time}</span>
+                      <MBSignalBadge label={due===0?"Today":`${due}d`} type={due<=3?"bear":due<=7?"neu":"bull"}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </MBDataCard>
+            <div style={{fontFamily:MB_BODY,fontSize:9,color:MB_MUTED,marginTop:8}}>
+              Source: Federal Reserve · BLS · BEA · SEC.gov
             </div>
+          </div>
+
+        </div>{/* /content */}
+
+        {/* ── FOOTER ── */}
+        <div style={{background:MB_INK,padding:"20px 40px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontFamily:MB_BODY,fontSize:10,color:"rgba(255,255,255,0.3)",lineHeight:1.6}}>
+            © 2026 Secure Digital Markets<br/>
+            Generated by SDM Trade Studio · sdm.io
+          </div>
+          <div style={{fontFamily:MB_BODY,fontSize:9,color:"rgba(255,255,255,0.2)",maxWidth:440,textAlign:"right",lineHeight:1.5}}>
+            This brief is prepared for informational purposes only and does not constitute financial advice. Digital assets involve substantial risk. Past performance is not indicative of future results.
           </div>
         </div>
+
       </div>
     </div>
   );
@@ -1991,7 +2147,7 @@ export default function App() {
 
   // ─── Breadcrumb ───
   const Breadcrumb = ({ items }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "0.5px solid #E8E7E2", background: "#F5F4EF" }}>
+    <div className="noprint" style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 48px", borderBottom: "0.5px solid #E8E7E2", background: "#F5F4EF" }}>
       <button style={S.btnBack} onClick={handleReset}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </button>
