@@ -210,23 +210,23 @@ export default function MBChartSection06() {
     if (!lwcLoaded) return;
     setLoading(true);
 
-    // Kraken OHLC fetcher (reliable, no auth needed)
+    // Kraken OHLC fetcher (primary — reliable, no auth, no rate limits)
     const krakenOHLC = (interval, days) =>
       fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=${interval}&since=${Math.floor(Date.now()/1000) - days*86400}`)
         .then(r => r.json())
         .then(json => {
           const key = Object.keys(json.result || {}).find(k => k !== "last");
-          return (json.result?.[key] || []).map(([ts,o,h,l,c]) => ({ time: Number(ts), open: +o, high: +h, low: +l, close: +c }));
+          const rows = json.result?.[key] || [];
+          if (!rows.length) throw new Error("Kraken returned empty data");
+          return rows.map(([ts,o,h,l,c]) => ({ time: Number(ts), open: +o, high: +h, low: +l, close: +c }));
         });
 
-    // Try CoinGecko first, fall back to Kraken
-    const fetchDaily = cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90")
-      .then(d => toCandles(d))
-      .catch(() => krakenOHLC(1440, 90));
+    // Try Kraken first (like Section07), fall back to CoinGecko
+    const fetchDaily = krakenOHLC(1440, 90)
+      .catch(() => cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90").then(d => toCandles(d)));
 
-    const fetch4H = cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30")
-      .then(d => toCandles(d))
-      .catch(() => krakenOHLC(240, 30));
+    const fetch4H = krakenOHLC(240, 30)
+      .catch(() => cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30").then(d => toCandles(d)));
 
     Promise.allSettled([fetchDaily, fetch4H]).then(([dailyResult, fourHResult]) => {
       const d90 = dailyResult.status === "fulfilled" && dailyResult.value?.length ? dailyResult.value : null;
@@ -275,7 +275,7 @@ export default function MBChartSection06() {
       )}
 
       <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#8A8A88", marginTop: 12 }}>
-        Source: CoinGecko OHLC API · EMA &amp; RSI computed client-side · Key levels are indicative only
+        Source: Kraken Public OHLC API · EMA &amp; RSI computed client-side · Key levels are indicative only
       </div>
     </>
   );
