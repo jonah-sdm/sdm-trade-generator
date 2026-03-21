@@ -1065,23 +1065,28 @@ function MarketBriefHome({ onGenerate }) {
       alignItems:"center",justifyContent:"center",padding:32}}>
       <style>{`input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}`}</style>
 
-      <div style={{width:"100%",maxWidth:680,background:MB_BG,boxShadow:"0 2px 24px rgba(0,0,0,0.08)"}}>
-        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
-        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
-
-        <div style={{padding:"40px 48px"}}>
-          <div style={{marginBottom:36}}>
-            <SDMLogo width={140}/>
+      <div style={{width:"100%",maxWidth:680,background:MB_BG,boxShadow:"0 2px 40px rgba(0,0,0,0.10)",overflow:"hidden",borderRadius:14}}>
+        {/* Dark masthead */}
+        <div style={{background:"#1A1A18",padding:"22px 32px 20px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="30" height="30" style={{flexShrink:0}}>
+              <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+              <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+            </svg>
+            <div>
+              <div style={{fontFamily:MB_HEAD,fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:1}}>SECURE DIGITAL MARKETS</div>
+              <div style={{fontFamily:MB_HEAD,fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",letterSpacing:1,textTransform:"uppercase"}}>Daily Market Brief</div>
+            </div>
           </div>
+        </div>
+        <div style={{height:3,background:"linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)"}}/>
 
-          <div style={{fontFamily:MB_MONO,fontSize:10,color:MB_MUTED,letterSpacing:3,textTransform:"uppercase",marginBottom:10}}>
-            MarketBeat
-          </div>
-          <h1 style={{fontFamily:MB_HEAD,fontSize:32,fontWeight:700,color:MB_INK,letterSpacing:-0.5,lineHeight:1.1,marginBottom:8}}>
-            Daily Market Brief
+        <div style={{padding:"36px 48px"}}>
+          <h1 style={{fontFamily:MB_HEAD,fontSize:28,fontWeight:700,color:MB_INK,letterSpacing:-0.5,lineHeight:1.1,marginBottom:8}}>
+            Generate today's brief
           </h1>
-          <p style={{fontFamily:MB_BODY,fontSize:14,color:MB_MID,lineHeight:1.6,marginBottom:32}}>
-            Generates a full institutional crypto brief with live market data, AI-written analysis,
+          <p style={{fontFamily:MB_BODY,fontSize:13,color:MB_MID,lineHeight:1.6,marginBottom:32}}>
+            Full institutional crypto brief with live market data, AI-written analysis,
             ETF flows, derivatives, and news summaries.
           </p>
 
@@ -1092,7 +1097,7 @@ function MarketBriefHome({ onGenerate }) {
             </label>
             <input type="date" value={date} onChange={e=>setDate(e.target.value)}
               style={{fontFamily:MB_MONO,fontSize:14,color:MB_INK,background:MB_BG,
-                border:`1px solid ${MB_RULE}`,borderRadius:2,padding:"10px 14px",outline:"none",
+                border:`1px solid ${MB_RULE}`,borderRadius:8,padding:"10px 14px",outline:"none",
                 cursor:"pointer"}}/>
             {date !== mbTodayISO() && (
               <div style={{fontFamily:MB_BODY,fontSize:11,color:MB_GOLD_TEXT,marginTop:6}}>
@@ -1105,7 +1110,7 @@ function MarketBriefHome({ onGenerate }) {
             <button onClick={()=>setShowCustomize(v=>!v)}
               style={{display:"flex",alignItems:"center",gap:8,fontFamily:MB_BODY,fontSize:12,
                 fontWeight:600,color:MB_INK,background:"none",border:`1px solid ${MB_RULE}`,
-                borderRadius:2,padding:"10px 16px",cursor:"pointer",width:"100%",textAlign:"left"}}>
+                borderRadius:6,padding:"10px 16px",cursor:"pointer",width:"100%",textAlign:"left"}}>
               <span style={{fontFamily:MB_MONO,fontSize:11,color:MB_MUTED}}>{showCustomize?"▼":"▶"}</span>
               Customize
               <span style={{fontFamily:MB_BODY,fontSize:11,color:MB_MUTED,fontWeight:400,marginLeft:"auto"}}>
@@ -1197,17 +1202,14 @@ function MarketBriefHome({ onGenerate }) {
           </div>
 
           <button onClick={()=>onGenerate({date,btcF,ethF,solF,customArticles})}
-            style={{width:"100%",fontFamily:MB_HEAD,fontSize:15,fontWeight:700,color:MB_BG,
-              background:MB_INK,border:"none",borderRadius:2,padding:"16px 24px",
+            style={{width:"100%",fontFamily:MB_HEAD,fontSize:14,fontWeight:700,color:"#1A1A18",
+              background:MB_GOLD,border:"none",borderRadius:999,padding:"16px 24px",
               cursor:"pointer",letterSpacing:0.5,transition:"opacity 0.2s"}}
             onMouseEnter={e=>e.target.style.opacity=0.85}
             onMouseLeave={e=>e.target.style.opacity=1}>
-            Generate Report →
+            Generate Brief →
           </button>
         </div>
-
-        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
-        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
       </div>
     </div>
   );
@@ -1219,12 +1221,23 @@ function MBGeneratingScreen({ steps }) {
     <div style={{minHeight:"100vh",background:MB_BGOFF,display:"flex",flexDirection:"column",
       alignItems:"center",justifyContent:"center",padding:32}}>
       <style>{`@keyframes mbpulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
-      <div style={{width:"100%",maxWidth:480,background:MB_BG,boxShadow:"0 2px 24px rgba(0,0,0,0.08)"}}>
-        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
-        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
-        <div style={{padding:"40px 48px"}}>
-          <SDMLogo width={120}/>
-          <div style={{fontFamily:MB_HEAD,fontSize:22,fontWeight:700,color:MB_INK,marginTop:24,marginBottom:8}}>
+      <div style={{width:"100%",maxWidth:480,background:MB_BG,boxShadow:"0 2px 40px rgba(0,0,0,0.10)",overflow:"hidden",borderRadius:14}}>
+        {/* Dark masthead */}
+        <div style={{background:"#1A1A18",padding:"22px 32px 20px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="30" height="30" style={{flexShrink:0}}>
+              <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
+              <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
+            </svg>
+            <div>
+              <div style={{fontFamily:MB_HEAD,fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.45)",textTransform:"uppercase",marginBottom:1}}>SECURE DIGITAL MARKETS</div>
+              <div style={{fontFamily:MB_HEAD,fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",letterSpacing:1,textTransform:"uppercase"}}>Daily Market Brief</div>
+            </div>
+          </div>
+        </div>
+        <div style={{height:3,background:"linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)"}}/>
+        <div style={{padding:"36px 48px"}}>
+          <div style={{fontFamily:MB_HEAD,fontSize:22,fontWeight:700,color:MB_INK,marginBottom:8}}>
             Generating your brief
           </div>
           <div style={{fontFamily:MB_BODY,fontSize:13,color:MB_MUTED,marginBottom:32}}>This takes about 15–20 seconds</div>
@@ -1242,8 +1255,6 @@ function MBGeneratingScreen({ steps }) {
             </div>
           ))}
         </div>
-        <div style={{borderTop:`3px solid ${MB_INK}`}}/>
-        <div style={{borderTop:`2px solid ${MB_GOLD}`,marginTop:3}}/>
       </div>
     </div>
   );
