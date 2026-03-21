@@ -55,12 +55,19 @@ The structure does not change your net ${asset} exposure — a spot price increa
     }
 
     case "covered_call": {
-      const annReturn = fields.current_price && fields.dte ? ((parseNum(fields.premium) / parseNum(fields.current_price)) * (365 / parseNum(fields.dte)) * 100).toFixed(1) : "N/A";
-      const breakeven = (parseNum(fields.cost_basis) - parseNum(fields.premium)).toFixed(2);
-      const totalIncome = (parseNum(fields.premium) * (parseNum(fields.holdings) || 1)).toFixed(0);
-      return `You hold ${fields.holdings || 10} ${asset} at a cost basis of ${$(fields.cost_basis)}. This trade sells a call at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, collecting ${$(fields.premium)} per unit — ${$(totalIncome)} total — or approximately ${annReturn}% annualized on the current price. The premium is received immediately and is yours regardless of outcome.
+      const holdings = parseNum(fields.holdings) || 10;
+      const premium = parseNum(fields.premium);
+      const price = parseNum(fields.current_price);
+      const costBasis = parseNum(fields.cost_basis);
+      const strike = parseNum(fields.strike);
+      const dte = parseNum(fields.dte);
+      const notional = holdings * price;
+      const annReturn = notional > 0 && dte > 0 ? ((premium / notional) * (365 / dte) * 100).toFixed(1) : "N/A";
+      const breakeven = (costBasis - (premium / holdings)).toFixed(2);
+      const maxProfit = ((strike - costBasis) * holdings) + premium;
+      return `You hold ${fields.holdings || 10} ${asset} at a cost basis of ${$(fields.cost_basis)}. This trade sells a call at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, collecting ${fmtN(premium)} total — or approximately ${annReturn}% annualized on the current price. The premium is received immediately and is yours regardless of outcome.
 
-If ${asset} is below ${$(fields.strike)} at expiry, the option expires worthless and you retain your full position. If ${asset} is above ${$(fields.strike)} at expiry, your holdings are called away at that price. Upside above ${$(fields.strike)} is forfeited. Your effective downside breakeven, after premium, is ${$(breakeven)}.
+If ${asset} is below ${$(fields.strike)} at expiry, the option expires worthless and you retain your full position. If ${asset} is above ${$(fields.strike)} at expiry, your holdings are called away at that price. Upside above ${$(fields.strike)} is forfeited. Your effective downside breakeven, after premium, is ${$(breakeven)}. Maximum profit if called at the strike is ${fmtN(maxProfit)}.
 
 IV Rank is ${fields.iv_rank}% — a higher reading implies relatively elevated premiums versus recent history. The ${fields.delta} delta at the chosen strike reflects the market-implied probability of assignment. If ${asset} is called away and you wish to re-establish the position, you will need to re-enter at the prevailing spot price.`;
     }
@@ -365,38 +372,39 @@ function computeCoveredCall(f) {
   const price = n(f.current_price);
   const strike = n(f.strike);
   const cost = n(f.cost_basis);
-  const premium = n(f.premium);
+  const premium = n(f.premium);        // TOTAL flat premium for the whole position (NOT per unit)
   const holdings = n(f.holdings) || 10;
   const dte = n(f.dte);
 
-  const breakeven = cost - premium;
-  const maxProfit = (strike - cost + premium) * holdings;
-  const annReturn = price > 0 && dte > 0 ? ((premium / price) * (365 / dte) * 100).toFixed(1) : "N/A";
+  const premiumPerUnit = holdings > 0 ? premium / holdings : 0;
+  const notional = holdings * price;
+  const breakeven = cost - premiumPerUnit;
+  const maxProfit = ((strike - cost) * holdings) + premium;
+  const annReturn = notional > 0 && dte > 0 ? ((premium / notional) * (365 / dte) * 100).toFixed(1) : "N/A";
 
-  const minP = Math.min(cost, breakeven) * 0.8;
-  const maxP = strike * 1.2;
+  const minP = Math.max(price * 0.5, 0.01);
+  const maxP = strike * 1.3;
 
   const curve = buildCurve(minP, maxP, (p) => {
-    const positionPnl = (p - cost) * holdings;
-    const callPnl = premium * holdings - (p > strike ? (p - strike) * holdings : 0);
-    return positionPnl + callPnl;
+    // Covered call P&L: spot P&L + premium, capped above strike
+    if (p <= strike) return ((p - cost) * holdings) + premium;
+    return ((strike - cost) * holdings) + premium;   // capped
   });
 
-  const totalIncome = premium * holdings;
   const unrealizedGain = price > 0 && cost > 0 ? ((price - cost) * holdings) : 0;
 
   return {
     curve, spot: price, breakevens: [breakeven],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
-      { label: "Premium Income", value: fmtFull(totalIncome), sub: `${annReturn}% ann. return`, positive: true },
+      { label: "Premium Income", value: fmt(premium), sub: `${annReturn}% ann. return`, positive: true },
       { label: "Max Profit", value: fmt(maxProfit), sub: `If called at ${fmtFull(strike)}`, positive: true },
       { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Downside protection" },
       { label: "Unrealized Gain", value: fmt(unrealizedGain), sub: `${holdings} units · ${f.iv_rank}% IV`, positive: unrealizedGain >= 0 },
     ],
     legs: [
       { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ ${fmtFull(cost)}`, color: "#00C2FF" },
-      { action: "SELL", type: "Call", strike, label: `${fmtFull(strike)} Call @ ${fmtFull(premium)}`, color: "#ef4444" },
+      { action: "SELL", type: "Call", strike, label: `${fmtFull(strike)} Call · ${fmt(premium)} total`, color: "#ef4444" },
     ],
     zones: [
       { from: breakeven, to: strike, label: "Profit Zone", color: "rgba(74,222,128,0.08)" },

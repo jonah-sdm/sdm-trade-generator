@@ -517,161 +517,269 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
       </div>
 
       {/* ─── Report Content ─── */}
-      <div ref={reportRef} style={{ background: "#FDFCF7" }}>
+      <div ref={reportRef} style={{ background: THEME.bg, maxWidth: 860, margin: "0 auto" }}>
 
-        {/* Dark Masthead */}
-        <div style={{ background: "#1A1A18", padding: "28px 40px 24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 165 170" width="36" height="36" style={{ flexShrink: 0 }}>
+        {/* ── MASTHEAD ── */}
+        <div style={{ background: THEME.text, padding: "28px 40px 24px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <svg viewBox="62 68 110 106" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
                 <path fill="#FFC32C" d="M69.38,81.61v-7.42c33.16-14.24,62.06-14.24,95.18,0v23.5l-9.22-3.66v-12.26c-21.14-8.77-45.06-12.1-66.81-3.46l75.87,30.17c-.2,3.5-.61,6.98-1.23,10.43l-93.8-37.3Z"/>
                 <path fill="#FFC32C" d="M114.54,166.32c-18.96-11.01-38.57-25.45-44.76-47.42l12.5,4.69c6.45,13.09,18.95,22.5,34.78,32.07,12.24-7.48,20.63-13.77,26.86-20.6l-74.37-29.54c-.21-3.28-.17-7.66-.17-11,6.98,2.83,86.09,34.19,90.19,35.95-9.28,16.75-25.99,28.02-42.52,37.13l-2.52-1.29Z"/>
               </svg>
-              <div>
-                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, letterSpacing: 3, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", marginBottom: 2 }}>SECURE DIGITAL MARKETS</div>
-                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", letterSpacing: 1, textTransform: "uppercase" }}>Trade Structuring Report</div>
-              </div>
+              <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", letterSpacing: "0.08em" }}>SECURE DIGITAL MARKETS</span>
+              <div style={{ width: 1, height: 26, background: "rgba(255,255,255,0.15)" }} />
+              <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Trade Structuring Report</span>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{dateStr}</div>
-              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>Ref: SDM-{trade.tag?.replace(/\s+/g, "-").toUpperCase()}-{now.getFullYear()}</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>{dateStr} · SDM Structuring Desk</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 3 }}>Ref: SDM-{now.getFullYear()}-{String(now.getMonth()+1).padStart(2,"0")}{String(now.getDate()).padStart(2,"0")}-{trade.tag?.replace(/\s+/g, "-").toUpperCase()}</div>
             </div>
           </div>
         </div>
-        {/* Gold gradient rule */}
         <div style={{ height: 3, background: "linear-gradient(90deg, #FFC32C 0%, rgba(255,195,44,0.25) 60%, transparent 100%)" }} />
-        {/* Hero */}
-        <div style={{ padding: "36px 40px 32px", borderBottom: "0.5px solid #E8E7E2", background: "#FDFCF7" }}>
-          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, letterSpacing: 2, color: "#7A5500", textTransform: "uppercase", fontWeight: 700, background: "rgba(255,195,44,0.15)", padding: "5px 14px", borderRadius: 999, display: "inline-block", marginBottom: 20 }}>{trade.tag}</span>
-          <h1 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 30, color: "#1A1A18", marginBottom: 10, lineHeight: 1.1 }}>{trade.label}</h1>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#8A8A88", fontWeight: 300 }}>{trade.category} — {trade.description}</p>
-        </div>
 
-        {/* ─── Padded report body ─── */}
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 48px" }}>
-
-        {/* Executive Summary */}
-        <div
-          style={{ marginBottom: 32, padding: 24, background: "rgba(255,195,44,0.06)", border: "0.5px solid #E8E7E2", borderLeft: "3px solid #FFC32C", borderRadius: "0 10px 10px 0", position: "relative" }}
-          onMouseEnter={() => setExecHover(true)}
-          onMouseLeave={() => setExecHover(false)}
-        >
-          <div style={{ ...sectionLabel, marginBottom: 12 }}>Executive Summary</div>
-          <div style={{ transition: "opacity 0.15s, max-height 0.15s", opacity: execHover ? 1 : 0, maxHeight: execHover ? 40 : 0, overflow: "hidden", marginBottom: execHover ? 8 : 0 }}>
-            <RichTextToolbar />
+        {/* ── HERO ── */}
+        <div style={{ padding: "36px 40px 32px", borderBottom: `0.5px solid ${THEME.border}` }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", background: "rgba(255,195,44,0.12)", borderRadius: 20, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.goldText, marginBottom: 14 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            {trade.tag}
           </div>
-          <div
-            ref={editorRef}
-            contentEditable
-            suppressContentEditableWarning
-            dangerouslySetInnerHTML={{ __html: execHtml || (typeof execSummary === "string"
-              ? `<p>${execSummary.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>")}</p>`
-              : execSummary) || "" }}
-            onBlur={handleExecBlur}
-            style={{
-              fontFamily: "'Poppins',sans-serif", fontSize: 14, lineHeight: 1.7, color: "#4A4A48", outline: "none",
-              background: execHover ? "#FDFCF7" : "transparent",
-              border: execHover ? "1px solid #E8E7E2" : "1px solid transparent",
-              borderRadius: 6, padding: "12px 14px", minHeight: 80,
-              transition: "background 0.15s, border-color 0.15s",
-              cursor: "text",
-            }}
-          />
+          <h1 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 30, color: THEME.text, lineHeight: 1.15, letterSpacing: "-0.025em", marginBottom: 8 }}>{trade.label}</h1>
+          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: THEME.textMuted, fontWeight: 300 }}>
+            {trade.category} · {trade.description}
+          </p>
         </div>
 
-        {/* Metrics Strip */}
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(analysis.metrics.length, 6)}, 1fr)`, borderBottom: "0.5px solid #E8E7E2", marginBottom: 32, marginLeft: -48, marginRight: -48 }}>
+        {/* ── METRICS STRIP ── */}
+        <div style={{ background: "#fff", borderBottom: `0.5px solid ${THEME.border}`, display: "grid", gridTemplateColumns: `repeat(${Math.min(analysis.metrics.length, 6)}, 1fr)` }}>
           {analysis.metrics.slice(0, 6).map((m, i, arr) => (
-            <div key={i} style={{
-              padding: "18px 20px",
-              borderRight: i < arr.length - 1 ? "0.5px solid #E8E7E2" : "none",
-            }}>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{m.label}</div>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 17, color: m.positive ? "#16a34a" : m.negative ? "#dc2626" : "#1A1A18", marginBottom: 4 }}>{m.value}</div>
-              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#8A8A88" }}>{m.sub}</div>
+            <div key={i} style={{ padding: "18px 20px", borderRight: i < arr.length - 1 ? `0.5px solid ${THEME.border}` : "none" }}>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: THEME.textMuted, marginBottom: 6 }}>{m.label}</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: m.positive ? THEME.positive : m.negative ? THEME.negative : THEME.text }}>{m.value}</div>
+              <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted, marginTop: 3 }}>{m.sub}</div>
             </div>
           ))}
         </div>
 
-        {/* Payoff Diagram */}
-        <div style={{ marginBottom: 32, border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px", borderBottom: "0.5px solid #E8E7E2", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#F5F4EF" }}>
-            <div>
-              <div style={sectionLabel}>{analysis.chartLabel ? "Margin Health vs. Price" : "Payoff at Expiry"}</div>
-            </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        {/* ── CONTENT ── */}
+        <div style={{ padding: "36px 40px" }}>
+
+        {/* ── PAYOFF DIAGRAM (on top) ── */}
+        <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
+          <div style={{ padding: "14px 20px", borderBottom: `0.5px solid ${THEME.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>{analysis.chartLabel ? "Margin Health vs. Price" : "Payoff Diagram — At Expiry"}</div>
+            <div style={{ display: "flex", gap: 16 }}>
               {analysis.chartLabel ? (
                 <>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />Safe</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFC32C", display: "inline-block" }} />Warning</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#dc2626", display: "inline-block" }} />Liquidation</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted }}><span style={{ width: 10, height: 3, borderRadius: 2, background: "#16a34a", display: "inline-block" }} /> Safe</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted }}><span style={{ width: 10, height: 3, borderRadius: 2, background: "#FFC32C", display: "inline-block" }} /> Warning</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted }}><span style={{ width: 10, height: 3, borderRadius: 2, background: "#dc2626", display: "inline-block" }} /> Liquidation</span>
                 </>
               ) : (
                 <>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />Profit</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#dc2626", display: "inline-block" }} />Loss</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ca8a04", display: "inline-block" }} />Breakeven</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48" }}><span style={{ width: 24, height: 1, background: "#C8C7C2", display: "inline-block" }} />Long Spot</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted }}><span style={{ width: 10, height: 3, borderRadius: 2, background: "#EF4444", display: "inline-block" }} /> Loss zone</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted }}><span style={{ width: 10, height: 3, borderRadius: 2, background: "#FFC32C", display: "inline-block" }} /> Profit zone</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'Poppins',sans-serif", fontSize: 10, color: THEME.textMuted }}><span style={{ width: 12, height: 0, borderTop: "2px dashed #C8C7C2", display: "inline-block" }} /> Long Spot</span>
                 </>
               )}
             </div>
           </div>
-          <div style={{ padding: "8px 0" }}>
+          <div style={{ padding: "20px 20px 12px" }}>
             <PayoffChart analysis={analysis} accentColor={trade.color} />
           </div>
-        </div>
-
-        {/* Trade Structure */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ ...sectionLabel, marginBottom: 12 }}>Trade Structure</div>
-          <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "100px 140px 1fr", padding: "10px 16px", background: "#F5F4EF", borderBottom: "0.5px solid #E8E7E2" }}>
-              <span style={{ ...sectionLabel }}>Action</span>
-              <span style={{ ...sectionLabel }}>Instrument</span>
-              <span style={{ ...sectionLabel }}>Detail</span>
+          {analysis.zones && analysis.zones.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "0 20px 16px", gap: 8 }}>
+              {analysis.zones.map((zone, i) => (
+                <div key={i} style={{
+                  textAlign: "center", padding: "8px 16px", borderRadius: 6, flex: 1,
+                  fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
+                  background: zone.type === "loss" ? "rgba(220,38,38,0.07)" : zone.type === "capped" ? "rgba(255,195,44,0.1)" : "rgba(22,163,74,0.08)",
+                  color: zone.type === "loss" ? "#991b1b" : zone.type === "capped" ? "#7A5500" : "#166534",
+                }}>{zone.label}</div>
+              ))}
             </div>
-            {analysis.legs.map((leg, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "100px 140px 1fr", padding: "12px 16px", borderBottom: i < analysis.legs.length - 1 ? "0.5px solid #E8E7E2" : "none", alignItems: "center" }}>
-                <span style={{
-                  fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase",
-                  color: leg.action.toLowerCase() === "buy" || leg.action.toLowerCase() === "long" ? "#16a34a" : "#dc2626",
-                }}>{leg.action}</span>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48" }}>{leg.type}</span>
-                <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#1A1A18", display: "flex", alignItems: "center", gap: 10 }}>
-                  {leg.label}
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: leg.color, display: "inline-block", flexShrink: 0 }} />
-                </span>
-              </div>
-            ))}
-          </div>
+          )}
         </div>
 
-        {/* Risk Summary */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ ...sectionLabel, marginBottom: 12 }}>Risk Summary</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-            {analysis.breakevens && analysis.breakevens.length > 0 && (
-              <div style={{ background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={sectionLabel}>Breakeven</div>
-                <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#ca8a04", marginTop: 6 }}>
-                  ${analysis.breakevens.map(b => Math.abs(b) < 1 && b !== 0 ? b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })).join(", ")}
+        {/* ── TRADE STRUCTURE (below payoff) ── */}
+        <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
+          <div style={{ padding: "14px 20px", borderBottom: `0.5px solid ${THEME.border}`, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>Trade Structure</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" }}>Action</th>
+                <th style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" }}>Instrument</th>
+                <th style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" }}>Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.legs.map((leg, i) => (
+                <tr key={i}>
+                  <td style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: leg.action.toLowerCase() === "buy" || leg.action.toLowerCase() === "long" ? THEME.positive : THEME.negative, borderBottom: i < analysis.legs.length - 1 ? `0.5px solid ${THEME.border}` : "none" }}>{leg.action}</td>
+                  <td style={{ padding: "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", borderBottom: i < analysis.legs.length - 1 ? `0.5px solid ${THEME.border}` : "none" }}>{leg.type}</td>
+                  <td style={{ padding: "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: THEME.text, borderBottom: i < analysis.legs.length - 1 ? `0.5px solid ${THEME.border}` : "none" }}>
+                    {leg.label}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ── SCENARIO ANALYSIS TABLE ── */}
+        {analysis.curve && analysis.curve.length > 0 && (() => {
+          const spot = analysis.spot || 0;
+          const curve = analysis.curve;
+          const prices = curve.map(c => c.price);
+          const minP = Math.min(...prices);
+          const maxP = Math.max(...prices);
+          const range = maxP - minP;
+          // Pick ~7 scenario prices: spread across the range, include spot + breakevens
+          const scenarioPrices = new Set();
+          // Add key levels
+          if (spot > 0) scenarioPrices.add(spot);
+          (analysis.breakevens || []).forEach(b => { if (b > minP && b < maxP) scenarioPrices.add(b); });
+          // Add spread levels
+          const steps = [0.1, 0.25, 0.4, 0.6, 0.75, 0.9];
+          steps.forEach(s => scenarioPrices.add(Math.round(minP + range * s)));
+          // Sort and limit
+          const sorted = [...scenarioPrices].sort((a, b) => a - b).slice(0, 9);
+
+          const findPnl = (price) => {
+            const exact = curve.find(c => Math.abs(c.price - price) < range * 0.005);
+            if (exact) return exact.pnl;
+            // Interpolate
+            for (let i = 0; i < curve.length - 1; i++) {
+              if (curve[i].price <= price && curve[i + 1].price >= price) {
+                const ratio = (price - curve[i].price) / (curve[i + 1].price - curve[i].price);
+                return curve[i].pnl + ratio * (curve[i + 1].pnl - curve[i].pnl);
+              }
+            }
+            return 0;
+          };
+
+          const fmtP = (v) => v >= 1000 ? `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : v >= 1 ? `$${v.toFixed(2)}` : `$${v.toFixed(4)}`;
+          const fmtPnl = (v) => v >= 0 ? `+$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : `-$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+          const fmtPct = (v) => v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
+
+          const thStyle = { padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
+          const tdStyle = { padding: "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
+
+          return (
+            <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
+              <div style={{ padding: "14px 20px", borderBottom: `0.5px solid ${THEME.border}`, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>Scenario Analysis — P&L at Expiry</div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Price at Expiry</th>
+                    <th style={thStyle}>Move vs Spot</th>
+                    <th style={thStyle}>P&L</th>
+                    <th style={thStyle}>Return on Notional</th>
+                    <th style={thStyle}>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((price, i) => {
+                    const pnl = findPnl(price);
+                    const moveVsSpot = spot > 0 ? ((price - spot) / spot) * 100 : 0;
+                    const notionalReturn = spot > 0 ? (pnl / spot) * 100 : 0;
+                    const isSpot = spot > 0 && Math.abs(price - spot) < range * 0.005;
+                    const isBe = (analysis.breakevens || []).some(b => Math.abs(price - b) < range * 0.005);
+                    const outcome = isBe ? "Breakeven" : pnl > 0 ? (moveVsSpot > 15 ? "Capped — upside forfeited" : "Profit zone") : pnl < 0 ? (moveVsSpot < -15 ? "Significant loss" : "Premium partially offsets") : "Flat";
+
+                    return (
+                      <tr key={i} style={{ background: isSpot ? "rgba(255,195,44,0.06)" : "transparent" }}>
+                        <td style={tdStyle}>
+                          <strong>{fmtP(price)}</strong>
+                          {isSpot && <span style={{ background: "rgba(255,195,44,0.15)", color: THEME.goldText, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6 }}>SPOT</span>}
+                        </td>
+                        <td style={tdStyle}>{fmtPct(moveVsSpot)}</td>
+                        <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: pnl > 0 ? THEME.positive : pnl < 0 ? THEME.negative : THEME.textMuted }}>
+                          {isBe ? "$0 (breakeven)" : fmtPnl(pnl)}
+                        </td>
+                        <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: notionalReturn > 0 ? THEME.positive : notionalReturn < 0 ? THEME.negative : THEME.textMuted }}>
+                          {isBe ? "0.00%" : fmtPct(notionalReturn)}
+                        </td>
+                        <td style={tdStyle}>{outcome}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
+        {/* ── EXECUTIVE SUMMARY + RISK — two-column ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24, pageBreakInside: "avoid" }}>
+          {/* Executive Summary */}
+          <div>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted, marginBottom: 12, paddingBottom: 8, borderBottom: `0.5px solid ${THEME.border}` }}>Executive Summary</div>
+            <div
+              onMouseEnter={() => setExecHover(true)}
+              onMouseLeave={() => setExecHover(false)}
+              style={{ position: "relative" }}
+            >
+              <div style={{ transition: "opacity 0.15s, max-height 0.15s", opacity: execHover ? 1 : 0, maxHeight: execHover ? 40 : 0, overflow: "hidden", marginBottom: execHover ? 8 : 0 }}>
+                <RichTextToolbar />
+              </div>
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                dangerouslySetInnerHTML={{ __html: execHtml || (typeof execSummary === "string"
+                  ? `<p>${execSummary.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>")}</p>`
+                  : execSummary) || "" }}
+                onBlur={handleExecBlur}
+                style={{
+                  fontFamily: "'Poppins',sans-serif", fontSize: 13, lineHeight: 1.85, color: "#4A4A48", outline: "none", fontWeight: 300,
+                  background: execHover ? THEME.bg : "transparent",
+                  border: execHover ? `1px solid ${THEME.border}` : "1px solid transparent",
+                  borderRadius: 6, padding: "8px 10px", minHeight: 80,
+                  transition: "background 0.15s, border-color 0.15s",
+                  cursor: "text",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Key Risk Considerations */}
+          <div>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted, marginBottom: 12, paddingBottom: 8, borderBottom: `0.5px solid ${THEME.border}` }}>Key Risk Considerations</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {analysis.metrics.filter(m => m.positive).map((m, i) => (
+                <div key={`pos-${i}`} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px", background: "#f0fdf4", borderRadius: 6 }}>
+                  <div style={{ flexShrink: 0, width: 18, height: 18, background: "rgba(22,163,74,0.1)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", lineHeight: 1.6 }}>
+                    <strong>{m.label}.</strong> {m.value} — {m.sub}
+                  </div>
                 </div>
-              </div>
-            )}
-            {analysis.metrics.filter(m => m.negative).map((m, i) => (
-              <div key={i} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={sectionLabel}>{m.label}</div>
-                <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#dc2626", marginTop: 6 }}>{m.value}</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 2 }}>{m.sub}</div>
-              </div>
-            ))}
-            {analysis.metrics.filter(m => m.positive).map((m, i) => (
-              <div key={i} style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={sectionLabel}>{m.label}</div>
-                <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#16a34a", marginTop: 6 }}>{m.value}</div>
-                <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 2 }}>{m.sub}</div>
-              </div>
-            ))}
+              ))}
+              {/* Breakeven */}
+              {analysis.breakevens && analysis.breakevens.length > 0 && (
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px", background: "rgba(255,195,44,0.06)", border: `1px solid rgba(255,195,44,0.2)`, borderRadius: 6 }}>
+                  <div style={{ flexShrink: 0, width: 18, height: 18, background: "rgba(255,195,44,0.15)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#7A5500" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </div>
+                  <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", lineHeight: 1.6 }}>
+                    <strong>Breakeven.</strong> ${analysis.breakevens.map(b => Math.abs(b) < 1 && b !== 0 ? b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : b.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })).join(", ")}
+                  </div>
+                </div>
+              )}
+              {analysis.metrics.filter(m => m.negative).map((m, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 14px", background: THEME.bg2, borderRadius: 6 }}>
+                  <div style={{ flexShrink: 0, width: 18, height: 18, background: "rgba(220,38,38,0.1)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><circle cx="12" cy="12" r="10"/></svg>
+                  </div>
+                  <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", lineHeight: 1.6 }}>
+                    <strong>{m.label}.</strong> {m.value} — {m.sub}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -734,41 +842,32 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           );
         })()}
 
-        {/* Disclaimer */}
-        <div style={{ padding: "16px 20px", background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 10, marginBottom: 24 }}>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", lineHeight: 1.6 }}>
-            SDM — Internal Use Only. This document does not constitute investment advice. Generated {dateStr} at {timeStr}.
-          </p>
+        {/* ── CTA BAR ── */}
+        <div style={{ background: THEME.text, borderRadius: 10, padding: "24px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 0 }}>
+          <div>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>Ready to execute?</div>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Confirm Terms with SDM Structuring Desk</div>
+            <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Live pricing valid for 15 minutes · Ref: SDM-{now.getFullYear()}-{String(now.getMonth()+1).padStart(2,"0")}{String(now.getDate()).padStart(2,"0")}-{trade.tag?.replace(/\s+/g, "-").toUpperCase()}</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+            <div style={{ padding: "10px 22px", background: THEME.gold, borderRadius: 20, fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: THEME.text, cursor: "pointer" }}>Confirm & Execute</div>
+            <div style={{ padding: "10px 22px", background: "rgba(255,255,255,0.07)", borderRadius: 20, fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", color: "rgba(255,255,255,0.4)", cursor: "pointer" }}>Revise Terms</div>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ borderTop: "3px solid #1A1A18", paddingTop: 2 }}>
-          <div style={{ height: 2, background: "#FFC32C", marginBottom: 20 }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-            <div>
-              <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 2, color: "#1A1A18" }}>SECURE DIGITAL MARKETS</div>
-              <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", marginTop: 4 }}>
-                The Institutional Choice for <strong style={{ color: "#FFC32C" }}>Digital</strong> Asset Trading
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 20 }}>
-              <a href="mailto:sales@sdm.co" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
-                sales@sdm.co
-              </a>
-              <a href="https://twitter.com/SD_Markets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                @SD_Markets
-              </a>
-              <a href="https://t.me/SecureDigitalMarkets" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", textDecoration: "none" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                Telegram
-              </a>
-            </div>
+        </div>{/* /content */}
+
+        {/* ── FOOTER ── */}
+        <div style={{ background: THEME.text, padding: "20px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "rgba(255,255,255,0.3)", lineHeight: 1.6 }}>
+            © {now.getFullYear()} Secure Digital Markets<br/>
+            Generated by SDM Trade Studio · sdm.io
           </div>
-          <p style={{ fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#8A8A88", marginTop: 16 }}>Confidential — For intended recipient only. Not investment advice.</p>
+          <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 9, color: "rgba(255,255,255,0.2)", maxWidth: 440, textAlign: "right", lineHeight: 1.5 }}>
+            This report is prepared for informational purposes only for the named recipient and does not constitute financial advice or a binding offer. All pricing is indicative. Digital assets involve substantial risk of loss.
+          </div>
         </div>
-        </div>
+
       </div>
     </div>
   );
