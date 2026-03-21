@@ -4,7 +4,7 @@
 
 html, body, #root {
   height: 100%;
-  background: #FFFFFF;
+  background: #EFEFEF;
   color: #111111;
   font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -17,7 +17,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
 input[type=number] { -moz-appearance: textfield; }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #FAFAFA; }
+::-webkit-scrollbar-track { background: #EFEFEF; }
 ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #AAAAAA; }
 
@@ -33,7 +33,7 @@ input[type=number] { -moz-appearance: textfield; }
   align-items: center;
   gap: 2px;
   padding: 6px 8px;
-  background: #FAFAFA;
+  background: #EFEFEF;
   border: 1px solid #E8E8E8;
   border-bottom: none;
   border-radius: 4px 4px 0 0;

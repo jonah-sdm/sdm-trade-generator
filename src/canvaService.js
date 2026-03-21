@@ -1,67 +1,67 @@
-// Canva integration via local backend (OAuth flow handled by server.js)
-const API_BASE = "http://localhost:3002";
+// Canva integration — uses Vercel serverless API routes in production,
+// falls back to localhost:3002 for local dev when running server.js
+const isDev = process.env.NODE_ENV === "development" && window.location.port === "3001";
+const API_BASE = isDev ? "http://localhost:3002" : "";
 
 export async function checkCanvaStatus() {
-  const res = await fetch(`${API_BASE}/api/canva/status`);
-  const data = await res.json();
-  return data.connected;
+  try {
+    const res = await fetch(`${API_BASE}/api/canva/status`);
+    const data = await res.json();
+    return data.connected;
+  } catch {
+    return false;
+  }
 }
 
 export function startCanvaAuth() {
-  // Open OAuth flow in popup
   const w = 600, h = 700;
   const left = (window.innerWidth - w) / 2 + window.screenX;
-  const top = (window.innerHeight - h) / 2 + window.screenY;
+  const top  = (window.innerHeight - h) / 2 + window.screenY;
   window.open(
-    `${API_BASE}/auth/canva`,
+    `${API_BASE}/api/canva-auth`,
     "canva-auth",
     `width=${w},height=${h},left=${left},top=${top}`
   );
 }
 
-export async function listBrandTemplates() {
-  const res = await fetch(`${API_BASE}/api/canva/brand-templates`);
-  if (!res.ok) throw new Error("Failed to fetch templates");
-  return res.json();
-}
-
-export async function listDesigns() {
-  const res = await fetch(`${API_BASE}/api/canva/designs`);
-  if (!res.ok) throw new Error("Failed to fetch designs");
-  return res.json();
-}
-
-export async function exportToCanva(templateId, tradeData) {
-  const res = await fetch(`${API_BASE}/api/canva/export`, {
-    method: "POST",
+async function canvaProxy(path, options = {}) {
+  const url = `${API_BASE}/api/canva-proxy?path=${encodeURIComponent(path)}`;
+  const res  = await fetch(url, {
+    method: options.method || "GET",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ templateId, tradeData }),
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Export failed");
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Canva API ${res.status}`);
   }
   return res.json();
 }
 
+export async function listBrandTemplates() {
+  return canvaProxy("/brand-templates");
+}
+
+export async function listDesigns() {
+  return canvaProxy("/designs?ownership=owned&sort_by=modified_descending");
+}
+
+export async function exportToCanva(templateId, tradeData) {
+  return canvaProxy("/export", { method: "POST", body: { templateId, tradeData } });
+}
+
 // Build the replacement map for template autofill
-// Keys match placeholder names in your Canva template
 export function buildReplacements(tradeId, fields, metrics) {
   const replacements = {
-    // Common fields
-    trade_type: getTradeTitle(tradeId),
-    date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+    trade_type:   getTradeTitle(tradeId),
+    date:         new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
     generated_by: "SDM Trade Idea Studio",
   };
 
-  // Add all field values with their keys
   Object.entries(fields).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") {
-      replacements[key] = String(value);
-    }
+    if (value !== undefined && value !== "") replacements[key] = String(value);
   });
 
-  // Add computed metrics if provided
   if (metrics) {
     metrics.forEach(m => {
       const key = m.label.toLowerCase().replace(/[^a-z0-9]/g, "_");
@@ -74,14 +74,14 @@ export function buildReplacements(tradeId, fields, metrics) {
 
 function getTradeTitle(tradeId) {
   const titles = {
-    long_seagull: "Long Seagull Upside Structure",
+    long_seagull:       "Long Seagull Upside Structure",
     reverse_cash_carry: "Reverse Cash & Carry Basis Trade",
-    covered_call: "Covered Call Income Strategy",
-    cash_secured_put: "Cash-Secured Put Strategy",
-    leap: "Long-Dated Option — Leveraged Directional Exposure",
-    wheel: "The Wheel — Systematic Premium Collection",
-    collar: "Protective Collar Strategy",
-    earnings_play: "Event Risk Analysis",
+    covered_call:       "Covered Call Income Strategy",
+    cash_secured_put:   "Cash-Secured Put Strategy",
+    leap:               "Long-Dated Option — Leveraged Directional Exposure",
+    wheel:              "The Wheel — Systematic Premium Collection",
+    collar:             "Protective Collar Strategy",
+    earnings_play:      "Event Risk Analysis",
   };
   return titles[tradeId] || tradeId;
 }
