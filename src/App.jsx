@@ -383,8 +383,8 @@ const MB_MID        = "#4A4A48";
 const MB_MUTED      = "#8A8A88";
 const MB_RULE       = "#E8E7E2";
 const MB_RULEG      = "#F5F4EF";
-const MB_BG         = "#FDFCF7";
-const MB_BGOFF      = "#F5F4EF";
+const MB_BG         = "#FFFFFF";
+const MB_BGOFF      = "#FFFFFF";
 const MB_GOLD       = "#FFC32C";
 const MB_GOLD_TEXT  = "#7A5500";
 const MB_BLUE       = "#1851EB";
@@ -776,6 +776,122 @@ ${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]
   }
 }
 
+// ── MB Webflow export ─────────────────────────────────────────────────────────
+function buildWebflowHTML(data) {
+  const { date, mkt, drv, btcF, ethF, solF, polyD, news, commentary, geoNews=[] } = data;
+  const btcCoin = (mkt.coins||[]).find(c=>c.symbol==="BTC");
+  const ethCoin = (mkt.coins||[]).find(c=>c.symbol==="ETH");
+  const solCoin = (mkt.coins||[]).find(c=>c.symbol==="SOL");
+  const btcDom = mkt.dominance || mkt.btcDominance || 0;
+  const btcNet = MB_ETF_BTC.reduce((s,k)=>s+(parseFloat(btcF[k])||0),0);
+  const ethNet = MB_ETF_ETH.reduce((s,k)=>s+(parseFloat(ethF[k])||0),0);
+  const solNet = MB_ETF_SOL.reduce((s,k)=>s+(parseFloat(solF[k])||0),0);
+  const allNet = btcNet+ethNet+solNet;
+  const upcoming = MB_ECON.filter(e=>{const d=mbDue(e.date);return d>=0&&d<=30;})
+    .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,8);
+
+  const fFlowVal = v => (v>=0?"+$":"-$") + Math.abs(v).toLocaleString("en-US",{maximumFractionDigits:0});
+  const priceFmt = c => c.price >= 1000 ? mbF(c.price,0) : c.price >= 1 ? mbF(c.price,2) : mbF(c.price,4);
+
+  // Webflow Rich Text only reliably supports: h2, h3, p, strong, em, blockquote, a
+  // NO ul/li/ol — they get stripped. Use <p> for everything.
+  const s = [];
+
+  // Key Metrics
+  s.push(`<h2>Key Metrics</h2>`);
+  if (btcCoin) s.push(`<p><strong>BTC:</strong> $${mbF(btcCoin.price,0)} (${mbPct(btcCoin.change24h)} 24h)</p>`);
+  if (ethCoin) s.push(`<p><strong>ETH:</strong> $${mbF(ethCoin.price,0)} (${mbPct(ethCoin.change24h)} 24h)</p>`);
+  if (solCoin) s.push(`<p><strong>SOL:</strong> $${mbF(solCoin.price,2)} (${mbPct(solCoin.change24h)} 24h)</p>`);
+  s.push(`<p><strong>BTC Dominance:</strong> ${btcDom.toFixed(1)}% · <strong>BTC Funding:</strong> ${mbF(drv.btcFunding,4)}% · <strong>CME Basis:</strong> ${mbF(drv.cmeBasis,2)}% (${mbF(drv.cmeAnnualized,1)}% ann.) · <strong>Net ETF Flow:</strong> ${fFlowVal(allNet)}M</p>`);
+
+  // Executive Summary
+  if (Array.isArray(commentary?.executive_summary) && commentary.executive_summary.length > 0) {
+    s.push(`<h2>Executive Summary</h2>`);
+    commentary.executive_summary.forEach(bullet => s.push(`<p>${bullet}</p>`));
+  }
+
+  // Macro & Geopolitical
+  if (commentary?.geo_intro || (Array.isArray(commentary?.geo_bullets) && commentary.geo_bullets.length > 0)) {
+    s.push(`<h2>Macro and Geopolitical</h2>`);
+    if (commentary.geo_intro) s.push(`<p>${commentary.geo_intro}</p>`);
+    if (Array.isArray(commentary?.macro_tiles) && commentary.macro_tiles.length > 0) {
+      s.push(`<p>${commentary.macro_tiles.map(t => `<strong>${t.label}:</strong> ${t.value}${t.sub ? ` (${t.sub})` : ''}`).join(' · ')}</p>`);
+    }
+    if (Array.isArray(commentary?.geo_bullets) && commentary.geo_bullets.length > 0) {
+      commentary.geo_bullets.forEach(b => s.push(`<p>${b}</p>`));
+    }
+  }
+
+  // Market Overview
+  if (commentary?.market?.intro) {
+    s.push(`<h2>Market Overview</h2>`);
+    s.push(`<p>${commentary.market.intro}</p>`);
+  }
+
+  // Top 10 Coins
+  s.push(`<h2>Top 10 by Market Cap</h2>`);
+  (mkt.coins||[]).forEach(c => {
+    s.push(`<p><strong>${c.rank}. ${c.name} (${c.symbol})</strong> — $${priceFmt(c)} (${mbPct(c.change24h)})</p>`);
+  });
+
+  // Stablecoins
+  if ((mkt.stables||[]).length > 0) {
+    s.push(`<h3>Stablecoins</h3>`);
+    s.push(`<p>${(mkt.stables||[]).map(c => `<strong>${c.name} (${c.symbol}):</strong> $${mbF(c.price,4)}`).join(' · ')}</p>`);
+  }
+
+  // Derivatives
+  s.push(`<h2>Derivatives</h2>`);
+  if (commentary?.derivatives?.intro) s.push(`<p>${commentary.derivatives.intro}</p>`);
+  s.push(`<p><strong>BTC Perp Funding (8h):</strong> ${mbF(drv.btcFunding,4)}% · <strong>ETH Perp Funding (8h):</strong> ${mbF(drv.ethFunding,4)}%</p>`);
+  s.push(`<p><strong>CME Front-Month Basis:</strong> ${mbF(drv.cmeBasis,2)}% · <strong>CME Annualised Premium:</strong> ${mbF(drv.cmeAnnualized,2)}%</p>`);
+  s.push(`<p><strong>BTC Open Interest:</strong> $${mbF(drv.btcOI,1)}B · <strong>ETH Open Interest:</strong> $${mbF(drv.ethOI,1)}B</p>`);
+
+  // ETF Flows
+  s.push(`<h2>ETF Flows</h2>`);
+  if (commentary?.etf?.intro) s.push(`<p>${commentary.etf.intro}</p>`);
+  s.push(`<p><strong>Combined Net ETF Flow Today: ${fFlowVal(allNet)}M USD</strong> — BTC + ETH + SOL Spot ETFs</p>`);
+
+  const etfGroup = (label, tickers, flows, net) => {
+    s.push(`<h3>${label}</h3>`);
+    const items = tickers.map(k => {
+      const v = parseFloat(flows[k]);
+      return `<strong>${k}:</strong> ${isNaN(v) ? "—" : fFlowVal(v)+"M"}`;
+    });
+    // Break into rows of 4 for readability
+    for (let i = 0; i < items.length; i += 4) {
+      s.push(`<p>${items.slice(i, i+4).join(' · ')}</p>`);
+    }
+    s.push(`<p><strong>Net Total: ${fFlowVal(net)}M</strong></p>`);
+  };
+  etfGroup("BTC Spot ETFs", MB_ETF_BTC, btcF, btcNet);
+  etfGroup("ETH Spot ETFs", MB_ETF_ETH, ethF, ethNet);
+  etfGroup("SOL Spot ETFs", MB_ETF_SOL, solF, solNet);
+
+  // Polymarket
+  s.push(`<h3>ETF Approval Probability (Polymarket)</h3>`);
+  MB_POLY.forEach(p => {
+    const odds = polyD[p.id]||p.fb;
+    s.push(`<p><strong>${p.label}:</strong> ${odds}%</p>`);
+  });
+
+  // Economic Calendar
+  if (upcoming.length > 0) {
+    s.push(`<h2>Economic Calendar</h2>`);
+    if (commentary?.calendar?.intro) s.push(`<p>${commentary.calendar.intro}</p>`);
+    upcoming.forEach(e => {
+      const d = new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+      s.push(`<p><strong>${d}:</strong> ${e.ev} (${e.cat}) — ${e.time}</p>`);
+    });
+  }
+
+  // Disclaimer
+  s.push(`<p><em>This brief is prepared for informational purposes only and does not constitute financial advice. Digital assets involve substantial risk. Past performance is not indicative of future results.</em></p>`);
+  s.push(`<p><em>© 2026 Secure Digital Markets — Generated by SDM Trade Studio</em></p>`);
+
+  return s.join('\n');
+}
+
 // ── MB Export helpers ─────────────────────────────────────────────────────────
 function buildExportHTML(rootEl, date) {
   // Snapshot all canvases to data-URL images BEFORE cloning (canvas content doesn't survive cloneNode)
@@ -812,7 +928,7 @@ function buildExportHTML(rootEl, date) {
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"/>
-<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#FDFCF7;font-family:'Poppins',sans-serif;}@media print{@page{margin:8mm 10mm;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#FFFFFF;font-family:'Poppins',sans-serif;}@media print{@page{margin:8mm 10mm;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
 </head><body>${clone.outerHTML}</body></html>`;
 }
 
@@ -1395,6 +1511,27 @@ function MarketBriefReport({ data, onBack }) {
     document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
+  const handleExportPDF = async () => {
+    if(!rootRef.current) return;
+    setExporting(true);
+    const html2pdf = (await import('html2pdf.js')).default;
+    const noPrintEls = rootRef.current.querySelectorAll('.noprint');
+    noPrintEls.forEach(el => el.style.display = 'none');
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `sdm-marketbeat-${date}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#FFFFFF' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      })
+      .from(rootRef.current)
+      .save();
+    noPrintEls.forEach(el => el.style.display = '');
+    setExporting(false);
+  };
+
   const handleShare = async () => {
     if(!rootRef.current) return;
     setExporting(true); setShareMsg("Creating link…");
@@ -1408,6 +1545,36 @@ function MarketBriefReport({ data, onBack }) {
       setShareMsg("Failed to create share link");
     }
     setTimeout(()=>setShareMsg(""), 4000);
+  };
+
+  const handleCopyWebflowHTML = async () => {
+    const html = buildWebflowHTML(data);
+    await navigator.clipboard.writeText(html).catch(()=>{});
+    setShareMsg("HTML copied to clipboard");
+    setTimeout(()=>setShareMsg(""), 3000);
+  };
+
+  const handlePublishWebflow = async () => {
+    if(!rootRef.current) return;
+    setExporting(true); setShareMsg("Publishing to Webflow…");
+    try {
+      const html = buildExportHTML(rootRef.current, date);
+      const title = `Daily Market Brief — ${mbFmtLong(date)}`;
+      const slug = `daily-market-brief-${date}`;
+      const res = await fetch("/api/webflow-publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html, title, date, slug }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.detail || "Publish failed");
+      setShareMsg("Published to Webflow");
+    } catch (e) {
+      console.error("Webflow publish error:", e);
+      setShareMsg("Publish failed: " + e.message);
+    }
+    setExporting(false);
+    setTimeout(()=>setShareMsg(""), 5000);
   };
 
   const netColor = n => n >= 0 ? MB_POS : MB_NEG;
@@ -1442,20 +1609,27 @@ function MarketBriefReport({ data, onBack }) {
         </button>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {shareMsg && <span style={{fontFamily:MB_BODY,fontSize:11,color:MB_GOLD}}>{shareMsg}</span>}
-          <button onClick={handleShare} disabled={exporting}
-            style={{fontFamily:MB_BODY,fontSize:12,color:MB_INK,background:MB_GOLD,border:"none",
-              borderRadius:999,padding:"7px 16px",cursor:"pointer",fontWeight:600}}>
-            Share Link
-          </button>
           <button onClick={handleExportHTML}
             style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
               border:`1px solid rgba(255,255,255,0.35)`,borderRadius:6,padding:"7px 16px",cursor:"pointer"}}>
             Export HTML
           </button>
-          <button onClick={()=>window.print()}
+          <button onClick={handleExportPDF} disabled={exporting}
+            style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
+              border:`1px solid rgba(255,255,255,0.35)`,borderRadius:6,padding:"7px 16px",cursor:"pointer",
+              opacity:exporting?0.5:1}}>
+            {exporting ? "Generating PDF…" : "Export PDF"}
+          </button>
+          <button onClick={handleCopyWebflowHTML}
             style={{fontFamily:MB_BODY,fontSize:12,color:MB_BG,background:"none",
               border:`1px solid rgba(255,255,255,0.35)`,borderRadius:6,padding:"7px 16px",cursor:"pointer"}}>
-            Export PDF
+            Copy HTML
+          </button>
+          <button onClick={handlePublishWebflow} disabled={exporting}
+            style={{fontFamily:MB_BODY,fontSize:12,color:MB_INK,background:"#4CAF50",border:"none",
+              borderRadius:999,padding:"7px 16px",cursor:"pointer",fontWeight:600,
+              opacity:exporting?0.5:1}}>
+            {exporting ? "Publishing…" : "Publish to Webflow"}
           </button>
         </div>
       </div>

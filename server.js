@@ -1,11 +1,11 @@
-require("dotenv").config();
+require("dotenv").config({ override: true });
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 
 const app = express();
 app.use(cors({ origin: "http://localhost:3001", credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 const {
   CANVA_CLIENT_ID,
@@ -259,6 +259,12 @@ app.post("/api/generate", async (req, res) => {
 
   const generateHandler = require("./api/generate");
   return generateHandler(req, res);
+});
+
+// ─── Webflow CMS publish ───
+app.post("/api/webflow-publish", async (req, res) => {
+  const webflowHandler = require("./api/webflow-publish");
+  return webflowHandler(req, res);
 });
 
 // ─── Start ───

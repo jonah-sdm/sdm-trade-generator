@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const CHART_THEME = {
-  layout: { background: { color: "#F5F4EF" }, textColor: "#4A4A48", fontSize: 10 },
+  layout: { background: { color: "#F9F9F9" }, textColor: "#4A4A48", fontSize: 10 },
   grid: { vertLines: { color: "#E8E7E2" }, horzLines: { color: "#E8E7E2" } },
   crosshair: { vertLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" }, horzLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" } },
   timeScale: { borderColor: "#E8E7E2", timeVisible: true },
@@ -87,6 +87,9 @@ function ChartPanel({ title, candles, showLevels }) {
       ...CHART_THEME,
       width: chartRef.current.clientWidth,
       height: 260,
+      handleScroll: false,
+      handleScale: false,
+      crosshair: { mode: 0 },
     });
 
     const candleSeries = chart.addCandlestickSeries({
@@ -127,6 +130,9 @@ function ChartPanel({ title, candles, showLevels }) {
       width: rsiRef.current.clientWidth,
       height: 72,
       rightPriceScale: { borderColor: "#dde1e6", scaleMargins: { top: 0.1, bottom: 0.1 } },
+      handleScroll: false,
+      handleScale: false,
+      crosshair: { mode: 0 },
     });
 
     const rsiSeries = rsiChart.addLineSeries({
@@ -172,7 +178,7 @@ function ChartPanel({ title, candles, showLevels }) {
   const pct = last && prev ? ((last.close - prev.close) / prev.close * 100).toFixed(2) : null;
 
   return (
-    <div ref={containerRef} style={{ background: "#F5F4EF", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: 12, minWidth: 0 }}>
+    <div ref={containerRef} style={{ background: "#F9F9F9", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: 12, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#1A1A18", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</span>
         {last && (
@@ -268,7 +274,7 @@ export default function MBChartSection06() {
       {error && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#dc2626", padding: 20 }}>Chart error: {error}</div>}
 
       {!loading && !error && (daily || fourH) && (
-        <div style={{ display: "grid", gridTemplateColumns: daily && fourH ? "1fr 1fr" : "1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
           {daily && <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true} />}
           {fourH && <ChartPanel title="BTC 4H — 30 Days" candles={fourH} showLevels={false} />}
         </div>

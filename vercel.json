@@ -6,13 +6,15 @@
     "api/share.js":        { "maxDuration": 30, "memory": 256 },
     "api/ask-ai.js":       { "maxDuration": 30, "memory": 256 },
     "api/generate.js":     { "maxDuration": 30, "memory": 256 },
-    "api/enrich-leads.js": { "maxDuration": 60, "memory": 512 }
+    "api/enrich-leads.js":      { "maxDuration": 60, "memory": 512 },
+    "api/webflow-publish.js":   { "maxDuration": 30, "memory": 256 }
   },
   "rewrites": [
     { "source": "/api/share",                         "destination": "/api/share" },
     { "source": "/api/ask-ai",                        "destination": "/api/ask-ai" },
     { "source": "/api/generate",                      "destination": "/api/generate" },
     { "source": "/api/enrich-leads",                  "destination": "/api/enrich-leads" },
+    { "source": "/api/webflow-publish",               "destination": "/api/webflow-publish" },
     { "source": "/previews/market-brief.html",        "destination": "/previews/market-brief.html" },
     { "source": "/previews/covered-call-report.html", "destination": "/previews/covered-call-report.html" },
     { "source": "/previews/wireframe.html",           "destination": "/previews/wireframe.html" },
