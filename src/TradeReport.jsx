@@ -423,7 +423,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
       if (!text) return "";
       return raw;
     }
-    return `<p>${raw.replace(/\n/g, "</p><p>")}</p>`;
+    return `<p style="margin-bottom:12px">${raw.replace(/\n\n/g, `</p><p style="margin-bottom:12px">`).replace(/\n/g, "<br/>")}</p>`;
   });
   const [execHover, setExecHover] = useState(false);
 
@@ -635,21 +635,31 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           const minP = Math.min(...prices);
           const maxP = Math.max(...prices);
           const range = maxP - minP;
-          // Pick ~7 scenario prices: spread across the range, include spot + breakevens
+          // Pick structured scenario prices: key levels + percentage moves from spot
           const scenarioPrices = new Set();
-          // Add key levels
+          // Key levels: spot, breakevens, strike (if applicable)
           if (spot > 0) scenarioPrices.add(spot);
           (analysis.breakevens || []).forEach(b => { if (b > minP && b < maxP) scenarioPrices.add(b); });
-          // Add spread levels
-          const steps = [0.1, 0.25, 0.4, 0.6, 0.75, 0.9];
-          steps.forEach(s => scenarioPrices.add(Math.round(minP + range * s)));
-          // Sort and limit
+          // Add strike levels from legs
+          (analysis.legs || []).forEach(leg => {
+            if (leg.strike && leg.strike > minP && leg.strike < maxP && leg.strike !== spot) {
+              scenarioPrices.add(leg.strike);
+            }
+          });
+          // Structured percentage moves from spot: ±10%, ±20%, ±30%
+          if (spot > 0) {
+            [0.7, 0.8, 0.9, 1.1, 1.2, 1.3].forEach(mult => {
+              const p = Math.round(spot * mult);
+              if (p > minP && p < maxP) scenarioPrices.add(p);
+            });
+          }
+          // Sort and limit to ~8-9 rows
           const sorted = [...scenarioPrices].sort((a, b) => a - b).slice(0, 9);
 
-          const findPnl = (price) => {
+          // Use analytical pnlAtPrice if available (exact), else interpolate from curve
+          const findPnl = analysis.pnlAtPrice ? analysis.pnlAtPrice : (price) => {
             const exact = curve.find(c => Math.abs(c.price - price) < range * 0.005);
             if (exact) return exact.pnl;
-            // Interpolate
             for (let i = 0; i < curve.length - 1; i++) {
               if (curve[i].price <= price && curve[i + 1].price >= price) {
                 const ratio = (price - curve[i].price) / (curve[i + 1].price - curve[i].price);
@@ -659,12 +669,32 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             return 0;
           };
 
-          const fmtP = (v) => v >= 1000 ? `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : v >= 1 ? `$${v.toFixed(2)}` : `$${v.toFixed(4)}`;
+          // Format price — show decimals if value is not a whole number (e.g. breakeven)
+          const fmtP = (v) => {
+            const hasDecimals = Math.abs(v - Math.round(v)) > 0.001;
+            if (v >= 1000) return `$${v.toLocaleString(undefined, { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: hasDecimals ? 2 : 0 })}`;
+            if (v >= 1) return `$${v.toFixed(2)}`;
+            return `$${v.toFixed(4)}`;
+          };
           const fmtPnl = (v) => v >= 0 ? `+$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : `-$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
           const fmtPct = (v) => v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 
-          const thStyle = { padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
-          const tdStyle = { padding: "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
+          // Categorise strategy type for dynamic column logic
+          const DOWNSIDE_STRATEGIES = ["collar", "cash_secured_put", "put_spread", "long_seagull"];
+          const YIELD_STRATEGIES = ["covered_call", "call_spread"];
+          const tt = analysis.tradeType;
+          const isDownside = DOWNSIDE_STRATEGIES.includes(tt);
+          const isYield = YIELD_STRATEGIES.includes(tt);
+          const hasComparisonCol = isDownside || isYield;
+          const comparisonColLabel = isDownside ? "Loss Prevention" : "Strategy vs Spot";
+
+          const costBasis = analysis.costBasis || 0;
+          const holdings = parseFloat(fieldValues.holdings) || 10;
+          // Use currentNotional from analysis if available, else compute from spot * holdings
+          const currentNotional = analysis.currentNotional || (spot * holdings);
+
+          const thStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: hasComparisonCol ? 7 : 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
+          const tdStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: hasComparisonCol ? 11 : 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
 
           return (
             <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
@@ -674,7 +704,9 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                   <tr>
                     <th style={thStyle}>Price at Expiry</th>
                     <th style={thStyle}>Move vs Spot</th>
-                    <th style={thStyle}>P&L</th>
+                    {hasComparisonCol && <th style={thStyle}>Spot-Only P&L</th>}
+                    <th style={thStyle}>Strategy P&L</th>
+                    {hasComparisonCol && <th style={thStyle}>{comparisonColLabel}</th>}
                     <th style={thStyle}>Return on Notional</th>
                     <th style={thStyle}>Outcome</th>
                   </tr>
@@ -683,10 +715,47 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                   {sorted.map((price, i) => {
                     const pnl = findPnl(price);
                     const moveVsSpot = spot > 0 ? ((price - spot) / spot) * 100 : 0;
-                    const notionalReturn = spot > 0 ? (pnl / spot) * 100 : 0;
+                    const notionalReturn = currentNotional > 0 ? (pnl / currentNotional) * 100 : 0;
                     const isSpot = spot > 0 && Math.abs(price - spot) < range * 0.005;
                     const isBe = (analysis.breakevens || []).some(b => Math.abs(price - b) < range * 0.005);
-                    const outcome = isBe ? "Breakeven" : pnl > 0 ? (moveVsSpot > 15 ? "Capped — upside forfeited" : "Profit zone") : pnl < 0 ? (moveVsSpot < -15 ? "Significant loss" : "Premium partially offsets") : "Flat";
+
+                    // Spot-only P&L: what you'd get just holding spot without the strategy
+                    const spotOnlyPnl = hasComparisonCol ? (price - costBasis) * holdings : 0;
+                    // Difference: strategy vs spot
+                    const diff = pnl - spotOnlyPnl;
+
+                    // Dynamic comparison value and sub-label
+                    let comparisonValue = 0;
+                    let comparisonSubLabel = "";
+                    if (isDownside) {
+                      // Downside protection: positive diff = strategy saved you money (Loss Prevention)
+                      // negative diff = hedge cost / premium drag
+                      comparisonValue = diff;
+                      comparisonSubLabel = diff > 0 ? "" : diff < 0 ? "Hedge Cost" : "";
+                    } else if (isYield) {
+                      // Yield/capped: when spot outperforms strategy, show missed upside as opportunity cost (negative)
+                      // when strategy outperforms spot (flat/down, premium collected), show as Premium Gain (positive)
+                      comparisonValue = diff;
+                      comparisonSubLabel = diff < 0 ? "Foregone Upside" : diff > 0 ? "Premium Gain" : "";
+                    }
+
+                    // Outcome label — institutional language
+                    let outcome = "Neutral";
+                    if (isBe) {
+                      outcome = "Breakeven";
+                    } else if (isDownside) {
+                      if (pnl > 0) outcome = "Positive carry";
+                      else if (pnl < 0 && diff > 0) outcome = "Hedge active — loss mitigated";
+                      else if (pnl < 0) outcome = moveVsSpot < -15 ? "Net loss region" : "Net loss — partial offset";
+                      else outcome = "Neutral";
+                    } else if (isYield) {
+                      if (pnl > 0 && diff < 0) outcome = "Capped upside region";
+                      else if (pnl > 0) outcome = "Positive carry";
+                      else if (pnl < 0) outcome = moveVsSpot < -15 ? "Net loss region" : "Carry offsets partial loss";
+                      else outcome = "Neutral";
+                    } else {
+                      outcome = isBe ? "Breakeven" : pnl > 0 ? "Positive carry" : pnl < 0 ? (moveVsSpot < -15 ? "Net loss region" : "Net loss") : "Neutral";
+                    }
 
                     return (
                       <tr key={i} style={{ background: isSpot ? "rgba(255,195,44,0.06)" : "transparent" }}>
@@ -695,9 +764,24 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                           {isSpot && <span style={{ background: "rgba(255,195,44,0.15)", color: THEME.goldText, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6 }}>SPOT</span>}
                         </td>
                         <td style={tdStyle}>{fmtPct(moveVsSpot)}</td>
+                        {hasComparisonCol && (
+                          <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: spotOnlyPnl > 0 ? THEME.positive : spotOnlyPnl < 0 ? THEME.negative : THEME.textMuted }}>
+                            {fmtPnl(spotOnlyPnl)}
+                          </td>
+                        )}
                         <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: pnl > 0 ? THEME.positive : pnl < 0 ? THEME.negative : THEME.textMuted }}>
                           {isBe ? "$0 (breakeven)" : fmtPnl(pnl)}
                         </td>
+                        {hasComparisonCol && (
+                          <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600 }}>
+                            <span style={{ color: comparisonValue > 0 ? THEME.positive : comparisonValue < 0 ? THEME.negative : THEME.textMuted }}>
+                              {fmtPnl(comparisonValue)}
+                            </span>
+                            {comparisonSubLabel && (
+                              <span style={{ display: "block", fontSize: 8, fontWeight: 400, color: THEME.textMuted, marginTop: 1 }}>{comparisonSubLabel}</span>
+                            )}
+                          </td>
+                        )}
                         <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: notionalReturn > 0 ? THEME.positive : notionalReturn < 0 ? THEME.negative : THEME.textMuted }}>
                           {isBe ? "0.00%" : fmtPct(notionalReturn)}
                         </td>
@@ -729,7 +813,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                 contentEditable
                 suppressContentEditableWarning
                 dangerouslySetInnerHTML={{ __html: execHtml || (typeof execSummary === "string"
-                  ? `<p>${execSummary.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>")}</p>`
+                  ? `<p style="margin-bottom:14px">${execSummary.replace(/\n\n/g, `</p><p style="margin-bottom:14px">`).replace(/\n/g, "<br/>")}</p>`
                   : execSummary) || "" }}
                 onBlur={handleExecBlur}
                 style={{
@@ -842,18 +926,6 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           );
         })()}
 
-        {/* ── CTA BAR ── */}
-        <div style={{ background: THEME.text, borderRadius: 10, padding: "24px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 0 }}>
-          <div>
-            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>Ready to execute?</div>
-            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Confirm Terms with SDM Structuring Desk</div>
-            <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>Live pricing valid for 15 minutes · Ref: SDM-{now.getFullYear()}-{String(now.getMonth()+1).padStart(2,"0")}{String(now.getDate()).padStart(2,"0")}-{trade.tag?.replace(/\s+/g, "-").toUpperCase()}</div>
-          </div>
-          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-            <div style={{ padding: "10px 22px", background: THEME.gold, borderRadius: 20, fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: THEME.text, cursor: "pointer" }}>Confirm & Execute</div>
-            <div style={{ padding: "10px 22px", background: "rgba(255,255,255,0.07)", borderRadius: 20, fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", color: "rgba(255,255,255,0.4)", cursor: "pointer" }}>Revise Terms</div>
-          </div>
-        </div>
 
         </div>{/* /content */}
 

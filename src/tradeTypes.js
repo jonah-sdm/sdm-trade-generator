@@ -119,6 +119,7 @@ export const TRADE_TYPES = [
     icon: "⟲",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC, ETH", default: "BTC" },
+      { key: "holdings", label: "Holdings (units)", type: "number", placeholder: "1", default: "1" },
       { key: "current_price", label: "Current Price ($)", type: "number", placeholder: "95000", default: "95000" },
       { key: "current_phase", label: "Current Phase", type: "select", options: ["Selling Puts", "Assigned - Holding Position", "Selling Covered Calls"], default: "Selling Covered Calls" },
       { key: "original_strike", label: "Original Put Strike ($)", type: "number", placeholder: "88000", default: "88000" },
@@ -126,8 +127,9 @@ export const TRADE_TYPES = [
       { key: "total_premium", label: "Total Premium Collected to Date ($)", type: "number", placeholder: "9500", default: "9500" },
       { key: "cycles_completed", label: "Cycles Completed", type: "number", placeholder: "3", default: "3" },
       { key: "current_strike", label: "Current Active Strike ($)", type: "number", placeholder: "100000", default: "100000" },
-      { key: "current_premium", label: "Current Premium ($)", type: "number", placeholder: "4200", default: "4200" },
-      { key: "annualized_return", label: "Annualized Return (%)", type: "number", placeholder: "32", default: "32" },
+      { key: "current_premium", label: "Current Premium (Total $)", type: "number", placeholder: "4200", default: "4200" },
+      { key: "expiry", label: "Expiry Date", type: "text", placeholder: "e.g. 21 Jun 2026", default: "26 Jun 2026" },
+      { key: "dte", label: "Days to Expiry", type: "number", placeholder: "30", default: "30" },
       { key: "executive_summary", label: "Executive Summary", type: "textarea", placeholder: "Provide market context, macro outlook, catalysts, and rationale for this trade..." },
     ]
   },

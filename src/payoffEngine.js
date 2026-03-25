@@ -63,13 +63,10 @@ The structure does not change your net ${asset} exposure — a spot price increa
       const dte = parseNum(fields.dte);
       const notional = holdings * price;
       const annReturn = notional > 0 && dte > 0 ? ((premium / notional) * (365 / dte) * 100).toFixed(1) : "N/A";
-      const breakeven = (costBasis - (premium / holdings)).toFixed(2);
-      const maxProfit = ((strike - costBasis) * holdings) + premium;
-      return `You hold ${fields.holdings || 10} ${asset} at a cost basis of ${$(fields.cost_basis)}. This trade sells a call at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, collecting ${fmtN(premium)} total — or approximately ${annReturn}% annualized on the current price. The premium is received immediately and is yours regardless of outcome.
+      const premiumPerUnit = holdings > 0 ? (premium / holdings) : 0;
+      return `You hold ${fields.holdings || 10} ${asset} with a current market price of ${$(fields.current_price)}. This trade sells a call at the ${$(fields.strike)} strike expiring ${fields.expiry || "on the target date"}, collecting ${premiumPerUnit > 0 && premiumPerUnit < 100 ? `${$(premiumPerUnit.toFixed(4))} per unit — ` : ""}${fmtN(premium)} total — or approximately ${annReturn}% annualized on the current price. The premium is received immediately and is yours regardless of outcome.
 
-If ${asset} is below ${$(fields.strike)} at expiry, the option expires worthless and you retain your full position. If ${asset} is above ${$(fields.strike)} at expiry, your holdings are called away at that price. Upside above ${$(fields.strike)} is forfeited. Your effective downside breakeven, after premium, is ${$(breakeven)}. Maximum profit if called at the strike is ${fmtN(maxProfit)}.
-
-IV Rank is ${fields.iv_rank}% — a higher reading implies relatively elevated premiums versus recent history. The ${fields.delta} delta at the chosen strike reflects the market-implied probability of assignment. If ${asset} is called away and you wish to re-establish the position, you will need to re-enter at the prevailing spot price.`;
+If ${asset} is below ${$(fields.strike)} at expiry, the option expires worthless and you retain your full position. If ${asset} is above ${$(fields.strike)} at expiry, your holdings are called away at that price. In essence, upside above ${$(fields.strike)} is forfeited.`;
     }
 
     case "cash_secured_put": {
@@ -93,12 +90,13 @@ Time decay (theta) works against this position daily. A ${fields.dte || "300+"}-
     }
 
     case "wheel": {
-      const effectiveBasis = (parseNum(fields.cost_basis) - parseNum(fields.total_premium)).toFixed(2);
-      return `This is a summary of the ongoing Wheel strategy on ${asset}. After ${fields.cycles_completed || 0} completed cycles, cumulative premium collected totals ${$(fields.total_premium)}, reducing your adjusted cost basis from ${$(fields.cost_basis)} to ${$(effectiveBasis)} per unit. The strategy is currently in the "${fields.current_phase || "active"}" phase.
+      const adjBasis = parseNum(fields.cost_basis);
+      const origStrike = parseNum(fields.original_strike);
+      const curPrem = parseNum(fields.current_premium);
+      const breakeven = adjBasis - curPrem;
+      return `This is a summary of the ongoing Wheel strategy on ${asset}. After ${fields.cycles_completed || 0} completed cycles, cumulative premium collected totals ${$(fields.total_premium)}. Your adjusted cost basis is ${$(adjBasis)} per unit (down from the original ${$(origStrike)} put strike). The strategy is currently in the "${fields.current_phase || "active"}" phase.
 
-The active leg is a ${$(fields.current_strike)} strike generating ${$(fields.current_premium)} this cycle. Annualized return on committed capital is approximately ${fields.annualized_return || "N/A"}%. Each cycle alternates between cash-secured puts (when not holding the asset) and covered calls (when holding), with strike selection determining both the premium collected and the assignment risk.
-
-The strategy generates income in exchange for two specific obligations: to buy ${asset} at the put strike if assigned, and to sell ${asset} at the call strike if called away. Performance deteriorates in trending markets — a sharp directional move can either result in purchasing ${asset} well above market (on an upward gap through the put strike) or being called away before the full upside is captured.`;
+The active leg is a ${$(fields.current_strike)} strike call generating ${$(fields.current_premium)} in premium this cycle. Including this cycle's premium, your breakeven sits at ${$(breakeven.toFixed(2))}. Each cycle alternates between cash-secured puts (when not holding the asset) and covered calls (when holding), with strike selection determining both the premium collected and the assignment risk.`;
     }
 
     case "collar": {
@@ -203,20 +201,29 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
   }
 }
 
+// Universal engine imports — 7 pure option strategies delegate here
+import { analyzeStructuredProduct } from "./structuredProductEngine.js";
+import {
+  adaptCashSecuredPut, adaptLeap, adaptCallSpread, adaptPutSpread,
+  adaptStraddle, adaptStrangle, adaptLongSeagull,
+} from "./strategyAdapters.js";
+
 export function computeTradeAnalysis(tradeId, fields) {
   switch (tradeId) {
-    case "long_seagull": return computeLongSeagull(fields);
+    // ── Universal engine strategies ──
+    case "long_seagull":    return analyzeStructuredProduct(adaptLongSeagull(fields));
+    case "cash_secured_put": return analyzeStructuredProduct(adaptCashSecuredPut(fields));
+    case "leap":            return analyzeStructuredProduct(adaptLeap(fields));
+    case "call_spread":     return analyzeStructuredProduct(adaptCallSpread(fields));
+    case "put_spread":      return analyzeStructuredProduct(adaptPutSpread(fields));
+    case "straddle":        return analyzeStructuredProduct(adaptStraddle(fields));
+    case "strangle":        return analyzeStructuredProduct(adaptStrangle(fields));
+    // ── Custom strategies (not yet migrated) ──
     case "reverse_cash_carry": return computeReverseCashCarry(fields);
-    case "covered_call": return computeCoveredCall(fields);
-    case "cash_secured_put": return computeCashSecuredPut(fields);
-    case "leap": return computeLeap(fields);
-    case "wheel": return computeWheel(fields);
-    case "collar": return computeCollar(fields);
-    case "earnings_play": return computeEarningsPlay(fields);
-    case "call_spread": return computeCallSpread(fields);
-    case "put_spread": return computePutSpread(fields);
-    case "straddle": return computeStraddle(fields);
-    case "strangle": return computeStrangle(fields);
+    case "covered_call":    return computeCoveredCall(fields);
+    case "wheel":           return computeWheel(fields);
+    case "collar":          return computeCollar(fields);
+    case "earnings_play":   return computeEarningsPlay(fields);
     default: return null;
   }
 }
@@ -376,35 +383,49 @@ function computeCoveredCall(f) {
   const holdings = n(f.holdings) || 10;
   const dte = n(f.dte);
 
+  // Core calculations — full precision, no rounding until display
   const premiumPerUnit = holdings > 0 ? premium / holdings : 0;
-  const notional = holdings * price;
+  const currentNotional = holdings * price;
   const breakeven = cost - premiumPerUnit;
-  const maxProfit = ((strike - cost) * holdings) + premium;
-  const annReturn = notional > 0 && dte > 0 ? ((premium / notional) * (365 / dte) * 100).toFixed(1) : "N/A";
+  const unrealizedGain = (price - cost) * holdings;
+  const maxStrategyPnl = (strike - cost) * holdings + premium;
+  const premiumYield = currentNotional > 0 ? premium / currentNotional : 0;
+  const annualizedPremiumYield = dte > 0 ? premiumYield * (365 / dte) : 0;
+  const annReturnDisplay = dte > 0 && currentNotional > 0 ? (annualizedPremiumYield * 100).toFixed(1) : "N/A";
+  const otmPct = price > 0 ? (((strike - price) / price) * 100).toFixed(1) : "N/A";
 
   const minP = Math.max(price * 0.5, 0.01);
   const maxP = strike * 1.3;
 
-  const curve = buildCurve(minP, maxP, (p) => {
-    // Covered call P&L: spot P&L + premium, capped above strike
+  // Analytical P&L function — used by both curve and scenario table for exact values
+  const pnlAtPrice = (p) => {
     if (p <= strike) return ((p - cost) * holdings) + premium;
     return ((strike - cost) * holdings) + premium;   // capped
-  });
+  };
 
-  const unrealizedGain = price > 0 && cost > 0 ? ((price - cost) * holdings) : 0;
+  const curve = buildCurve(minP, maxP, pnlAtPrice);
+
+  // Use fmtExact for consistent $ formatting (no K/M abbreviation)
+  const fmtExact = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const fmtExact2 = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return {
     curve, spot: price, breakevens: [breakeven],
+    tradeType: "covered_call",
+    costBasis: cost,
+    currentNotional,
+    pnlAtPrice,
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
-      { label: "Premium Income", value: fmt(premium), sub: `${annReturn}% ann. return`, positive: true },
-      { label: "Max Profit", value: fmt(maxProfit), sub: `If called at ${fmtFull(strike)}`, positive: true },
-      { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: "Downside protection" },
-      { label: "Unrealized Gain", value: fmt(unrealizedGain), sub: `${holdings} units · ${f.iv_rank}% IV`, positive: unrealizedGain >= 0 },
+      { label: "Strike Price", value: fmtFull(strike), sub: `${otmPct}% OTM` },
+      { label: "Expiry", value: f.expiry || "—", sub: dte > 0 ? `${dte} DTE` : "—" },
+      { label: "Premium Income", value: fmtExact(premium), sub: `${annReturnDisplay}% ann. premium yield`, positive: true },
+      { label: "Breakeven", value: fmtExact2(breakeven), sub: "Downside protection" },
+      { label: "Unrealized Gain", value: fmtExact(unrealizedGain), sub: `${holdings} units · ${f.iv_rank || "—"}% IV Rank`, positive: unrealizedGain >= 0 },
     ],
     legs: [
       { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ ${fmtFull(cost)}`, color: "#00C2FF" },
-      { action: "SELL", type: "Call", strike, label: `${fmtFull(strike)} Call · ${fmt(premium)} total`, color: "#ef4444" },
+      { action: "SELL", type: "Call", strike, label: `${fmtFull(strike)} Call · ${fmtExact(premium)} total`, color: "#ef4444" },
     ],
     zones: [
       { from: breakeven, to: strike, label: "Profit Zone", color: "rgba(74,222,128,0.08)" },
@@ -481,6 +502,7 @@ function computeLeap(f) {
   const metrics = [
     { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
     { label: "Capital at Risk", value: fmt(totalOutlay), sub: `${contracts} contracts`, negative: true },
+    { label: "Expiry", value: f.expiry || "—", sub: dte > 0 ? `${dte} DTE` : "—" },
     { label: "Breakeven", value: fmtFull(breakeven.toFixed(2)), sub: `+${((breakeven / price - 1) * 100).toFixed(1)}%` },
   ];
 
@@ -489,7 +511,7 @@ function computeLeap(f) {
     metrics.push({ label: "Return on Capital", value: `${returnOnCapital.toFixed(0)}%`, sub: `${(profitAtTarget / totalOutlay + 1).toFixed(1)}x capital`, positive: true });
   }
 
-  metrics.push({ label: "Delta / Leverage", value: `${f.delta} / ${leverageMultiple ? leverageMultiple.toFixed(1) + "x" : "—"}`, sub: `${dte}d · ${f.expiry || ""}` });
+  metrics.push({ label: "Delta / Leverage", value: `${f.delta} / ${leverageMultiple ? leverageMultiple.toFixed(1) + "x" : "—"}`, sub: `${contracts} contracts` });
 
   return {
     curve, spot: price, breakevens: [breakeven],
@@ -506,78 +528,103 @@ function computeLeap(f) {
 
 // --- THE WHEEL ---
 // Cycles between selling cash-secured puts and covered calls.
-// Chart shows per-unit P&L for the current phase, including cumulative premium.
+//
+// ACCOUNTING MODEL (single source of truth):
+//   cost_basis = "Current Adjusted Cost Basis" — already reflects historical premium.
+//   totalPremium = informational only (displayed for reference, NOT used in P&L math).
+//   currentPremium = premium from the CURRENT active cycle — the only forward-looking income.
+//
+// Therefore:
+//   strategy_pnl = (expiry_price - costBasis) + currentPremium   (capped at strike if selling calls)
+//   breakeven = costBasis - currentPremium
+//   max_profit = (callStrike - costBasis) + currentPremium        (if called away)
+//
+// DO NOT add totalPremium to P&L — it is already embedded in costBasis.
 function computeWheel(f) {
   const price = n(f.current_price);
-  const costBasis = n(f.cost_basis);
-  const totalPremium = n(f.total_premium);
+  const holdings = n(f.holdings) || 1;
+  const costBasis = n(f.cost_basis);           // Already adjusted for historical premium
+  const totalPremium = n(f.total_premium);     // Informational only — NOT used in P&L
   const currentStrike = n(f.current_strike);
-  const currentPremium = n(f.current_premium);
+  const currentPremium = n(f.current_premium); // Current cycle TOTAL premium (for all units)
   const cycles = n(f.cycles_completed);
-  const annReturn = n(f.annualized_return);
+  const dte = n(f.dte) || 30;
 
   const isSellingPuts = f.current_phase === "Selling Puts";
   const isSellingCalls = f.current_phase === "Selling Covered Calls";
 
-  // Effective breakeven after all collected premium
-  const effectiveBasis = costBasis - totalPremium;
+  // Per-unit premium for breakeven calc
+  const premiumPerUnit = holdings > 0 ? currentPremium / holdings : currentPremium;
+
+  // Position-level notional
+  const currentNotional = price * holdings;
+
+  // Annualized return: currentPremium / currentNotional * (365 / DTE)
+  const premiumYield = currentNotional > 0 ? currentPremium / currentNotional : 0;
+  const annualizedReturn = dte > 0 && currentNotional > 0
+    ? (premiumYield * (365 / dte) * 100).toFixed(1)
+    : "N/A";
+
+  // Per-unit breakeven
+  const breakeven = isSellingPuts
+    ? currentStrike - premiumPerUnit
+    : costBasis - premiumPerUnit;
 
   let minP, maxP;
-
   if (isSellingPuts) {
-    // Selling puts: profit = premium if price stays above strike
-    // Loss starts below strike (assigned at strike, minus premium cushion)
-    const putBreakeven = currentStrike - currentPremium;
-    minP = putBreakeven * 0.8;
+    minP = breakeven * 0.8;
     maxP = currentStrike * 1.3;
   } else {
-    // Holding + selling calls: profit from asset appreciation + premium, capped at call strike
-    minP = effectiveBasis * 0.8;
+    minP = breakeven * 0.8;
     maxP = currentStrike * 1.2;
   }
 
-  const curve = buildCurve(minP, maxP, (p) => {
+  // Analytical P&L function — position-level (includes holdings)
+  const pnlAtPrice = (p) => {
     if (isSellingPuts) {
-      // Short put payoff (per unit)
       if (p >= currentStrike) return currentPremium;
-      return p - currentStrike + currentPremium;
+      return ((p - currentStrike) * holdings) + currentPremium;
     }
-    // Holding position + selling covered calls
-    // Per-unit P&L: asset gain from cost basis + all premium collected
-    const assetPnl = p - costBasis;
-    const allPremium = totalPremium + (isSellingCalls ? currentPremium : 0);
     if (isSellingCalls && p > currentStrike) {
-      // Called away: capped gain
-      return (currentStrike - costBasis) + allPremium;
+      return ((currentStrike - costBasis) * holdings) + currentPremium;  // capped
     }
-    return assetPnl + allPremium;
-  });
+    return ((p - costBasis) * holdings) + currentPremium;
+  };
 
-  const breakeven = isSellingPuts
-    ? currentStrike - currentPremium
-    : costBasis - totalPremium - (isSellingCalls ? currentPremium : 0);
+  const curve = buildCurve(minP, maxP, pnlAtPrice);
+
   const maxProfit = isSellingCalls
-    ? (currentStrike - costBasis) + totalPremium + currentPremium
+    ? ((currentStrike - costBasis) * holdings) + currentPremium
     : null;
+
+  // Format helpers
+  const fmtExact = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const fmtExact2 = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return {
     curve, spot: price, breakevens: [breakeven],
+    tradeType: "wheel",
+    costBasis,
+    currentNotional,
+    pnlAtPrice,
     metrics: [
-      { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
+      { label: "Current Price", value: fmtFull(price), sub: `${f.asset || "—"} · ${holdings} unit${holdings !== 1 ? "s" : ""}` },
       { label: "Phase", value: f.current_phase || "—", sub: `Cycle ${cycles}` },
-      { label: "Total Premium", value: fmtFull(totalPremium), sub: `${cycles} cycles`, positive: true },
-      { label: "Adj. Basis", value: fmtFull(costBasis), sub: `BE: ${fmtFull(breakeven)}` },
-      { label: "Ann. Return", value: `${annReturn}%`, sub: `${fmtFull(currentPremium)} current`, positive: true },
-      ...(maxProfit ? [{ label: "Max Profit", value: fmtFull(maxProfit), sub: "if called away", positive: true }] : []),
+      { label: "Adj. Cost Basis", value: fmtExact(costBasis), sub: `Original: ${fmtExact(n(f.original_strike))}` },
+      { label: "Expiry", value: f.expiry || "—", sub: `${dte} DTE` },
+      { label: "Current Premium", value: fmtExact(currentPremium), sub: `Total collected: ${fmtExact(totalPremium)}`, positive: true },
+      { label: "Breakeven", value: fmtExact2(breakeven), sub: `${price > 0 ? ((1 - breakeven / price) * 100).toFixed(1) : 0}% below spot` },
+      { label: "Ann. Premium Yield", value: `${annualizedReturn}%`, sub: `Simple · ${dte}d cycle`, positive: true },
+      ...(maxProfit ? [{ label: "Max Profit", value: fmtExact(maxProfit), sub: `Called away @ ${fmtExact(currentStrike)}`, positive: true }] : []),
     ],
     legs: isSellingPuts
-      ? [{ action: "SELL", type: "Put", strike: currentStrike, label: `${fmtFull(currentStrike)} Put @ ${fmtFull(currentPremium)}`, color: "#34D399" }]
+      ? [{ action: "SELL", type: "Put", strike: currentStrike, label: `${fmtFull(currentStrike)} Put @ ${fmtExact(currentPremium)}`, color: "#34D399" }]
       : isSellingCalls
         ? [
-            { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ ${fmtFull(costBasis)}`, color: "#00C2FF" },
-            { action: "SELL", type: "Call", strike: currentStrike, label: `${fmtFull(currentStrike)} Call @ ${fmtFull(currentPremium)}`, color: "#34D399" },
+            { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ ${fmtExact(costBasis)} adj. basis`, color: "#00C2FF" },
+            { action: "SELL", type: "Call", strike: currentStrike, label: `${fmtFull(currentStrike)} Call @ ${fmtExact(currentPremium)}`, color: "#34D399" },
           ]
-        : [{ action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ ${fmtFull(costBasis)}`, color: "#00C2FF" }],
+        : [{ action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: costBasis, label: `Position @ ${fmtExact(costBasis)} adj. basis`, color: "#00C2FF" }],
     zones: [],
   };
 }
@@ -608,12 +655,15 @@ function computeCollar(f) {
 
   return {
     curve, spot: price, breakevens: [cost + netCost],
+    tradeType: "collar",
+    costBasis: cost,
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Protected Floor", value: fmtFull(putStrike), sub: `${holdings} units` },
-      { label: "Upside Cap", value: fmtFull(callStrike), sub: `Max ${fmt(maxProfit)}`, positive: true },
+      { label: "Upside Cap", value: fmtFull(callStrike), sub: `Capped upside`, positive: true },
+      { label: "Expiry", value: f.expiry || "—", sub: `${holdings} units protected` },
       { label: "Net Cost", value: fmtFull(netCost.toFixed(2)), sub: netCost <= 0 ? "Credit" : "Debit", positive: netCost <= 0 },
-      { label: "Value Protected", value: fmt(protectedVal), sub: f.expiry || "" },
+      { label: "Value Protected", value: fmt(protectedVal) },
     ],
     legs: [
       { action: "HOLD", type: `Spot ${f.asset || "Asset"}`, strike: cost, label: `${holdings} units @ ${fmtFull(cost)}`, color: "#00C2FF" },
@@ -707,10 +757,11 @@ function computeCallSpread(f) {
     curve, spot, breakevens: [breakeven],
     metrics: [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
-      { label: dir + " Call Spread", value: `${fmt(longK)} / ${fmt(shortK)}`, sub: f.expiry || "—" },
+      { label: dir + " Call Spread", value: `${fmt(longK)} / ${fmt(shortK)}` },
+      { label: "Expiry", value: f.expiry || "—", sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
       { label: "Max Gain", value: fmt(maxGain), sub: isLong ? `Above ${fmt(shortK)}` : "Premium income", positive: true },
       { label: "Max Loss", value: fmt(maxLoss), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(longK)}`, negative: true },
-      { label: "Breakeven", value: fmt(breakeven), sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
+      { label: "Breakeven", value: fmt(breakeven) },
     ],
     legs: isLong
       ? [
@@ -751,10 +802,11 @@ function computePutSpread(f) {
     curve, spot, breakevens: [breakeven],
     metrics: [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
-      { label: dir + " Put Spread", value: `${fmt(longK)} / ${fmt(shortK)}`, sub: f.expiry || "—" },
+      { label: dir + " Put Spread", value: `${fmt(longK)} / ${fmt(shortK)}` },
+      { label: "Expiry", value: f.expiry || "—", sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
       { label: "Max Gain", value: fmt(maxGain), sub: isLong ? `Below ${fmt(shortK)}` : "Premium income", positive: true },
       { label: "Max Loss", value: fmt(maxLoss), sub: isLong ? `Above ${fmt(longK)}` : `Below ${fmt(shortK)}`, negative: true },
-      { label: "Breakeven", value: fmt(breakeven), sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
+      { label: "Breakeven", value: fmt(breakeven) },
     ],
     legs: isLong
       ? [
@@ -794,7 +846,8 @@ function computeStraddle(f) {
     curve, spot, breakevens: [beLow, beHigh],
     metrics: [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
-      { label: dir + " Straddle", value: fmt(atmK) + " ATM", sub: f.expiry || "—" },
+      { label: dir + " Straddle", value: fmt(atmK) + " ATM" },
+      { label: "Expiry", value: f.expiry || "—" },
       ...(isLong
         ? [{ label: "Max Loss", value: fmt(absP), sub: "Premium paid", negative: true }]
         : [{ label: "Max Profit", value: fmt(absP), sub: "Premium received", positive: true }]
@@ -841,7 +894,8 @@ function computeStrangle(f) {
     curve, spot, breakevens: [beLow, beHigh],
     metrics: [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
-      { label: dir + " Strangle", value: `${fmt(putK)} / ${fmt(callK)}`, sub: f.expiry || "—" },
+      { label: dir + " Strangle", value: `${fmt(putK)} / ${fmt(callK)}` },
+      { label: "Expiry", value: f.expiry || "—" },
       ...(isLong
         ? [{ label: "Max Loss", value: fmt(absP), sub: "Premium paid", negative: true }]
         : [{ label: "Max Profit", value: fmt(absP), sub: "Premium received", positive: true }]
