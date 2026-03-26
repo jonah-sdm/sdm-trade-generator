@@ -302,8 +302,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
               { label: "Collateral Units", value: fmt(data.collateralUnits) },
               { label: "Price Per Unit (FMP)", value: $(data.pricePerUnit) },
               { label: "Total Collateral Value", value: $(data.collateralValue) },
-              { label: "Gross Loan (65% LTV)", value: $(data.grossLoan) },
-              { label: "Arrangement Fee (2%)", value: `-${$(data.arrangementFeeAmount)}`, negative: true },
+              { label: `Gross Loan (${(data.ltv * 100).toFixed(0)}% LTV)`, value: $(data.grossLoan) },
+              { label: `Arrangement Fee (${(data.arrangementFeeRate * 100).toFixed(0)}%)`, value: `-${$(data.arrangementFeeAmount)}`, negative: true },
               { label: "Net Loan Proceeds", value: $(data.netLoanProceeds), highlight: true },
               { label: "Loan Term", value: `${data.termMonths} months` },
             ].map(({ label, value, negative, highlight }, i) => (
