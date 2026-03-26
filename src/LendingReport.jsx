@@ -14,7 +14,7 @@ const THEME = {
   negative: "#dc2626",
 };
 
-const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 };
+const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 };
 const sectionTitle = { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18" };
 
 // ─── RICH TEXT TOOLBAR ───
@@ -147,6 +147,8 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
     );
   }
 
+  // Smart % formatter: shows 1 decimal only when needed (5.5% not 6%, but 60% not 60.0%)
+  const fmtPct = (v) => Number.isInteger(v) ? `${v}%` : `${parseFloat(v.toFixed(1))}%`;
   const $ = (v) => `$${fmt(v)}`;
   const $k = (v) => {
     const num = typeof v === "number" ? v : parseFloat(String(v).replace(/[,$\s]/g, ""));
@@ -250,10 +252,10 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           {[
             { label: "Net Loan Proceeds", value: $k(data.netLoanProceeds), sub: data.loanCurrency, color: "#16a34a" },
             { label: "Collateral Value", value: $k(data.collateralValue), sub: `${fmt(data.collateralUnits)} ${data.collateralAsset}`, color: "#FFC32C" },
-            { label: "LTV Ratio", value: `${(data.ltv * 100).toFixed(0)}%`, sub: "Loan-to-Value", color: "#1A1A18" },
-            { label: "Annual Rate", value: `${(data.annualRate * 100).toFixed(0)}%`, sub: "Paid quarterly in arrears", color: "#1A1A18" },
+            { label: "LTV Ratio", value: `${fmtPct(data.ltv * 100)}`, sub: "Loan\u2011to\u2011Value", color: "#1A1A18" },
+            { label: "Annual Rate", value: `${fmtPct(data.annualRate * 100)}`, sub: "Paid quarterly in arrears", color: "#1A1A18" },
             { label: "All-In Cost", value: $k(data.totalCost), sub: "Fee + interest over term", color: "#dc2626" },
-            { label: "Effective Rate", value: `${data.effectiveRate.toFixed(2)}%`, sub: "Annualized all-in cost", color: "#1A1A18" },
+            { label: "Effective Rate", value: `${data.effectiveRate.toFixed(2)}%`, sub: "Annualized cost on gross loan", color: "#1A1A18" },
           ].map((kpi, i, arr) => (
             <div key={i} style={{
               padding: "18px 20px",
@@ -300,10 +302,10 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
             {[
               { label: "Collateral Asset", value: data.collateralAsset },
               { label: "Collateral Units", value: fmt(data.collateralUnits) },
-              { label: "Price Per Unit (FMP)", value: $(data.pricePerUnit) },
+              { label: `Price Per Unit (${data.loanCurrency})`, value: $(data.pricePerUnit) },
               { label: "Total Collateral Value", value: $(data.collateralValue) },
-              { label: `Gross Loan (${(data.ltv * 100).toFixed(0)}% LTV)`, value: $(data.grossLoan) },
-              { label: `Arrangement Fee (${(data.arrangementFeeRate * 100).toFixed(0)}%)`, value: `-${$(data.arrangementFeeAmount)}`, negative: true },
+              { label: `Gross Loan (${fmtPct(data.ltv * 100)} LTV)`, value: $(data.grossLoan) },
+              { label: `Arrangement Fee (${fmtPct(data.arrangementFeeRate * 100)})`, value: `-${$(data.arrangementFeeAmount)}`, negative: true },
               { label: "Net Loan Proceeds", value: $(data.netLoanProceeds), highlight: true },
               { label: "Loan Term", value: `${data.termMonths} months` },
             ].map(({ label, value, negative, highlight }, i) => (
@@ -369,10 +371,15 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
                   </tr>
                 ))}
                 <tr style={{ background: "#F5F4EF", borderTop: "1px solid #E8E7E2" }}>
-                  <td colSpan="2" style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 12, color: "#1A1A18" }}>Maturity</td>
+                  <td colSpan="2" style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 12, color: "#1A1A18" }}>Total Interest</td>
+                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#1A1A18" }}></td>
                   <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#1A1A18" }}>{$(data.totalInterest)}</td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#1A1A18" }}>{$(data.totalInterest)}</td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#16a34a" }}>{$(data.grossLoan)} (returned)</td>
+                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#1A1A18" }}></td>
+                </tr>
+                <tr style={{ background: "#f0fdf4", borderTop: "1px solid #E8E7E2" }}>
+                  <td colSpan="2" style={{ padding: "10px 16px", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 12, color: "#16a34a" }}>Maturity &mdash; Principal Repayment</td>
+                  <td colSpan="2" style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88" }}>Collateral returned upon full repayment</td>
+                  <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "'Montserrat',sans-serif", fontWeight: 700, color: "#16a34a" }}>{$(data.grossLoan)}</td>
                 </tr>
               </tbody>
             </table>
@@ -384,7 +391,7 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Margin Call &amp; Risk Management</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
             {[
-              { label: "Margin Call Trigger", value: $(data.marginCallPrice), sub: "70% of FMP for 3 consecutive business days", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+              { label: "Margin Call Trigger", value: $(data.marginCallPrice), sub: "70% of Fair Market Price for 3 consecutive business days", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
               { label: "Cure Period", value: `${data.marginCureDays} days`, sub: "Business days to remedy margin notice", color: "#1A1A18", bg: "#F5F4EF", border: "#E8E7E2" },
               { label: "Price Buffer", value: `${((1 - data.marginCallPrice / data.pricePerUnit) * 100).toFixed(1)}%`, sub: `Decline from ${$(data.pricePerUnit)} before trigger`, color: "#16a34a", bg: "#f0fdf4", border: "#86efac" },
             ].map((card, i) => (
@@ -399,9 +406,9 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "20px 24px" }}>
             <div style={{ ...sectionLabel, marginBottom: 14 }}>Default Cure Options</div>
             {[
-              { num: "1", title: "Partial Repayment", desc: "Return a portion of loan proceeds in stablecoins (USDC/USDT) or fiat (USD/CAD/EUR/GBP)" },
-              { num: "2", title: "Additional Collateral", desc: `Transfer additional ${data.collateralAsset} to restore the margin threshold` },
-              { num: "3", title: "Walk Away", desc: "Retain loan proceeds and forfeit collateral (all outstanding interest must be current)" },
+              { num: "1", title: "Partial Repayment", desc: "Borrower may return a portion of loan proceeds in stablecoins (USDC/USDT) or fiat to reduce outstanding principal and restore the margin ratio." },
+              { num: "2", title: "Additional Collateral", desc: `Borrower may transfer additional ${data.collateralAsset} to the lending wallet to restore the loan\u2011to\u2011value ratio below the margin threshold.` },
+              { num: "3", title: "Collateral Forfeiture", desc: "Borrower may retain loan proceeds and forfeit pledged collateral, provided all accrued interest is current at the time of default." },
             ].map((opt, i) => (
               <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 2 ? "0.5px solid #E8E7E2" : "none" }}>
                 <div style={{ width: 24, height: 24, background: "#1A1A18", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#FFFFFF" }}>{opt.num}</div>
@@ -419,11 +426,11 @@ export default function LendingReport({ data, fieldValues, onBack, onReset }) {
           <div style={{ border: "0.5px solid #E8E7E2", borderRadius: 10, padding: "20px 24px" }}>
             {[
               "Minimum loan size: $500,000 USD",
-              "No collateral rebalancing on the upside — if collateral appreciates, no automatic withdrawal",
-              "No early repayment option on the loan",
-              "3-day pricing model (Fair Market Price) based on average of last sale price on 3 consecutive business days",
-              "Collateral returned at maturity assuming all interest paid and principal returned within 7 days",
-              "Settlement: test transfer followed by final balance to dedicated SDM Lending Wallet",
+              "No collateral rebalancing on the upside \u2014 if collateral appreciates, no automatic withdrawal",
+              "No early repayment option",
+              "Fair Market Price (FMP) determined by 3\u2011day pricing model: average of last sale price on 3 consecutive business days",
+              "Collateral returned at maturity upon full repayment of principal and settlement of all accrued interest within 7 business days",
+              "Settlement via test transfer followed by final balance to dedicated SDM Lending Wallet",
             ].map((term, i) => (
               <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < 5 ? "0.5px solid #E8E7E2" : "none", alignItems: "flex-start" }}>
                 <span style={{ width: 4, height: 4, background: "#FFC32C", borderRadius: "50%", marginTop: 7, flexShrink: 0 }} />
