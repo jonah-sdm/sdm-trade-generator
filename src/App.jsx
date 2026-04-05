@@ -2033,6 +2033,10 @@ function MarketBriefWrapper({ onBack }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(() => localStorage.getItem('sdm_auth') === '1');
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState(false);
+
   const [phase, setPhase] = useState(PHASES.HOME);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [selectedTrade, setSelectedTrade] = useState(null);
@@ -2444,6 +2448,42 @@ export default function App() {
     width: "100%", background: "#FDFCF7", border: "1px solid #E8E7E2", borderRadius: 6,
     padding: "10px 12px", fontSize: 13, color: "#1A1A18", fontFamily: "'Poppins',sans-serif", outline: "none",
   };
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (pwInput === 'SDM123!') {
+      localStorage.setItem('sdm_auth', '1');
+      setAuthenticated(true);
+    } else {
+      setPwError(true);
+      setPwInput('');
+    }
+  };
+
+  if (!authenticated) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F5F4EF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Poppins', sans-serif" }}>
+        <SDMLogo width={140} />
+        <form onSubmit={handlePasswordSubmit} style={{ marginTop: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 280 }}>
+          <input
+            type="password"
+            value={pwInput}
+            onChange={e => { setPwInput(e.target.value); setPwError(false); }}
+            placeholder="Enter password"
+            autoFocus
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: pwError ? '1.5px solid #d32f2f' : '1.5px solid #D8D7D2', background: '#FDFCF7', fontSize: 14, fontFamily: "'Poppins', sans-serif", outline: 'none', boxSizing: 'border-box' }}
+          />
+          {pwError && <p style={{ margin: 0, fontSize: 12, color: '#d32f2f', fontFamily: "'Poppins', sans-serif" }}>Incorrect password. Please try again.</p>}
+          <button
+            type="submit"
+            style={{ width: '100%', padding: '10px 0', borderRadius: 8, background: '#FFC32C', border: 'none', color: '#1A1A18', fontWeight: 600, fontSize: 14, fontFamily: "'Poppins', sans-serif", cursor: 'pointer' }}
+          >
+            Enter
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div style={S.page}>
