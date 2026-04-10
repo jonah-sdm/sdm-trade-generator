@@ -215,16 +215,7 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
         : kc2 + (spot - kc1) - netPremPerUnit;
       const maxLossTotal = Math.abs((kp - spot) * notional + netPremTotal);
       const beAboveSpot = breakeven > spot;
-      return `This trade holds ${notional} ${asset} at ${$(spot)} per unit and overlays a three-leg options structure expiring ${fields.expiry || "on the target date"}: a long put at ${$(kp)} (downside floor), a short call at ${$(kc1)} (soft cap), and a long call at ${$(kc2)} (re-participation). The net premium is ${isCredit ? `a credit of ${$(Math.abs(netPremPerUnit))} per unit received` : `a debit of ${$(Math.abs(netPremPerUnit))} per unit paid`}.
-
-Key structure characteristics:
-• Net Premium: ${$(Math.abs(netPremTotal))} ${isCredit ? "Credit" : "Debit"}
-• Breakeven: ${$(Math.round(breakeven))} (${beAboveSpot ? "above" : "below"} spot entry — premium ${isCredit ? "reduces" : "increases"} the break-even threshold)
-• Downside Floor: ${$(kp)} — below this level, put intrinsic value offsets further spot losses; maximum protected loss is ${$(maxLossTotal)}
-• Soft Cap Range: ${$(kc1)} – ${$(kc2)} — within this range, the short call offsets spot gains; upside is flattened but not permanently lost
-• Re-participation: above ${$(kc2)}, the long call restores full participation in tail upside
-
-The structure converts an uncapped long position into a bounded risk profile: losses are floored at ${$(maxLossTotal)}, and upside is paused (not eliminated) between ${$(kc1)} and ${$(kc2)}, resuming above the re-entry level. The trade-off is the net premium ${isCredit ? "collected" : "paid"} and the opportunity cost of capped gains in the soft cap range.`;
+      return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} generates ${isCredit ? "net premium income" : "partially offsets the net debit"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
     }
 
     default:
