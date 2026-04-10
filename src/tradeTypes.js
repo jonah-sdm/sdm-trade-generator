@@ -157,6 +157,28 @@ export const TRADE_TYPES = [
     ]
   },
   {
+    id: "call_spread_collar",
+    label: "Call Spread Collar",
+    category: "Options Structure",
+    tag: "OPTIONS",
+    description: "Downside protection with a soft upside cap — sell an ATM call to generate premium, buy an OTM call to restore tail participation.",
+    color: "#F97316",
+    icon: "⊞",
+    fields: [
+      { key: "asset",               label: "Asset / Underlying",                  type: "text",     placeholder: "BTC",         default: "BTC" },
+      { key: "spot",                label: "Spot Price ($)",                       type: "number",   placeholder: "85000",       default: "85000" },
+      { key: "notional",            label: "Notional (Units)",                     type: "number",   placeholder: "1",           default: "1" },
+      { key: "put_strike",          label: "Put Strike ($) — Floor",               type: "number",   placeholder: "75000",       default: "75000" },
+      { key: "short_call",          label: "Short Call Strike ($) — Cap",          type: "number",   placeholder: "85000",       default: "85000" },
+      { key: "long_call",           label: "Long Call Strike ($) — Re-entry",      type: "number",   placeholder: "127500",      default: "127500" },
+      { key: "put_premium",         label: "Put Premium Paid ($)",                 type: "number",   placeholder: "3500",        default: "3500" },
+      { key: "short_call_premium",  label: "Short Call Premium Received ($)",      type: "number",   placeholder: "4200",        default: "4200" },
+      { key: "long_call_premium",   label: "Long Call Premium Paid ($)",           type: "number",   placeholder: "1800",        default: "1800" },
+      { key: "expiry",              label: "Expiry Date",                          type: "text",     placeholder: "27 Jun 2026", default: "27 Jun 2026" },
+      { key: "executive_summary",   label: "Executive Summary",                    type: "textarea", placeholder: "Describe the trade rationale..." },
+    ]
+  },
+  {
     id: "earnings_play",
     label: "Event Risk Analysis",
     category: "Event-Driven",

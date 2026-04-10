@@ -376,3 +376,57 @@ export function adaptLongSeagull(f) {
     ],
   };
 }
+
+export function adaptCallSpreadCollar(f) {
+  const spot     = n(f.spot);
+  const notional = n(f.notional) || 1;
+  const kp       = n(f.put_strike);
+  const kc1      = n(f.short_call);
+  const kc2      = n(f.long_call);
+  const putPrem  = n(f.put_premium);
+  const scPrem   = n(f.short_call_premium);
+  const lcPrem   = n(f.long_call_premium);
+
+  const netPremium = (scPrem - putPrem - lcPrem) * notional;
+
+  const legs = [
+    { type: "put",  side: "long",  strike: kp,  quantity: notional },
+    { type: "call", side: "short", strike: kc1, quantity: notional },
+    { type: "call", side: "long",  strike: kc2, quantity: notional },
+  ];
+
+  return {
+    strategyId:   "call_spread_collar",
+    tradeType:    "call_spread_collar",
+    spot,
+    legs,
+    netPremium,
+    contracts:    1,
+    holdings:     notional,
+    returnBasis:  "notional",
+    chartBounds:  { min: kp * 0.75, max: kc2 * 1.35 },
+
+    buildMetrics: ({ breakevens, extrema }) => [
+      { label: "Spot Price",       value: fmtFull(spot),                    sub: f.asset || "BTC" },
+      { label: "Net Premium",      value: fmt(Math.abs(netPremium)),        sub: netPremium >= 0 ? "Credit" : "Debit", positive: netPremium >= 0 },
+      { label: "Downside Floor",   value: fmtFull(kp),                     sub: "Protected below this level" },
+      { label: "Soft Cap Start",   value: fmtFull(kc1),                    sub: "Upside capped here",                  negative: true },
+      { label: "Re-participation", value: fmtFull(kc2),                    sub: "Tail upside restored above this" },
+      { label: "Max Loss",         value: fmt(Math.abs(extrema.maxLoss)),   sub: `Below ${fmtFull(kp)}`,                negative: true },
+      { label: "Expiry",           value: f.expiry || "—" },
+      ...(breakevens.length >= 1 ? [{ label: "Breakeven", value: fmtFull(breakevens[0]) }] : []),
+    ],
+
+    buildLegs: () => [
+      { action: "BUY",  type: "Put",  strike: kp,  label: `${fmtFull(kp)} Put — Downside Floor @ ${fmtFull(putPrem)}`,  color: "#4ADE80" },
+      { action: "SELL", type: "Call", strike: kc1, label: `${fmtFull(kc1)} Call — ATM Cap @ ${fmtFull(scPrem)}`,        color: "#ef4444" },
+      { action: "BUY",  type: "Call", strike: kc2, label: `${fmtFull(kc2)} Call — Tail Re-entry @ ${fmtFull(lcPrem)}`,  color: "#F97316" },
+    ],
+
+    buildZones: () => [
+      { from: 0,         to: kp,       label: "Protected Zone",    color: "rgba(74,222,128,0.07)" },
+      { from: kc1,       to: kc2,      label: "Soft Cap Zone",     color: "rgba(239,68,68,0.07)"  },
+      { from: kc2,       to: kc2 * 2,  label: "Re-participation",  color: "rgba(249,115,22,0.07)" },
+    ],
+  };
+}

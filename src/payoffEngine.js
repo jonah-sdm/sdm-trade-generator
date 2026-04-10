@@ -205,7 +205,7 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
 import { analyzeStructuredProduct } from "./structuredProductEngine.js";
 import {
   adaptCashSecuredPut, adaptLeap, adaptCallSpread, adaptPutSpread,
-  adaptStraddle, adaptStrangle, adaptLongSeagull,
+  adaptStraddle, adaptStrangle, adaptLongSeagull, adaptCallSpreadCollar,
 } from "./strategyAdapters.js";
 
 export function computeTradeAnalysis(tradeId, fields) {
@@ -218,6 +218,7 @@ export function computeTradeAnalysis(tradeId, fields) {
     case "put_spread":      return analyzeStructuredProduct(adaptPutSpread(fields));
     case "straddle":        return analyzeStructuredProduct(adaptStraddle(fields));
     case "strangle":        return analyzeStructuredProduct(adaptStrangle(fields));
+    case "call_spread_collar": return analyzeStructuredProduct(adaptCallSpreadCollar(fields));
     // ── Custom strategies (not yet migrated) ──
     case "reverse_cash_carry": return computeReverseCashCarry(fields);
     case "covered_call":    return computeCoveredCall(fields);
