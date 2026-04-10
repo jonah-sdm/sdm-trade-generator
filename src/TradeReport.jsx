@@ -635,9 +635,9 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           // Scenario prices: key structural levels + a few round levels around spot
           const scenarioPrices = new Set();
           [kp * 0.75, kp, spot, kc1, Math.round((kc1 + kc2) / 2), kc2, kc2 * 1.15].forEach(p => scenarioPrices.add(Math.round(p)));
-          // Add breakeven if distinctly different from spot (> 1% gap)
-          const be = spot - (analysis.netPremPerUnit || 0);
-          if (spot > 0 && Math.abs(be - spot) / spot > 0.01) scenarioPrices.add(Math.round(be));
+          // Add the actual breakeven from analysis (zone-aware, may be above kc2)
+          const be = (analysis.breakevens || [])[0];
+          if (be && spot > 0 && Math.abs(be - spot) / spot > 0.01) scenarioPrices.add(Math.round(be));
           const sorted = [...scenarioPrices].sort((a, b) => a - b);
 
           const fmtP   = (v) => `$${Math.round(v).toLocaleString()}`;

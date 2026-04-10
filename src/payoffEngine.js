@@ -208,13 +208,18 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
       const netPremPerUnit = scPrem - putPrem - lcPrem;
       const netPremTotal   = netPremPerUnit * notional;
       const isCredit = netPremPerUnit >= 0;
-      const breakeven = spot - netPremPerUnit;
+      // Zone-aware breakeven: check linear zone first, else use above-kc2 formula
+      const beLinear = spot - netPremPerUnit;
+      const breakeven = (beLinear >= kp && beLinear <= kc1)
+        ? beLinear
+        : kc2 + (spot - kc1) - netPremPerUnit;
       const maxLossTotal = Math.abs((kp - spot) * notional + netPremTotal);
+      const beAboveSpot = breakeven > spot;
       return `This trade holds ${notional} ${asset} at ${$(spot)} per unit and overlays a three-leg options structure expiring ${fields.expiry || "on the target date"}: a long put at ${$(kp)} (downside floor), a short call at ${$(kc1)} (soft cap), and a long call at ${$(kc2)} (re-participation). The net premium is ${isCredit ? `a credit of ${$(Math.abs(netPremPerUnit))} per unit received` : `a debit of ${$(Math.abs(netPremPerUnit))} per unit paid`}.
 
 Key structure characteristics:
 • Net Premium: ${$(Math.abs(netPremTotal))} ${isCredit ? "Credit" : "Debit"}
-• Breakeven: ${$(Math.round(breakeven))} (${isCredit ? "below" : "above"} spot entry — premium ${isCredit ? "reduces" : "increases"} the break-even threshold)
+• Breakeven: ${$(Math.round(breakeven))} (${beAboveSpot ? "above" : "below"} spot entry — premium ${isCredit ? "reduces" : "increases"} the break-even threshold)
 • Downside Floor: ${$(kp)} — below this level, put intrinsic value offsets further spot losses; maximum protected loss is ${$(maxLossTotal)}
 • Soft Cap Range: ${$(kc1)} – ${$(kc2)} — within this range, the short call offsets spot gains; upside is flattened but not permanently lost
 • Re-participation: above ${$(kc2)}, the long call restores full participation in tail upside
@@ -735,14 +740,19 @@ function computeCallSpreadCollar(f) {
   // Delta: how much the hedge adds vs raw spot (positive = protection, negative = cap cost)
   const deltaAtPrice = (S) => hedgedPnl(S) - spotPnlAtPrice(S);
 
-  // Analytical breakeven (linear zone kp..kc1 where options are all OTM)
-  // hedgedPnl = (S - spot)*notional + netPremTotal = 0  → S = spot - netPremPerUnit
-  const breakeven = spot - netPremPerUnit;
+  // Analytical breakeven — detect which zone it falls in:
+  // Zone 1 [kp, kc1]: hedgedPnl = (S - spot)*N + netPremTotal = 0  → S = spot - netPremPerUnit
+  // Zone 2 [kc2, ∞]:  hedgedPnl = S + kc1 - kc2 - spot + netPremTotal = 0
+  //                              → S = kc2 + (spot - kc1) - netPremPerUnit
+  const beLinear = spot - netPremPerUnit;
+  const breakeven = (beLinear >= kp && beLinear <= kc1)
+    ? beLinear
+    : kc2 + (spot - kc1) - netPremPerUnit; // breakeven is above re-entry level
 
   // Floor P&L (maximum loss — flat for all S < kp)
   const maxLoss = (kp - spot) * notional + netPremTotal; // negative
 
-  // Capped profit (flat for kc1 ≤ S < kc2)
+  // Capped P&L (flat for kc1 ≤ S < kc2)
   const cappedProfit = (kc1 - spot) * notional + netPremTotal;
 
   const minP = kp * 0.7;
@@ -764,7 +774,7 @@ function computeCallSpreadCollar(f) {
     metrics: [
       { label: "Spot Price",         value: fmtFull(spot),                                  sub: f.asset || "BTC" },
       { label: "Net Premium",        value: fmt(Math.abs(netPremTotal)),                     sub: netPremTotal >= 0 ? "Credit" : "Debit", positive: netPremTotal >= 0 },
-      { label: "Breakeven",          value: fmtFull(Math.round(breakeven)),                 sub: netPremPerUnit >= 0 ? "Below spot entry" : "Above spot entry" },
+      { label: "Breakeven",          value: fmtFull(Math.round(breakeven)),                 sub: breakeven > spot ? "Above spot entry" : "Below spot entry" },
       { label: "Downside Floor",     value: fmtFull(kp),                                    sub: "Protection activates below this level" },
       { label: "Max Protected Loss", value: fmt(Math.abs(maxLoss)),                          sub: `vs spot entry`, negative: true },
       { label: "Soft Cap Range",     value: `${fmtFull(kc1)} – ${fmtFull(kc2)}`,           sub: "Gains resume above re-entry level" },
