@@ -62,12 +62,18 @@ export default function PayoffChart({ strategy, fields }) {
         return (S - costBasis) + Math.max(0, putK - S) - Math.max(0, S - callK) - netCost;
       }
       case "call_spread_collar": {
+        // Hedged position: long spot + BUY put + SELL ATM call + BUY OTM call
+        const entryPrice = n(fields.spot);
+        const not = n(fields.notional) || 1;
         const kp  = n(fields.put_strike);
         const kc1 = n(fields.short_call);
         const kc2 = n(fields.long_call);
-        const net = n(fields.short_call_premium) - n(fields.put_premium) - n(fields.long_call_premium);
-        // BUY put + SELL ATM call + BUY OTM call + net premium
-        return Math.max(0, kp - S) - Math.max(0, S - kc1) + Math.max(0, S - kc2) + net;
+        const net = (n(fields.short_call_premium) - n(fields.put_premium) - n(fields.long_call_premium)) * not;
+        return (S - entryPrice) * not
+          + Math.max(0, kp - S) * not
+          - Math.max(0, S - kc1) * not
+          + Math.max(0, S - kc2) * not
+          + net;
       }
       case "long_seagull": {
         const lp = n(fields.lower_put), lc = n(fields.lower_call), uc = n(fields.upper_call);

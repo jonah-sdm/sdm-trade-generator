@@ -205,7 +205,7 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
 import { analyzeStructuredProduct } from "./structuredProductEngine.js";
 import {
   adaptCashSecuredPut, adaptLeap, adaptCallSpread, adaptPutSpread,
-  adaptStraddle, adaptStrangle, adaptLongSeagull, adaptCallSpreadCollar,
+  adaptStraddle, adaptStrangle, adaptLongSeagull,
 } from "./strategyAdapters.js";
 
 export function computeTradeAnalysis(tradeId, fields) {
@@ -218,7 +218,7 @@ export function computeTradeAnalysis(tradeId, fields) {
     case "put_spread":      return analyzeStructuredProduct(adaptPutSpread(fields));
     case "straddle":        return analyzeStructuredProduct(adaptStraddle(fields));
     case "strangle":        return analyzeStructuredProduct(adaptStrangle(fields));
-    case "call_spread_collar": return analyzeStructuredProduct(adaptCallSpreadCollar(fields));
+    case "call_spread_collar": return computeCallSpreadCollar(fields);
     // ── Custom strategies (not yet migrated) ──
     case "reverse_cash_carry": return computeReverseCashCarry(fields);
     case "covered_call":    return computeCoveredCall(fields);
@@ -673,6 +673,88 @@ function computeCollar(f) {
     ],
     zones: [
       { from: putStrike, to: callStrike, label: "Active Range", color: "rgba(244,114,182,0.06)" },
+    ],
+  };
+}
+
+// --- CALL SPREAD COLLAR ---
+// Long spot + BUY put (floor) + SELL ATM call (soft cap) + BUY OTM call (tail re-participation)
+// This is a HEDGED position — payoff includes the underlying spot move.
+function computeCallSpreadCollar(f) {
+  const spot        = n(f.spot);
+  const notional    = n(f.notional) || 1;
+  const kp          = n(f.put_strike);    // BUY put — floor
+  const kc1         = n(f.short_call);   // SELL call — soft cap start
+  const kc2         = n(f.long_call);    // BUY call — re-participation
+  const putPrem     = n(f.put_premium);
+  const scPrem      = n(f.short_call_premium);
+  const lcPrem      = n(f.long_call_premium);
+
+  // Net premium (total, signed): positive = net credit received
+  const netPremTotal    = (scPrem - putPrem - lcPrem) * notional;
+  const netPremPerUnit  = scPrem - putPrem - lcPrem;
+
+  // Combined payoff: long spot + options overlay + net premium
+  const hedgedPnl = (S) => {
+    const spotPnl  = (S - spot) * notional;
+    const putIntr  = Math.max(0, kp - S) * notional;
+    const scIntr   = -Math.max(0, S - kc1) * notional;
+    const lcIntr   = Math.max(0, S - kc2) * notional;
+    return spotPnl + putIntr + scIntr + lcIntr + netPremTotal;
+  };
+
+  // Spot-only P&L (un-hedged — what you'd make/lose just holding spot)
+  const spotPnlAtPrice = (S) => (S - spot) * notional;
+
+  // Delta: how much the hedge adds vs raw spot (positive = protection, negative = cap cost)
+  const deltaAtPrice = (S) => hedgedPnl(S) - spotPnlAtPrice(S);
+
+  // Analytical breakeven (linear zone kp..kc1 where options are all OTM)
+  // hedgedPnl = (S - spot)*notional + netPremTotal = 0  → S = spot - netPremPerUnit
+  const breakeven = spot - netPremPerUnit;
+
+  // Floor P&L (maximum loss — flat for all S < kp)
+  const maxLoss = (kp - spot) * notional + netPremTotal; // negative
+
+  // Capped profit (flat for kc1 ≤ S < kc2)
+  const cappedProfit = (kc1 - spot) * notional + netPremTotal;
+
+  const minP = kp * 0.7;
+  const maxP = kc2 * 1.4;
+
+  const curve = buildCurve(minP, maxP, hedgedPnl);
+
+  return {
+    curve,
+    spot,
+    breakevens: [breakeven],
+    tradeType: "call_spread_collar",
+    pnlAtPrice: hedgedPnl,
+    spotPnlAtPrice,
+    deltaAtPrice,
+    netPremPerUnit,
+    // Strike levels exposed for scenario table rendering
+    kp, kc1, kc2, notional,
+    metrics: [
+      { label: "Spot Price",         value: fmtFull(spot),                                  sub: f.asset || "BTC" },
+      { label: "Net Premium",        value: fmt(Math.abs(netPremTotal)),                     sub: netPremTotal >= 0 ? "Credit" : "Debit", positive: netPremTotal >= 0 },
+      { label: "Breakeven",          value: fmtFull(Math.round(breakeven)),                 sub: "Below spot entry" },
+      { label: "Downside Floor",     value: fmtFull(kp),                                    sub: "Put protects below this level" },
+      { label: "Max Protected Loss", value: fmt(Math.abs(maxLoss)),                          sub: `vs spot entry`, negative: true },
+      { label: "Soft Cap Range",     value: `${fmtFull(kc1)} – ${fmtFull(kc2)}`,           sub: "Upside capped in this range" },
+      { label: "Re-participation",   value: fmtFull(kc2),                                   sub: "Tail upside restored above this" },
+      { label: "Expiry",             value: f.expiry || "—" },
+    ],
+    legs: [
+      { action: "HOLD", type: `Spot ${f.asset || "BTC"}`, strike: spot,  label: `${notional} unit${notional !== 1 ? "s" : ""} @ ${fmtFull(spot)}`,           color: "#00C2FF" },
+      { action: "BUY",  type: "Put",                      strike: kp,    label: `${fmtFull(kp)} Put — Downside Floor @ ${fmtFull(putPrem)}`,                  color: "#4ADE80" },
+      { action: "SELL", type: "Call",                     strike: kc1,   label: `${fmtFull(kc1)} Call — Soft Cap @ ${fmtFull(scPrem)}`,                       color: "#ef4444" },
+      { action: "BUY",  type: "Call",                     strike: kc2,   label: `${fmtFull(kc2)} Call — Tail Re-entry @ ${fmtFull(lcPrem)}`,                  color: "#F97316" },
+    ],
+    zones: [
+      { from: 0,   to: kp,      label: "Protected Zone",   color: "rgba(74,222,128,0.07)"  },
+      { from: kc1, to: kc2,     label: "Soft Cap Zone",    color: "rgba(239,68,68,0.07)"   },
+      { from: kc2, to: kc2 * 2, label: "Re-participation", color: "rgba(249,115,22,0.07)"  },
     ],
   };
 }

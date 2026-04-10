@@ -627,8 +627,102 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           </table>
         </div>
 
+        {/* ── CALL SPREAD COLLAR: Hedged Scenario Table ── */}
+        {analysis.tradeType === "call_spread_collar" && analysis.pnlAtPrice && (() => {
+          const spot       = analysis.spot || 0;
+          const { kp, kc1, kc2 } = analysis;
+
+          // Scenario prices: key structural levels + a few round levels around spot
+          const scenarioPrices = new Set();
+          [kp * 0.75, kp, spot, kc1, Math.round((kc1 + kc2) / 2), kc2, kc2 * 1.15].forEach(p => scenarioPrices.add(Math.round(p)));
+          // Add breakeven if distinctly different from spot (> 1% gap)
+          const be = spot - (analysis.netPremPerUnit || 0);
+          if (spot > 0 && Math.abs(be - spot) / spot > 0.01) scenarioPrices.add(Math.round(be));
+          const sorted = [...scenarioPrices].sort((a, b) => a - b);
+
+          const fmtP   = (v) => `$${Math.round(v).toLocaleString()}`;
+          const fmtPnl = (v) => v >= 0 ? `+$${Math.abs(Math.round(v)).toLocaleString()}` : `-$${Math.abs(Math.round(v)).toLocaleString()}`;
+          const fmtPct = (v) => v >= 0 ? `+${v.toFixed(1)}%` : `${v.toFixed(1)}%`;
+
+          const thSt = { padding: "8px 10px", fontFamily: "'Montserrat',sans-serif", fontSize: 7, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
+          const tdSt = { padding: "8px 10px", fontFamily: "'Poppins',sans-serif", fontSize: 11, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
+          const numSt = (v) => ({ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: v > 0 ? THEME.positive : v < 0 ? THEME.negative : THEME.textMuted });
+
+          return (
+            <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
+              <div style={{ padding: "14px 20px", borderBottom: `0.5px solid ${THEME.border}`, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>Scenario Analysis — Hedged P&L at Expiry</div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={thSt}>Price at Expiry</th>
+                    <th style={thSt}>Move vs Entry</th>
+                    <th style={thSt}>Spot-only P&L</th>
+                    <th style={thSt}>Hedged Strategy P&L</th>
+                    <th style={thSt}>Protection Savings</th>
+                    <th style={thSt}>Upside Cost</th>
+                    <th style={thSt}>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((price, i) => {
+                    const hedged   = analysis.pnlAtPrice(price);
+                    const spotOnly = analysis.spotPnlAtPrice(price);
+                    const delta    = analysis.deltaAtPrice(price);
+                    const moveVsSpot = spot > 0 ? ((price - spot) / spot) * 100 : 0;
+
+                    const isEntry  = Math.abs(price - spot) < 1;
+                    const isFloor  = Math.abs(price - kp)   < 1;
+                    const isCap    = Math.abs(price - kc1)  < 1;
+                    const isReEntry = Math.abs(price - kc2) < 1;
+
+                    // Protection savings: hedge is net saving money (below kp region)
+                    const inProtected = price <= kp;
+                    // Upside cost: cap is biting (above kc1)
+                    const inCapped = price >= kc1;
+
+                    const protSavings = inProtected ? delta : null;
+                    const upsideCost  = !inProtected && inCapped ? delta : null;
+
+                    let outcome = "—";
+                    if (isEntry)             outcome = "Current entry";
+                    else if (price < kp)     outcome = "Floor active — loss capped";
+                    else if (price === kp)   outcome = "Put floor level";
+                    else if (price < kc1)    outcome = delta >= 0 ? "Net premium benefit" : "Below breakeven";
+                    else if (price === kc1)  outcome = "Soft cap begins";
+                    else if (price < kc2)    outcome = "Upside capped";
+                    else if (price === kc2)  outcome = "Re-participation starts";
+                    else                     outcome = "Tail upside restored";
+
+                    return (
+                      <tr key={i} style={{ background: isEntry ? "rgba(255,195,44,0.06)" : "transparent" }}>
+                        <td style={tdSt}>
+                          <strong>{fmtP(price)}</strong>
+                          {isEntry   && <span style={{ background: "rgba(255,195,44,0.15)", color: THEME.goldText, fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 8, marginLeft: 5 }}>ENTRY</span>}
+                          {isFloor   && <span style={{ background: "rgba(74,222,128,0.15)", color: "#15803d", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 8, marginLeft: 5 }}>FLOOR</span>}
+                          {isCap     && <span style={{ background: "rgba(239,68,68,0.12)",  color: "#b91c1c", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 8, marginLeft: 5 }}>CAP</span>}
+                          {isReEntry && <span style={{ background: "rgba(249,115,22,0.15)", color: "#c2410c", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 8, marginLeft: 5 }}>RE-ENTRY</span>}
+                        </td>
+                        <td style={tdSt}>{fmtPct(moveVsSpot)}</td>
+                        <td style={numSt(spotOnly)}>{fmtPnl(spotOnly)}</td>
+                        <td style={numSt(hedged)}>{fmtPnl(hedged)}</td>
+                        <td style={{ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: protSavings !== null ? THEME.positive : THEME.textMuted }}>
+                          {protSavings !== null ? fmtPnl(protSavings) : "—"}
+                        </td>
+                        <td style={{ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: upsideCost !== null ? THEME.negative : THEME.textMuted }}>
+                          {upsideCost !== null ? fmtPnl(upsideCost) : "—"}
+                        </td>
+                        <td style={tdSt}>{outcome}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
         {/* ── SCENARIO ANALYSIS TABLE ── */}
-        {analysis.curve && analysis.curve.length > 0 && (() => {
+        {analysis.curve && analysis.curve.length > 0 && analysis.tradeType !== "call_spread_collar" && (() => {
           const spot = analysis.spot || 0;
           const curve = analysis.curve;
           const prices = curve.map(c => c.price);
