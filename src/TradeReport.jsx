@@ -658,8 +658,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                     <th style={thSt}>Move vs Entry</th>
                     <th style={thSt}>Spot-only P&L</th>
                     <th style={thSt}>Hedged Strategy P&L</th>
-                    <th style={thSt}>Protection Savings</th>
-                    <th style={thSt}>Upside Cost</th>
+                    <th style={thSt}>Protection Savings vs Spot</th>
+                    <th style={thSt}>Opportunity Cost vs Spot</th>
                     <th style={thSt}>Outcome</th>
                   </tr>
                 </thead>
@@ -680,18 +680,20 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                     // Upside cost: cap is biting (above kc1)
                     const inCapped = price >= kc1;
 
+                    // Protection savings: positive delta means hedge outperforms spot (shown below kp)
                     const protSavings = inProtected ? delta : null;
-                    const upsideCost  = !inProtected && inCapped ? delta : null;
+                    // Opportunity cost: negative delta means cap is biting; show as positive cost value
+                    const upsideCost  = !inProtected && inCapped ? -delta : null;
 
                     let outcome = "—";
                     if (isEntry)             outcome = "Current entry";
-                    else if (price < kp)     outcome = "Floor active — loss capped";
-                    else if (price === kp)   outcome = "Put floor level";
-                    else if (price < kc1)    outcome = delta >= 0 ? "Net premium benefit" : "Below breakeven";
-                    else if (price === kc1)  outcome = "Soft cap begins";
-                    else if (price < kc2)    outcome = "Upside capped";
+                    else if (price < kp)     outcome = "Floor active — loss capped vs spot";
+                    else if (price === kp)   outcome = "Put strike reached — protection begins below";
+                    else if (price < kc1)    outcome = delta >= 0 ? "Net premium benefit" : "Below breakeven — premium not yet recovered";
+                    else if (price === kc1)  outcome = "Soft cap begins — gains flattened";
+                    else if (price < kc2)    outcome = "Upside flattened — gains resume above re-entry";
                     else if (price === kc2)  outcome = "Re-participation starts";
-                    else                     outcome = "Tail upside restored";
+                    else                     outcome = "Tail upside restored — reparticipating above cap";
 
                     return (
                       <tr key={i} style={{ background: isEntry ? "rgba(255,195,44,0.06)" : "transparent" }}>
@@ -708,8 +710,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                         <td style={{ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: protSavings !== null ? THEME.positive : THEME.textMuted }}>
                           {protSavings !== null ? fmtPnl(protSavings) : "—"}
                         </td>
-                        <td style={{ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: upsideCost !== null ? THEME.negative : THEME.textMuted }}>
-                          {upsideCost !== null ? fmtPnl(upsideCost) : "—"}
+                        <td style={{ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: upsideCost !== null ? THEME.goldText : THEME.textMuted }}>
+                          {upsideCost !== null ? `$${Math.abs(Math.round(upsideCost)).toLocaleString()}` : "—"}
                         </td>
                         <td style={tdSt}>{outcome}</td>
                       </tr>

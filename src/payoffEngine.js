@@ -196,6 +196,32 @@ The position profits outside the ${fmtN(beLow)}–${fmtN(beHigh)} range. Between
 Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires between ${fmtN(putK)} and ${fmtN(callK)}. Losses begin outside the ${fmtN(beLow)}–${fmtN(beHigh)} range. This is a range-bound income trade with unlimited theoretical loss on a large directional move. It is exposed to volatility expansion (vega risk) and requires active management if the asset approaches either strike.`;
     }
 
+    case "call_spread_collar": {
+      const spot     = parseNum(fields.spot);
+      const notional = parseNum(fields.notional) || 1;
+      const kp       = parseNum(fields.put_strike);
+      const kc1      = parseNum(fields.short_call);
+      const kc2      = parseNum(fields.long_call);
+      const putPrem  = parseNum(fields.put_premium);
+      const scPrem   = parseNum(fields.short_call_premium);
+      const lcPrem   = parseNum(fields.long_call_premium);
+      const netPremPerUnit = scPrem - putPrem - lcPrem;
+      const netPremTotal   = netPremPerUnit * notional;
+      const isCredit = netPremPerUnit >= 0;
+      const breakeven = spot - netPremPerUnit;
+      const maxLossTotal = Math.abs((kp - spot) * notional + netPremTotal);
+      return `This trade holds ${notional} ${asset} at ${$(spot)} per unit and overlays a three-leg options structure expiring ${fields.expiry || "on the target date"}: a long put at ${$(kp)} (downside floor), a short call at ${$(kc1)} (soft cap), and a long call at ${$(kc2)} (re-participation). The net premium is ${isCredit ? `a credit of ${$(Math.abs(netPremPerUnit))} per unit received` : `a debit of ${$(Math.abs(netPremPerUnit))} per unit paid`}.
+
+Key structure characteristics:
+• Net Premium: ${$(Math.abs(netPremTotal))} ${isCredit ? "Credit" : "Debit"}
+• Breakeven: ${$(Math.round(breakeven))} (${isCredit ? "below" : "above"} spot entry — premium ${isCredit ? "reduces" : "increases"} the break-even threshold)
+• Downside Floor: ${$(kp)} — below this level, put intrinsic value offsets further spot losses; maximum protected loss is ${$(maxLossTotal)}
+• Soft Cap Range: ${$(kc1)} – ${$(kc2)} — within this range, the short call offsets spot gains; upside is flattened but not permanently lost
+• Re-participation: above ${$(kc2)}, the long call restores full participation in tail upside
+
+The structure converts an uncapped long position into a bounded risk profile: losses are floored at ${$(maxLossTotal)}, and upside is paused (not eliminated) between ${$(kc1)} and ${$(kc2)}, resuming above the re-entry level. The trade-off is the net premium ${isCredit ? "collected" : "paid"} and the opportunity cost of capped gains in the soft cap range.`;
+    }
+
     default:
       return "Trade analysis summary is being prepared.";
   }
@@ -738,10 +764,10 @@ function computeCallSpreadCollar(f) {
     metrics: [
       { label: "Spot Price",         value: fmtFull(spot),                                  sub: f.asset || "BTC" },
       { label: "Net Premium",        value: fmt(Math.abs(netPremTotal)),                     sub: netPremTotal >= 0 ? "Credit" : "Debit", positive: netPremTotal >= 0 },
-      { label: "Breakeven",          value: fmtFull(Math.round(breakeven)),                 sub: "Below spot entry" },
-      { label: "Downside Floor",     value: fmtFull(kp),                                    sub: "Put protects below this level" },
+      { label: "Breakeven",          value: fmtFull(Math.round(breakeven)),                 sub: netPremPerUnit >= 0 ? "Below spot entry" : "Above spot entry" },
+      { label: "Downside Floor",     value: fmtFull(kp),                                    sub: "Protection activates below this level" },
       { label: "Max Protected Loss", value: fmt(Math.abs(maxLoss)),                          sub: `vs spot entry`, negative: true },
-      { label: "Soft Cap Range",     value: `${fmtFull(kc1)} – ${fmtFull(kc2)}`,           sub: "Upside capped in this range" },
+      { label: "Soft Cap Range",     value: `${fmtFull(kc1)} – ${fmtFull(kc2)}`,           sub: "Gains resume above re-entry level" },
       { label: "Re-participation",   value: fmtFull(kc2),                                   sub: "Tail upside restored above this" },
       { label: "Expiry",             value: f.expiry || "—" },
     ],
