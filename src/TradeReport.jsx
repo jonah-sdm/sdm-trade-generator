@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { computeTradeAnalysis, generateExecutiveSummary } from "./payoffEngine";
 import { computeLendingProposal, fmt as lendFmt } from "./lendingEngine";
 
@@ -50,93 +50,171 @@ const toolbarBtnStyle = {
   fontFamily: "'Poppins',sans-serif", fontSize: 13, color: "#4A4A48", borderRadius: 4,
 };
 
-// ─── SVG PAYOFF CHART (light theme) ───
-function PayoffChart({ analysis, accentColor }) {
-  const { curve, spot, breakevens, zones, legs } = analysis;
+// ─── SVG PAYOFF CHART (light theme, with zoom / leg toggles / entry override) ───
+function PayoffChart({ analysis, accentColor, entryOverride }) {
+  const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice } = analysis;
   if (!curve || curve.length === 0) return null;
 
+  // ── Axis / zoom state ──────────────────────────────────────────────────
+  const allPrices = curve.map(c => c.price);
+  const dataMin = Math.min(...allPrices);
+  const dataMax = Math.max(...allPrices);
+  const defaultPctRange = 30;
+
+  const [xPctRange, setXPctRange] = useState(defaultPctRange);
+  const [xIncrement, setXIncrementRaw] = useState("");
+  const [fitY, setFitY] = useState(false);
+
+  const setXIncrement = (v) => setXIncrementRaw(v);
+
+  // Compute visible price range (centred on spot, ±xPctRange%)
+  const effectiveSpot = (entryOverride > 0 ? entryOverride : 0) || spot || (dataMin + dataMax) / 2;
+  const halfRange = effectiveSpot * (xPctRange / 100);
+  const visMin = Math.max(effectiveSpot - halfRange, dataMin * 0.5);
+  const visMax = Math.min(effectiveSpot + halfRange, dataMax * 1.5);
+
+  // ── Leg toggle state ───────────────────────────────────────────────────
+  const hasSpotQty = (spotQuantity || 0) > 0;
+  const hasLegs = legPayoffs && legPayoffs.length > 0;
+
+  // Net P&L toggle always on; individual legs off by default
+  const [showNetPnl, setShowNetPnl] = useState(true);
+  const [showLongSpot, setShowLongSpot] = useState(true);
+  const [legVisibility, setLegVisibility] = useState(() =>
+    (legPayoffs || []).map(() => false)
+  );
+
+  // Reset leg visibility when analysis changes (different trade)
+  useEffect(() => {
+    setLegVisibility((legPayoffs || []).map(() => false));
+  }, [analysis]);
+
+  const toggleLeg = (i) => setLegVisibility(v => v.map((b, j) => j === i ? !b : b));
+
+  // ── Entry override ─────────────────────────────────────────────────────
+  // Shift net P&L by (spot - entryOverride) * spotQuantity when override is set
+  const entryShift = (entryOverride > 0 && spot > 0 && (spotQuantity || 0) > 0)
+    ? (spot - entryOverride) * spotQuantity
+    : 0;
+
+  const shiftedPnlAtPrice = pnlAtPrice
+    ? (p) => pnlAtPrice(p) + entryShift
+    : null;
+
+  // ── Build visible curve (re-sample within visible X range) ─────────────
+  const STEPS = 300;
+  const visXs = Array.from({ length: STEPS + 1 }, (_, i) => visMin + (visMax - visMin) * (i / STEPS));
+
+  const netPnlPoints = visXs.map(x => ({
+    price: x,
+    pnl: shiftedPnlAtPrice ? shiftedPnlAtPrice(x) : 0,
+  }));
+
+  const longSpotPoints = visXs.map(x => ({
+    price: x,
+    pnl: (x - spot) * (spotQuantity || 1),
+  }));
+
+  // Per-leg curves
+  const legCurves = (legPayoffs || []).map(leg => ({
+    ...leg,
+    points: visXs.map(x => ({ price: x, pnl: leg.fn(x) })),
+  }));
+
+  // ── Y range ────────────────────────────────────────────────────────────
+  const allVisiblePnls = [
+    ...(showNetPnl ? netPnlPoints.map(p => p.pnl) : []),
+    ...(showLongSpot && hasSpotQty ? longSpotPoints.map(p => p.pnl) : []),
+    ...legCurves.filter((_, i) => legVisibility[i]).flatMap(l => l.points.map(p => p.pnl)),
+    0,
+  ];
+  const rawMinPnl = Math.min(...allVisiblePnls);
+  const rawMaxPnl = Math.max(...allVisiblePnls);
+  const pnlRange = rawMaxPnl - rawMinPnl || 1;
+  const pnlPad = pnlRange * 0.12;
+  const minPnl = rawMinPnl - pnlPad;
+  const maxPnl = rawMaxPnl + pnlPad;
+
+  // ── Chart geometry ─────────────────────────────────────────────────────
   const W = 720, H = 340;
   const PAD = { top: 24, right: 40, bottom: 52, left: 72 };
   const cW = W - PAD.left - PAD.right;
   const cH = H - PAD.top - PAD.bottom;
 
-  const prices = curve.map(c => c.price);
-  const pnls = curve.map(c => c.pnl);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const minPnl = Math.min(...pnls, 0);
-  const maxPnl = Math.max(...pnls, 0);
-  const pnlRange = maxPnl - minPnl || 1;
-  const pnlPad = pnlRange * 0.1;
-
-  const scaleX = (p) => PAD.left + ((p - minPrice) / (maxPrice - minPrice)) * cW;
-  const scaleY = (v) => PAD.top + cH - ((v - (minPnl - pnlPad)) / (pnlRange + pnlPad * 2)) * cH;
+  const scaleX = (p) => PAD.left + ((p - visMin) / (visMax - visMin)) * cW;
+  const scaleY = (v) => PAD.top + cH - ((v - minPnl) / (maxPnl - minPnl)) * cH;
   const zeroY = scaleY(0);
 
-  const linePath = curve.map((c, i) =>
-    `${i === 0 ? "M" : "L"}${scaleX(c.price).toFixed(1)},${scaleY(c.pnl).toFixed(1)}`
-  ).join(" ");
-
-  const spotMultiplier = (() => {
-    if (!spot || spot <= 0) return 0;
-    const nearSpot = curve.filter(c => Math.abs(c.price - spot) < (maxPrice - minPrice) * 0.1);
-    if (nearSpot.length < 2) {
-      const first = curve[0], last = curve[curve.length - 1];
-      if (last.price === first.price) return 1;
-      return Math.abs(last.pnl - first.pnl) / (last.price - first.price);
+  // ── X tick marks ───────────────────────────────────────────────────────
+  const incNum = parseFloat(xIncrement);
+  const xGridLines = (() => {
+    if (incNum > 0 && isFinite(incNum)) {
+      const ticks = [];
+      const start = Math.ceil(visMin / incNum) * incNum;
+      for (let v = start; v <= visMax; v += incNum) {
+        ticks.push({ x: scaleX(v), val: v });
+      }
+      return ticks.slice(0, 20); // cap at 20 labels
     }
-    const absPnl = Math.max(Math.abs(maxPnl), Math.abs(minPnl));
-    const priceRange = maxPrice - minPrice;
-    return priceRange > 0 ? absPnl / (priceRange * 0.5) : 1;
+    const tickCount = 6;
+    return Array.from({ length: tickCount + 1 }, (_, i) => {
+      const val = visMin + (visMax - visMin) * (i / tickCount);
+      return { x: scaleX(val), val };
+    });
   })();
 
-  const spotLinePath = spot > 0 ? `M${scaleX(minPrice).toFixed(1)},${scaleY((minPrice - spot) * spotMultiplier).toFixed(1)} L${scaleX(maxPrice).toFixed(1)},${scaleY((maxPrice - spot) * spotMultiplier).toFixed(1)}` : "";
-
-  const buildFillPath = (filterFn) => {
-    const segments = [];
-    let inSegment = false;
-    let segPoints = [];
-    curve.forEach((c, i) => {
-      const above = filterFn(c.pnl);
-      if (above) {
-        if (!inSegment) {
-          inSegment = true;
-          if (i > 0 && !filterFn(curve[i - 1].pnl)) {
-            const prev = curve[i - 1];
-            const ratio = (0 - prev.pnl) / (c.pnl - prev.pnl);
-            const crossPrice = prev.price + ratio * (c.price - prev.price);
-            segPoints.push({ price: crossPrice, pnl: 0 });
-          }
-        }
-        segPoints.push(c);
-      } else if (inSegment) {
-        const prev = curve[i - 1];
-        const ratio = (0 - prev.pnl) / (c.pnl - prev.pnl);
-        const crossPrice = prev.price + ratio * (c.price - prev.price);
-        segPoints.push({ price: crossPrice, pnl: 0 });
-        segments.push([...segPoints]);
-        segPoints = [];
-        inSegment = false;
-      }
-    });
-    if (segPoints.length > 0) segments.push(segPoints);
-    return segments.map(seg => {
-      const top = seg.map(c => `${scaleX(c.price).toFixed(1)},${scaleY(c.pnl).toFixed(1)}`).join(" L");
-      const bottom = `${scaleX(seg[seg.length - 1].price).toFixed(1)},${zeroY.toFixed(1)} L${scaleX(seg[0].price).toFixed(1)},${zeroY.toFixed(1)}`;
-      return `M${top} L${bottom}Z`;
-    }).join(" ");
-  };
-
-  const greenFill = buildFillPath(pnl => pnl > 0);
-  const redFill = buildFillPath(pnl => pnl < 0);
-
-  const yTicks = 5;
+  // ── Y grid ─────────────────────────────────────────────────────────────
   const yGridLines = [];
-  for (let i = 0; i <= yTicks; i++) {
-    const val = (minPnl - pnlPad) + (pnlRange + pnlPad * 2) * (i / yTicks);
+  for (let i = 0; i <= 5; i++) {
+    const val = minPnl + (maxPnl - minPnl) * (i / 5);
     yGridLines.push({ y: scaleY(val), val });
   }
 
+  // ── Path builder ───────────────────────────────────────────────────────
+  const buildPath = (points) => points.map((p, i) =>
+    `${i === 0 ? "M" : "L"}${scaleX(p.price).toFixed(1)},${scaleY(p.pnl).toFixed(1)}`
+  ).join(" ");
+
+  const linePath = buildPath(netPnlPoints);
+  const spotLinePath = hasSpotQty ? buildPath(longSpotPoints) : "";
+
+  // ── Fill areas (net P&L only) ──────────────────────────────────────────
+  const buildFillPath = (filterFn) => {
+    const segments = [];
+    let inSeg = false, seg = [];
+    netPnlPoints.forEach((c, i) => {
+      const match = filterFn(c.pnl);
+      if (match) {
+        if (!inSeg) {
+          inSeg = true;
+          if (i > 0 && !filterFn(netPnlPoints[i - 1].pnl)) {
+            const prev = netPnlPoints[i - 1];
+            const ratio = (0 - prev.pnl) / (c.pnl - prev.pnl);
+            seg.push({ price: prev.price + ratio * (c.price - prev.price), pnl: 0 });
+          }
+        }
+        seg.push(c);
+      } else if (inSeg) {
+        const prev = netPnlPoints[i - 1];
+        const ratio = (0 - prev.pnl) / (c.pnl - prev.pnl);
+        seg.push({ price: prev.price + ratio * (c.price - prev.price), pnl: 0 });
+        segments.push([...seg]);
+        seg = [];
+        inSeg = false;
+      }
+    });
+    if (seg.length) segments.push(seg);
+    return segments.map(s => {
+      const top = s.map(c => `${scaleX(c.price).toFixed(1)},${scaleY(c.pnl).toFixed(1)}`).join(" L");
+      const bot = `${scaleX(s[s.length - 1].price).toFixed(1)},${zeroY.toFixed(1)} L${scaleX(s[0].price).toFixed(1)},${zeroY.toFixed(1)}`;
+      return `M${top} L${bot}Z`;
+    }).join(" ");
+  };
+
+  const greenFill = showNetPnl ? buildFillPath(v => v > 0) : "";
+  const redFill = showNetPnl ? buildFillPath(v => v < 0) : "";
+
+  // ── Formatters ─────────────────────────────────────────────────────────
   const fmtAxis = (v) => {
     if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
     if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
@@ -144,139 +222,270 @@ function PayoffChart({ analysis, accentColor }) {
     if (Math.abs(v) < 100) return v.toFixed(2);
     return v.toFixed(0);
   };
-
   const fmtPrice = (v) => {
     if (v >= 1e3) return `$${(v / 1e3).toFixed(v >= 1e4 ? 0 : 1)}K`;
     if (v < 1 && v > 0) return `$${v.toFixed(4)}`;
     if (v < 100) return `$${v.toFixed(2)}`;
     return `$${v.toFixed(0)}`;
   };
+  const fmtStrike = (v) => v >= 1e3
+    ? `$${(v / 1e3).toFixed(v >= 1e4 ? 0 : 1)}K`
+    : v < 1 && v > 0 ? `$${v.toFixed(4)}`
+    : `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const xTicks = 6;
-  const xGridLines = [];
-  for (let i = 0; i <= xTicks; i++) {
-    const val = minPrice + (maxPrice - minPrice) * (i / xTicks);
-    xGridLines.push({ x: scaleX(val), val });
-  }
+  // ── Visible breakevens (re-detect in current view) ─────────────────────
+  const visBreakevens = (() => {
+    const bes = [];
+    for (let i = 1; i < netPnlPoints.length; i++) {
+      const a = netPnlPoints[i - 1], b = netPnlPoints[i];
+      if ((a.pnl < 0 && b.pnl >= 0) || (a.pnl >= 0 && b.pnl < 0)) {
+        const ratio = Math.abs(a.pnl) / (Math.abs(a.pnl) + Math.abs(b.pnl));
+        bes.push(a.price + ratio * (b.price - a.price));
+      }
+    }
+    return bes;
+  })();
+
+  // ── Toggle panel style helpers ────────────────────────────────────────
+  const toggleBtnStyle = (active, color) => ({
+    display: "inline-flex", alignItems: "center", gap: 5,
+    padding: "4px 10px", borderRadius: 20, cursor: "pointer", userSelect: "none",
+    fontFamily: "'Poppins',sans-serif", fontSize: 10, fontWeight: 500,
+    border: `1px solid ${active ? color : "#E8E7E2"}`,
+    background: active ? `${color}18` : "transparent",
+    color: active ? color : "#8A8A88",
+    transition: "all 0.12s",
+  });
+
+  const inputStyle = {
+    border: "1px solid #E8E7E2", borderRadius: 4, padding: "3px 7px",
+    fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#4A4A48",
+    background: "#FDFCF7", width: 60, outline: "none",
+  };
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: "#FDFCF7" }}>
-      <defs>
-        <linearGradient id="greenGradLight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#16a34a" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#16a34a" stopOpacity="0.03" />
-        </linearGradient>
-        <linearGradient id="redGradLight" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#dc2626" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#dc2626" stopOpacity="0.03" />
-        </linearGradient>
-      </defs>
-
-      {yGridLines.map((g, i) => (
-        <g key={`yg${i}`}>
-          <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y} stroke="#E8E7E2" strokeWidth="1" />
-          <text x={PAD.left - 10} y={g.y + 4} textAnchor="end" fill="#8A8A88" fontSize="10" fontFamily="'Poppins', sans-serif">
-            {fmtAxis(g.val)}
-          </text>
-        </g>
-      ))}
-      {xGridLines.map((g, i) => (
-        <g key={`xg${i}`}>
-          <line x1={g.x} y1={PAD.top} x2={g.x} y2={H - PAD.bottom} stroke="#E8E7E2" strokeWidth="1" />
-          <text x={g.x} y={H - PAD.bottom + 18} textAnchor="middle" fill="#8A8A88" fontSize="10" fontFamily="'Poppins', sans-serif">
-            {fmtPrice(g.val)}
-          </text>
-        </g>
-      ))}
-
-      <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY}
-        stroke="#C8C7C2" strokeWidth="1" strokeDasharray="4,3" />
-
-      <path d={greenFill} fill="url(#greenGradLight)" />
-      <path d={redFill} fill="url(#redGradLight)" />
-
-      {/* Long Spot reference line */}
-      {spotLinePath && !analysis.chartLabel && (
-        <g>
-          <path d={spotLinePath} fill="none" stroke="#C8C7C2" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
-          <text x={scaleX(maxPrice) - 4} y={scaleY((maxPrice - spot) * spotMultiplier) - 6}
-            textAnchor="end" fill="#8A8A88" fontSize="8" fontFamily="'Poppins', sans-serif" fontWeight="500">
-            Long Spot
-          </text>
-        </g>
+    <div>
+      {/* ── Leg toggle panel ── */}
+      {!analysis.chartLabel && (hasSpotQty || hasLegs) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
+          {/* Net P&L always present */}
+          <button style={toggleBtnStyle(showNetPnl, accentColor || "#1A1A18")} onClick={() => setShowNetPnl(v => !v)}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
+            Net P&L
+          </button>
+          {/* Long Spot — only for strategies that hold spot */}
+          {hasSpotQty && !analysis.chartLabel && (
+            <button style={toggleBtnStyle(showLongSpot, "#8A8A88")} onClick={() => setShowLongSpot(v => !v)}>
+              <span style={{ width: 8, height: 2, background: showLongSpot ? "#8A8A88" : "#C8C7C2", display: "inline-block", borderRadius: 1, marginRight: 2 }} />
+              Long Spot
+            </button>
+          )}
+          {/* Individual legs */}
+          {(legPayoffs || []).map((leg, i) => (
+            <button key={i} style={toggleBtnStyle(legVisibility[i], leg.color)} onClick={() => toggleLeg(i)}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: legVisibility[i] ? leg.color : "#C8C7C2" }} />
+              {leg.label}
+            </button>
+          ))}
+        </div>
       )}
 
-      {/* Strategy payoff line */}
-      <path d={linePath} fill="none" stroke={accentColor || "#1A1A18"} strokeWidth="2.5"
-        strokeLinejoin="round" strokeLinecap="round" />
+      {/* ── SVG chart ── */}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: "#FDFCF7" }}>
+        <defs>
+          <linearGradient id="greenGradLight" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#16a34a" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#16a34a" stopOpacity="0.03" />
+          </linearGradient>
+          <linearGradient id="redGradLight" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#dc2626" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#dc2626" stopOpacity="0.03" />
+          </linearGradient>
+          <clipPath id="chartClip">
+            <rect x={PAD.left} y={PAD.top} width={cW} height={cH} />
+          </clipPath>
+        </defs>
 
-      {/* Spot price vertical */}
-      {spot > minPrice && spot < maxPrice && (
-        <g>
-          <line x1={scaleX(spot)} y1={PAD.top} x2={scaleX(spot)} y2={H - PAD.bottom}
-            stroke="#8A8A88" strokeWidth="1" strokeDasharray="6,4" />
-          <rect x={scaleX(spot) - 24} y={H - PAD.bottom + 26} width="48" height="18" rx="2" fill="#F5F4EF" />
-          <text x={scaleX(spot)} y={H - PAD.bottom + 38} textAnchor="middle"
-            fill="#4A4A48" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">
-            SPOT
-          </text>
-        </g>
-      )}
-
-      {/* Strike labels */}
-      {(() => {
-        if (!legs) return null;
-        const visible = legs
-          .map((leg, i) => ({ ...leg, idx: i }))
-          .filter(leg => leg.strike > minPrice && leg.strike < maxPrice)
-          .sort((a, b) => a.strike - b.strike);
-        const labelPositions = [];
-        const MIN_GAP = 55;
-        visible.forEach(leg => {
-          const x = scaleX(leg.strike);
-          let y = PAD.top - 6;
-          for (const prev of labelPositions) {
-            if (Math.abs(x - prev.x) < MIN_GAP) y = Math.min(y, prev.y - 12);
-          }
-          labelPositions.push({ x, y, leg });
-        });
-        return labelPositions.map(({ x, y, leg }) => {
-          const curveY = scaleY(
-            curve.reduce((closest, c) =>
-              Math.abs(c.price - leg.strike) < Math.abs(closest.price - leg.strike) ? c : closest
-            ).pnl
-          );
-          const fmtStrike = leg.strike >= 1e3
-            ? `$${(leg.strike / 1e3).toFixed(leg.strike >= 1e4 ? 0 : 1)}K`
-            : leg.strike < 1 && leg.strike > 0
-              ? `$${leg.strike.toFixed(4)}`
-              : `$${leg.strike.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          return (
-            <g key={`leg${leg.idx}`}>
-              <line x1={x} y1={PAD.top} x2={x} y2={H - PAD.bottom}
-                stroke={leg.color} strokeWidth="1" strokeDasharray="4,4" opacity="0.5" />
-              <circle cx={x} cy={curveY} r="4" fill={leg.color} stroke="#FFFFFF" strokeWidth="2" />
-              <text x={x} y={y} textAnchor="middle"
-                fill={leg.color} fontSize="8" fontFamily="'Montserrat', sans-serif" fontWeight="600" opacity="0.9">
-                {leg.action} {fmtStrike}
-              </text>
-            </g>
-          );
-        });
-      })()}
-
-      {breakevens && breakevens.map((be, i) => (
-        be > minPrice && be < maxPrice && (
-          <g key={`be${i}`}>
-            <circle cx={scaleX(be)} cy={zeroY} r="5" fill="none" stroke="#ca8a04" strokeWidth="2" />
-            <text x={scaleX(be)} y={zeroY - 12} textAnchor="middle" fill="#ca8a04" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">BE</text>
+        {/* Y grid */}
+        {yGridLines.map((g, i) => (
+          <g key={`yg${i}`}>
+            <line x1={PAD.left} y1={g.y} x2={W - PAD.right} y2={g.y} stroke="#E8E7E2" strokeWidth="1" />
+            <text x={PAD.left - 10} y={g.y + 4} textAnchor="end" fill="#8A8A88" fontSize="10" fontFamily="'Poppins', sans-serif">
+              {fmtAxis(g.val)}
+            </text>
           </g>
-        )
-      ))}
+        ))}
 
-      <text x={PAD.left - 10} y={12} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">P&amp;L</text>
-      <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">Price</text>
-    </svg>
+        {/* X grid */}
+        {xGridLines.map((g, i) => (
+          <g key={`xg${i}`}>
+            <line x1={g.x} y1={PAD.top} x2={g.x} y2={H - PAD.bottom} stroke="#E8E7E2" strokeWidth="1" />
+            <text x={g.x} y={H - PAD.bottom + 18} textAnchor="middle" fill="#8A8A88" fontSize="10" fontFamily="'Poppins', sans-serif">
+              {fmtPrice(g.val)}
+            </text>
+          </g>
+        ))}
+
+        {/* Zero line */}
+        {zeroY >= PAD.top && zeroY <= H - PAD.bottom && (
+          <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY}
+            stroke="#C8C7C2" strokeWidth="1" strokeDasharray="4,3" />
+        )}
+
+        {/* Fill zones (clipped) */}
+        <g clipPath="url(#chartClip)">
+          <path d={greenFill} fill="url(#greenGradLight)" />
+          <path d={redFill} fill="url(#redGradLight)" />
+        </g>
+
+        {/* Individual leg lines (clipped, behind net P&L) */}
+        <g clipPath="url(#chartClip)">
+          {legCurves.map((leg, i) =>
+            legVisibility[i] ? (
+              <path key={i} d={buildPath(leg.points)} fill="none" stroke={leg.color} strokeWidth="1.5"
+                strokeDasharray="5,3" strokeLinecap="round" opacity="0.75" />
+            ) : null
+          )}
+        </g>
+
+        {/* Long Spot reference line */}
+        {hasSpotQty && showLongSpot && !analysis.chartLabel && spotLinePath && (
+          <g clipPath="url(#chartClip)">
+            <path d={spotLinePath} fill="none" stroke="#C8C7C2" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
+          </g>
+        )}
+        {hasSpotQty && showLongSpot && !analysis.chartLabel && (() => {
+          const labelPrice = Math.min(visMax * 0.98, dataMax);
+          const labelY = scaleY((labelPrice - spot) * (spotQuantity || 1));
+          if (labelY < PAD.top || labelY > H - PAD.bottom) return null;
+          return (
+            <text x={scaleX(labelPrice) - 4} y={labelY - 6}
+              textAnchor="end" fill="#8A8A88" fontSize="8" fontFamily="'Poppins', sans-serif" fontWeight="500">
+              Long Spot
+            </text>
+          );
+        })()}
+
+        {/* Net P&L strategy line */}
+        {showNetPnl && (
+          <g clipPath="url(#chartClip)">
+            <path d={linePath} fill="none" stroke={accentColor || "#1A1A18"} strokeWidth="2.5"
+              strokeLinejoin="round" strokeLinecap="round" />
+          </g>
+        )}
+
+        {/* Entry override vertical line */}
+        {entryOverride > 0 && entryOverride >= visMin && entryOverride <= visMax && (
+          <g>
+            <line x1={scaleX(entryOverride)} y1={PAD.top} x2={scaleX(entryOverride)} y2={H - PAD.bottom}
+              stroke="#FFC32C" strokeWidth="1.5" strokeDasharray="5,4" />
+            <rect x={scaleX(entryOverride) - 22} y={H - PAD.bottom + 26} width="44" height="18" rx="2" fill="#FFF8E1" />
+            <text x={scaleX(entryOverride)} y={H - PAD.bottom + 38} textAnchor="middle"
+              fill="#7A5500" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">
+              ENTRY
+            </text>
+          </g>
+        )}
+
+        {/* Spot price vertical */}
+        {spot >= visMin && spot <= visMax && (
+          <g>
+            <line x1={scaleX(spot)} y1={PAD.top} x2={scaleX(spot)} y2={H - PAD.bottom}
+              stroke="#8A8A88" strokeWidth="1" strokeDasharray="6,4" />
+            <rect x={scaleX(spot) - 24} y={H - PAD.bottom + 26} width="48" height="18" rx="2" fill="#F5F4EF" />
+            <text x={scaleX(spot)} y={H - PAD.bottom + 38} textAnchor="middle"
+              fill="#4A4A48" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">
+              SPOT
+            </text>
+          </g>
+        )}
+
+        {/* Strike labels */}
+        {(() => {
+          if (!legs) return null;
+          const visible = legs
+            .map((leg, i) => ({ ...leg, idx: i }))
+            .filter(leg => leg.strike >= visMin && leg.strike <= visMax)
+            .sort((a, b) => a.strike - b.strike);
+          const labelPositions = [];
+          const MIN_GAP = 55;
+          visible.forEach(leg => {
+            const x = scaleX(leg.strike);
+            let y = PAD.top - 6;
+            for (const prev of labelPositions) {
+              if (Math.abs(x - prev.x) < MIN_GAP) y = Math.min(y, prev.y - 12);
+            }
+            labelPositions.push({ x, y, leg });
+          });
+          return labelPositions.map(({ x, y, leg }) => {
+            const nearPt = netPnlPoints.reduce((closest, c) =>
+              Math.abs(c.price - leg.strike) < Math.abs(closest.price - leg.strike) ? c : closest
+            );
+            const curveY = showNetPnl ? scaleY(nearPt.pnl) : zeroY;
+            return (
+              <g key={`leg${leg.idx}`}>
+                <line x1={x} y1={PAD.top} x2={x} y2={H - PAD.bottom}
+                  stroke={leg.color} strokeWidth="1" strokeDasharray="4,4" opacity="0.5" />
+                <circle cx={x} cy={curveY} r="4" fill={leg.color} stroke="#FFFFFF" strokeWidth="2" />
+                <text x={x} y={y} textAnchor="middle"
+                  fill={leg.color} fontSize="8" fontFamily="'Montserrat', sans-serif" fontWeight="600" opacity="0.9">
+                  {leg.action} {fmtStrike(leg.strike)}
+                </text>
+              </g>
+            );
+          });
+        })()}
+
+        {/* Breakeven dots */}
+        {visBreakevens.map((be, i) => (
+          be >= visMin && be <= visMax && (
+            <g key={`be${i}`}>
+              <circle cx={scaleX(be)} cy={zeroY} r="5" fill="none" stroke="#ca8a04" strokeWidth="2" />
+              <text x={scaleX(be)} y={zeroY - 12} textAnchor="middle" fill="#ca8a04" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">BE</text>
+            </g>
+          )
+        ))}
+
+        <text x={PAD.left - 10} y={12} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">P&amp;L</text>
+        <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">Price</text>
+      </svg>
+
+      {/* ── Zoom / axis controls ── */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 10, padding: "8px 4px 0", borderTop: "0.5px solid #E8E7E2" }}>
+        {/* X range slider */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+            Range ±{xPctRange}%
+          </span>
+          <input type="range" min={5} max={80} step={5} value={xPctRange}
+            onChange={e => setXPctRange(Number(e.target.value))}
+            style={{ width: 100, accentColor: "#FFC32C", cursor: "pointer" }} />
+        </div>
+        {/* X increment input */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+            X Increment
+          </span>
+          <input type="number" placeholder="auto" value={xIncrement}
+            onChange={e => setXIncrement(e.target.value)}
+            style={inputStyle} />
+        </div>
+        {/* Fit Y button */}
+        <button
+          onClick={() => setFitY(v => !v)}
+          style={{
+            padding: "4px 10px", borderRadius: 4, cursor: "pointer",
+            fontFamily: "'Poppins',sans-serif", fontSize: 10, fontWeight: 500,
+            border: `1px solid ${fitY ? "#FFC32C" : "#E8E7E2"}`,
+            background: fitY ? "rgba(255,195,44,0.1)" : "transparent",
+            color: fitY ? "#7A5500" : "#8A8A88",
+          }}
+        >
+          Fit Y to view
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -426,6 +635,12 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
     return `<p style="margin-bottom:12px">${raw.replace(/\n\n/g, `</p><p style="margin-bottom:12px">`).replace(/\n/g, "<br/>")}</p>`;
   });
   const [execHover, setExecHover] = useState(false);
+  const [entryOverrideInput, setEntryOverrideInput] = useState("");
+
+  const entryOverride = (() => {
+    const v = parseFloat(String(entryOverrideInput).replace(/[$,\s]/g, ""));
+    return isFinite(v) && v > 0 ? v : 0;
+  })();
 
   const handleExecBlur = useCallback(() => {
     if (editorRef.current) setExecHtml(editorRef.current.innerHTML);
@@ -585,8 +800,38 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               )}
             </div>
           </div>
+          {/* Entry override input row */}
+          {(analysis.spotQuantity || 0) > 0 && (
+            <div className="noprint" style={{ padding: "8px 20px", borderBottom: `0.5px solid ${THEME.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted }}>
+                Entry / Buy Price Override
+              </span>
+              <input
+                type="text"
+                placeholder={`Default: spot price`}
+                value={entryOverrideInput}
+                onChange={e => setEntryOverrideInput(e.target.value)}
+                style={{
+                  border: `1px solid ${entryOverride > 0 ? "#FFC32C" : THEME.border}`,
+                  borderRadius: 4, padding: "4px 10px",
+                  fontFamily: "'Poppins',sans-serif", fontSize: 11, color: THEME.text,
+                  background: entryOverride > 0 ? "#FFFBEB" : THEME.bg, width: 140, outline: "none",
+                }}
+              />
+              {entryOverride > 0 && (
+                <>
+                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#7A5500" }}>
+                    P&L shifted by{" "}
+                    {(analysis.spot - entryOverride) * (analysis.spotQuantity || 1) >= 0 ? "+" : ""}
+                    {((analysis.spot - entryOverride) * (analysis.spotQuantity || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                  <button onClick={() => setEntryOverrideInput("")} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted, fontSize: 11, padding: "2px 4px", fontFamily: "'Poppins',sans-serif" }}>✕ Clear</button>
+                </>
+              )}
+            </div>
+          )}
           <div style={{ padding: "20px 20px 12px" }}>
-            <PayoffChart analysis={analysis} accentColor={trade.color} />
+            <PayoffChart analysis={analysis} accentColor={trade.color} entryOverride={entryOverride} />
           </div>
           {analysis.zones && analysis.zones.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0 20px 16px", gap: 8 }}>

@@ -215,7 +215,7 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
         : kc2 + (spot - kc1) - netPremPerUnit;
       const maxLossTotal = Math.abs((kp - spot) * notional + netPremTotal);
       const beAboveSpot = breakeven > spot;
-      return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} generates ${isCredit ? "net premium income" : "partially offsets the net debit"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
+      return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} ${isCredit ? "generates net premium income" : "partially offsets the net debit cost"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
     }
 
     default:
@@ -377,6 +377,8 @@ function computeReverseCashCarry(f) {
     curve,
     spot: spotPrice,
     breakevens: [liqPrice],
+    spotQuantity: 0,
+    legPayoffs: [],
     metrics: [
       { label: "Portfolio Value", value: fmt(portfolio), sub: `${units.toLocaleString()} ${f.asset || "units"}` },
       { label: "Cash Released", value: fmt(cashReleased), sub: `${cashPct}% unlocked`, positive: true },
@@ -438,6 +440,11 @@ function computeCoveredCall(f) {
     costBasis: cost,
     currentNotional,
     pnlAtPrice,
+    spotQuantity: holdings,
+    legPayoffs: [
+      { label: "Long Spot", color: "#00C2FF", fn: (p) => (p - cost) * holdings },
+      { label: "Short Call", color: "#ef4444", fn: (p) => -Math.max(0, p - strike) * holdings },
+    ],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Strike Price", value: fmtFull(strike), sub: `${otmPct}% OTM` },
@@ -630,6 +637,13 @@ function computeWheel(f) {
     costBasis,
     currentNotional,
     pnlAtPrice,
+    spotQuantity: isSellingCalls ? holdings : 0,
+    legPayoffs: isSellingCalls ? [
+      { label: "Long Spot", color: "#00C2FF", fn: (p) => (p - costBasis) * holdings },
+      { label: "Short Call", color: "#34D399", fn: (p) => -Math.max(0, p - currentStrike) * holdings },
+    ] : [
+      { label: "Short Put", color: "#34D399", fn: (p) => -Math.max(0, currentStrike - p) * holdings },
+    ],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: `${f.asset || "—"} · ${holdings} unit${holdings !== 1 ? "s" : ""}` },
       { label: "Phase", value: f.current_phase || "—", sub: `Cycle ${cycles}` },
@@ -667,12 +681,14 @@ function computeCollar(f) {
   const minP = putStrike * 0.85;
   const maxP = callStrike * 1.15;
 
-  const curve = buildCurve(minP, maxP, (p) => {
+  const pnlAtPrice = (p) => {
     let pnl = (p - cost - netCost) * holdings;
     if (p < putStrike) pnl = (putStrike - cost - netCost) * holdings;
     if (p > callStrike) pnl = (callStrike - cost - netCost) * holdings;
     return pnl;
-  });
+  };
+
+  const curve = buildCurve(minP, maxP, pnlAtPrice);
 
   const maxProfit = (callStrike - cost - netCost) * holdings;
 
@@ -680,6 +696,13 @@ function computeCollar(f) {
     curve, spot: price, breakevens: [cost + netCost],
     tradeType: "collar",
     costBasis: cost,
+    pnlAtPrice,
+    spotQuantity: holdings,
+    legPayoffs: [
+      { label: "Long Spot", color: "#00C2FF", fn: (p) => (p - cost) * holdings },
+      { label: "Long Put",  color: "#F472B6", fn: (p) => Math.max(0, putStrike - p) * holdings },
+      { label: "Short Call", color: "#ef4444", fn: (p) => -Math.max(0, p - callStrike) * holdings },
+    ],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Protected Floor", value: fmtFull(putStrike), sub: `${holdings} units` },
@@ -760,6 +783,13 @@ function computeCallSpreadCollar(f) {
     spotPnlAtPrice,
     deltaAtPrice,
     netPremPerUnit,
+    spotQuantity: notional,
+    legPayoffs: [
+      { label: "Long Spot",  color: "#00C2FF", fn: (p) => (p - spot) * notional },
+      { label: "Long Put",   color: "#4ADE80", fn: (p) => Math.max(0, kp - p) * notional },
+      { label: "Short Call", color: "#ef4444", fn: (p) => -Math.max(0, p - kc1) * notional },
+      { label: "Long Call",  color: "#F97316", fn: (p) => Math.max(0, p - kc2) * notional },
+    ],
     // Strike levels exposed for scenario table rendering
     kp, kc1, kc2, notional,
     metrics: [
@@ -799,7 +829,7 @@ function computeEarningsPlay(f) {
   const maxP = price * 1.25;
 
   const posType = f.position_type || "Short Put";
-  const curve = buildCurve(minP, maxP, (p) => {
+  const pnlAtPrice = (p) => {
     switch (posType) {
       case "Short Put":
         if (p >= strike) return premCollected;
@@ -816,12 +846,23 @@ function computeEarningsPlay(f) {
       default:
         return 0;
     }
-  });
+  };
+  const curve = buildCurve(minP, maxP, pnlAtPrice);
 
   const cushion = price > 0 ? ((premCollected / price) * 100).toFixed(1) : "0";
 
   return {
     curve, spot: price, breakevens: [strike - premCollected],
+    pnlAtPrice,
+    spotQuantity: posType === "Covered Call" ? 1 : 0,
+    legPayoffs: posType === "Covered Call" ? [
+      { label: "Long Spot",  color: "#00C2FF", fn: (p) => p - price },
+      { label: "Short Call", color: "#ef4444", fn: (p) => -Math.max(0, p - strike) },
+    ] : posType === "Short Put" ? [
+      { label: "Short Put", color: "#A78BFA", fn: (p) => -Math.max(0, strike - p) },
+    ] : posType === "Long Call" ? [
+      { label: "Long Call", color: "#4ADE80", fn: (p) => Math.max(0, p - strike) },
+    ] : [],
     metrics: [
       { label: "Current Price", value: fmtFull(price), sub: f.asset || "—" },
       { label: "Expected Move", value: `±${move}%`, sub: `${fmtFull(downTarget.toFixed(0))} – ${fmtFull(upTarget.toFixed(0))}` },

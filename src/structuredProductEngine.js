@@ -284,6 +284,13 @@ export function analyzeStructuredProduct(def) {
   const legs = def.buildLegs ? def.buildLegs() : [];
   const zones = def.buildZones ? def.buildZones({ breakevens, extrema }) : [];
 
+  // Per-leg payoff functions (intrinsic only, no premium attribution)
+  const legPayoffs = def.legs.map(leg => ({
+    label: `${leg.side === "long" ? "Long" : "Short"} ${leg.type.charAt(0).toUpperCase() + leg.type.slice(1)}`,
+    color: leg.side === "long" ? "#4ADE80" : "#ef4444",
+    fn: (p) => payoffForLeg(leg, p) * contracts,
+  }));
+
   return {
     curve,
     spot: def.spot,
@@ -296,6 +303,8 @@ export function analyzeStructuredProduct(def) {
     maxProfitBounded: extrema.maxProfitBounded,
     maxLossBounded: extrema.maxLossBounded,
     returnDenominator: returnDenom,
+    spotQuantity: def.spotQuantity || 0,
+    legPayoffs,
     metrics,
     legs,
     zones,

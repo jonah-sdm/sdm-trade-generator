@@ -175,11 +175,22 @@ export default function PayoffChart({ strategy, fields }) {
     return `$${v}`;
   };
 
-  // Long spot reference polyline
-  const spotRefPts = xs.map((x) => {
-    const sy = zeroPx - (x - spot) * 0.35 * (chartH / range);
+  // Long spot reference polyline — slope = spotQuantity (units held), P&L = (x - spot) * qty
+  const spotQuantity = (() => {
+    switch (strategy) {
+      case "covered_call":  return n(fields.holdings) || 10;
+      case "collar":        return n(fields.holdings) || 50;
+      case "wheel":         return (fields.current_phase || "").includes("Call") ? (n(fields.holdings) || 1) : 0;
+      case "call_spread_collar": return n(fields.notional) || 1;
+      case "earnings_play": return (fields.position_type || "") === "Covered Call" ? 1 : 0;
+      default: return 0;
+    }
+  })();
+  const spotRefPts = spotQuantity > 0 ? xs.map((x) => {
+    const rawPnl = (x - spot) * spotQuantity;
+    const sy = yp(rawPnl);
     return `${xp(x).toFixed(1)},${Math.max(PT, Math.min(PT + chartH, sy)).toFixed(1)}`;
-  }).join(" ");
+  }).join(" ") : null;
 
   // Fill polygons (profit/loss areas)
   function buildPolygons(positive) {
@@ -346,7 +357,7 @@ export default function PayoffChart({ strategy, fields }) {
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
 
           {/* Long spot reference */}
-          {strategy !== "reverse_cash_carry" && (
+          {spotRefPts && (
             <>
               <polyline points={spotRefPts} stroke="rgba(140,140,140,0.3)" strokeWidth="1" strokeDasharray="5,4" fill="none" />
               <text x={W - PR - 2} y={PT + 10} fontSize="9" fill="rgba(128,128,128,0.4)" textAnchor="end">Long spot</text>
