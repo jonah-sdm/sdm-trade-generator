@@ -618,6 +618,91 @@ function handleShare(platform, trade, analysis) {
 const sectionLabel = { fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600 };
 const sectionTitle = { fontFamily: "'Montserrat',sans-serif", fontWeight: 700, fontSize: 16, color: "#1A1A18" };
 
+// ─── SCENARIO PRESET HELPERS ───
+function getPresetOptions(tradeType) {
+  const base = [
+    { value: "key_levels", label: "Key Levels" },
+    { value: "standard",   label: "± Moves"   },
+  ];
+  const third = {
+    covered_call:       { value: "upside_focus",  label: "Upside Focus"  },
+    collar:             { value: "collar_range",  label: "Collar Range"  },
+    call_spread:        { value: "spread_range",  label: "Spread Range"  },
+    put_spread:         { value: "spread_range",  label: "Spread Range"  },
+    straddle:           { value: "expected_move", label: "Expected Move" },
+    strangle:           { value: "expected_move", label: "Expected Move" },
+    call_spread_collar: { value: "full_range",    label: "Full Range"    },
+    earnings_play:      { value: "event_range",   label: "Event Range"   },
+  };
+  return third[tradeType] ? [...base, third[tradeType]] : base;
+}
+
+function getScenarioPrices(preset, spot, analysis, fieldValues) {
+  const legs = analysis.legs || [];
+  const strikes = legs.map(l => l.strike).filter(Boolean);
+  const breakevens = analysis.breakevens || [];
+  const tt = analysis.tradeType;
+  const pct = (m) => Math.round(spot * m * 100) / 100;
+
+  if (preset === "standard") {
+    return [pct(0.7), pct(0.8), pct(0.9), spot, pct(1.1), pct(1.2), pct(1.3)];
+  }
+
+  if (preset === "key_levels") {
+    const keySet = new Set([spot, ...strikes, ...breakevens]);
+    const sorted = [...keySet].sort((a, b) => a - b);
+    const lo = sorted[0], hi = sorted[sorted.length - 1];
+    const pad = Math.max((hi - lo) * 0.15, spot * 0.05);
+    keySet.add(Math.round(lo - pad));
+    keySet.add(Math.round(hi + pad));
+    return [...keySet].filter(p => p > 0).sort((a, b) => a - b);
+  }
+
+  switch (preset) {
+    case "upside_focus": {
+      const strike = strikes[0] || pct(1.1);
+      const cb = analysis.costBasis || spot * 0.95;
+      const be = breakevens[0] || (cb + strike) / 2;
+      return [cb * 0.92, cb, be, spot, (spot + strike) / 2, strike, strike * 1.08, strike * 1.15].map(Math.round);
+    }
+    case "collar_range": {
+      const floor = strikes.find(s => s < spot) || pct(0.9);
+      const cap   = strikes.find(s => s > spot) || pct(1.1);
+      const step  = (cap - floor) / 4;
+      return [floor * 0.9, floor, floor + step, floor + 2 * step, floor + 3 * step, cap, cap * 1.08].map(Math.round);
+    }
+    case "spread_range": {
+      if (tt === "put_spread") {
+        const longK  = Math.max(...strikes);
+        const shortK = Math.min(...strikes);
+        const mid    = (longK + shortK) / 2;
+        return [shortK * 0.9, shortK, mid, longK, (longK + spot) / 2, spot].map(Math.round);
+      }
+      const longK  = Math.min(...strikes);
+      const shortK = Math.max(...strikes);
+      const mid    = (longK + shortK) / 2;
+      return [spot, (spot + longK) / 2, longK, mid, shortK, shortK * 1.08].map(Math.round);
+    }
+    case "expected_move": {
+      const ivPct = parseFloat(String(fieldValues.iv || "").replace(/%/g, "")) / 100 || 0.15;
+      return [pct(1 - ivPct * 2), pct(1 - ivPct), spot, pct(1 + ivPct), pct(1 + ivPct * 2)].map(Math.round);
+    }
+    case "full_range": {
+      const sorted = [...strikes].sort((a, b) => a - b);
+      const lo = sorted[0] || pct(0.85), hi = sorted[sorted.length - 1] || pct(1.15);
+      const pad = (hi - lo) * 0.12;
+      const mid = (lo + hi) / 2;
+      return [lo - pad, lo, (lo + mid) / 2, spot, mid, hi, hi + pad].map(Math.round);
+    }
+    case "event_range": {
+      const movePct = parseFloat(fieldValues.expected_move_pct || "15") / 100;
+      return [pct(1 - movePct * 2), pct(1 - movePct), pct(1 - movePct * 0.5), spot, pct(1 + movePct * 0.5), pct(1 + movePct), pct(1 + movePct * 2)].map(Math.round);
+    }
+    default:
+      return [pct(0.7), pct(0.8), pct(0.9), spot, pct(1.1), pct(1.2), pct(1.3)];
+  }
+}
+
 // ─── MAIN REPORT ───
 export default function TradeReport({ trade, fieldValues, loanComponent, onBack, onReset }) {
   const reportRef = useRef(null);
@@ -636,6 +721,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
   });
   const [execHover, setExecHover] = useState(false);
   const [entryOverrideInput, setEntryOverrideInput] = useState("");
+  const [scenarioPreset, setScenarioPreset] = useState("key_levels");
+  useEffect(() => { setScenarioPreset("key_levels"); }, [trade.id]);
 
   const entryOverride = (() => {
     const v = parseFloat(String(entryOverrideInput).replace(/[$,\s]/g, ""));
@@ -969,33 +1056,26 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
         })()}
 
         {/* ── SCENARIO ANALYSIS TABLE ── */}
-        {analysis.curve && analysis.curve.length > 0 && analysis.tradeType !== "call_spread_collar" && (() => {
+        {analysis.curve && analysis.curve.length > 0 && (() => {
           const spot = analysis.spot || 0;
           const curve = analysis.curve;
           const prices = curve.map(c => c.price);
           const minP = Math.min(...prices);
           const maxP = Math.max(...prices);
           const range = maxP - minP;
-          // Pick structured scenario prices: key levels + percentage moves from spot
-          const scenarioPrices = new Set();
-          // Key levels: spot, breakevens, strike (if applicable)
-          if (spot > 0) scenarioPrices.add(spot);
-          (analysis.breakevens || []).forEach(b => { if (b > minP && b < maxP) scenarioPrices.add(b); });
-          // Add strike levels from legs
-          (analysis.legs || []).forEach(leg => {
-            if (leg.strike && leg.strike > minP && leg.strike < maxP && leg.strike !== spot) {
-              scenarioPrices.add(leg.strike);
-            }
-          });
-          // Structured percentage moves from spot: ±10%, ±20%, ±30%
-          if (spot > 0) {
-            [0.7, 0.8, 0.9, 1.1, 1.2, 1.3].forEach(mult => {
-              const p = Math.round(spot * mult);
-              if (p > minP && p < maxP) scenarioPrices.add(p);
-            });
+          const tt = analysis.tradeType;
+
+          // Generate rows via preset helper; filter to chart bounds and deduplicate
+          const rawPrices = getScenarioPrices(scenarioPreset, spot, analysis, fieldValues);
+          const sorted = [...new Set(rawPrices)]
+            .filter(p => p > 0 && p >= minP * 0.99 && p <= maxP * 1.01)
+            .sort((a, b) => a - b)
+            .slice(0, 10);
+          // Always ensure spot is included
+          if (spot > 0 && !sorted.some(p => Math.abs(p - spot) < range * 0.005)) {
+            sorted.push(spot);
+            sorted.sort((a, b) => a - b);
           }
-          // Sort and limit to ~8-9 rows
-          const sorted = [...scenarioPrices].sort((a, b) => a - b).slice(0, 9);
 
           // Use analytical pnlAtPrice if available (exact), else interpolate from curve
           const findPnl = analysis.pnlAtPrice ? analysis.pnlAtPrice : (price) => {
@@ -1010,7 +1090,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             return 0;
           };
 
-          // Format price — show decimals if value is not a whole number (e.g. breakeven)
+          // Format helpers
           const fmtP = (v) => {
             const hasDecimals = Math.abs(v - Math.round(v)) > 0.001;
             if (v >= 1000) return `$${v.toLocaleString(undefined, { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: hasDecimals ? 2 : 0 })}`;
@@ -1021,25 +1101,44 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           const fmtPct = (v) => v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 
           // Categorise strategy type for dynamic column logic
-          const DOWNSIDE_STRATEGIES = ["collar", "cash_secured_put", "put_spread", "long_seagull"];
+          const DOWNSIDE_STRATEGIES = ["collar", "cash_secured_put", "put_spread", "long_seagull", "call_spread_collar"];
           const YIELD_STRATEGIES = ["covered_call", "call_spread"];
-          const tt = analysis.tradeType;
           const isDownside = DOWNSIDE_STRATEGIES.includes(tt);
           const isYield = YIELD_STRATEGIES.includes(tt);
           const hasComparisonCol = isDownside || isYield;
           const comparisonColLabel = isDownside ? "Loss Prevention" : "Strategy vs Spot";
 
-          const costBasis = analysis.costBasis || 0;
-          const holdings = parseFloat(fieldValues.holdings) || 10;
-          // Use currentNotional from analysis if available, else compute from spot * holdings
-          const currentNotional = analysis.currentNotional || (spot * holdings);
+          const costBasis = analysis.costBasis || spot;
+          const holdings = parseFloat(fieldValues.holdings) || parseFloat(fieldValues.notional) || parseFloat(fieldValues.contracts) || 1;
+          const spotQuantity = analysis.spotQuantity != null ? analysis.spotQuantity : holdings;
+          const currentNotional = analysis.currentNotional || (spot * spotQuantity);
 
+          const presetOpts = getPresetOptions(tt);
           const thStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: hasComparisonCol ? 7 : 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
           const tdStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: hasComparisonCol ? 11 : 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
 
           return (
             <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
-              <div style={{ padding: "14px 20px", borderBottom: `0.5px solid ${THEME.border}`, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>Scenario Analysis — P&L at Expiry</div>
+              {/* Header row with title + preset pills */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: `0.5px solid ${THEME.border}` }}>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>Scenario Analysis — P&L at Expiry</span>
+                <div className="noprint" style={{ display: "flex", gap: 4 }}>
+                  {presetOpts.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setScenarioPreset(opt.value)}
+                      style={{
+                        padding: "3px 10px", borderRadius: 20,
+                        fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em",
+                        border: scenarioPreset === opt.value ? "none" : `0.5px solid ${THEME.border}`,
+                        background: scenarioPreset === opt.value ? "#1A1A18" : "transparent",
+                        color: scenarioPreset === opt.value ? "#fff" : THEME.textMuted,
+                        cursor: "pointer", transition: "all 0.15s",
+                      }}
+                    >{opt.label}</button>
+                  ))}
+                </div>
+              </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
@@ -1057,33 +1156,33 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                     const pnl = findPnl(price);
                     const moveVsSpot = spot > 0 ? ((price - spot) / spot) * 100 : 0;
                     const notionalReturn = currentNotional > 0 ? (pnl / currentNotional) * 100 : 0;
-                    const isSpot = spot > 0 && Math.abs(price - spot) < range * 0.005;
-                    const isBe = (analysis.breakevens || []).some(b => Math.abs(price - b) < range * 0.005);
+                    const isSpot = spot > 0 && Math.abs(price - spot) < Math.max(range * 0.005, 0.01);
+                    const isBe = (analysis.breakevens || []).some(b => Math.abs(price - b) < Math.max(range * 0.005, 0.01));
 
-                    // Spot-only P&L: what you'd get just holding spot without the strategy
-                    const spotOnlyPnl = hasComparisonCol ? (price - costBasis) * holdings : 0;
-                    // Difference: strategy vs spot
+                    // Spot-only P&L: what you'd get from raw spot exposure without the strategy overlay
+                    const spotOnlyPnl = hasComparisonCol ? (price - costBasis) * spotQuantity : 0;
                     const diff = pnl - spotOnlyPnl;
 
-                    // Dynamic comparison value and sub-label
                     let comparisonValue = 0;
                     let comparisonSubLabel = "";
                     if (isDownside) {
-                      // Downside protection: positive diff = strategy saved you money (Loss Prevention)
-                      // negative diff = hedge cost / premium drag
                       comparisonValue = diff;
-                      comparisonSubLabel = diff > 0 ? "" : diff < 0 ? "Hedge Cost" : "";
+                      comparisonSubLabel = diff > 0 ? "Hedge Saving" : diff < 0 ? "Hedge Cost" : "";
                     } else if (isYield) {
-                      // Yield/capped: when spot outperforms strategy, show missed upside as opportunity cost (negative)
-                      // when strategy outperforms spot (flat/down, premium collected), show as Premium Gain (positive)
                       comparisonValue = diff;
                       comparisonSubLabel = diff < 0 ? "Foregone Upside" : diff > 0 ? "Premium Gain" : "";
                     }
 
-                    // Outcome label — institutional language
+                    // Outcome labels
                     let outcome = "Neutral";
                     if (isBe) {
                       outcome = "Breakeven";
+                    } else if (tt === "call_spread_collar") {
+                      const kp = analysis.kp, kc1 = analysis.kc1, kc2 = analysis.kc2;
+                      if (kp && price < kp) outcome = "Put floor active";
+                      else if (kc1 && kc2 && price >= kc1 && price <= kc2) outcome = "Soft cap zone";
+                      else if (kc2 && price > kc2) outcome = "Re-participation zone";
+                      else outcome = "Active range";
                     } else if (isDownside) {
                       if (pnl > 0) outcome = "Positive carry";
                       else if (pnl < 0 && diff > 0) outcome = "Hedge active — loss mitigated";
@@ -1095,7 +1194,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                       else if (pnl < 0) outcome = moveVsSpot < -15 ? "Net loss region" : "Carry offsets partial loss";
                       else outcome = "Neutral";
                     } else {
-                      outcome = isBe ? "Breakeven" : pnl > 0 ? "Positive carry" : pnl < 0 ? (moveVsSpot < -15 ? "Net loss region" : "Net loss") : "Neutral";
+                      outcome = pnl > 0 ? "Positive carry" : pnl < 0 ? (moveVsSpot < -15 ? "Net loss region" : "Net loss") : "Neutral";
                     }
 
                     return (
