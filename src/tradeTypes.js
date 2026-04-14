@@ -213,7 +213,7 @@ export const TRADE_TYPES = [
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "long_strike", label: "Long Strike", type: "number", placeholder: "84000" },
       { key: "short_strike", label: "Short Strike", type: "number", placeholder: "92000" },
-      { key: "premium", label: "Net Premium (negative = debit)", type: "number", placeholder: "-1450" },
+      { key: "premium", labelFn: (vals) => vals.direction === "Long" ? "Net Premium (Cost)" : "Net Premium (Income)", type: "number", placeholder: "-1450" },
       { key: "expiry", label: "Expiry", type: "text", placeholder: "28 Apr 2025" },
       { key: "iv", label: "IV", type: "text", placeholder: "62%" },
       { key: "delta", label: "Delta", type: "number", placeholder: "0.28" },

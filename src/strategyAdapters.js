@@ -137,6 +137,14 @@ export function adaptCallSpread(f) {
         { type: "call", side: "long", strike: longK },
       ];
 
+  const spreadWidth = shortK - longK;
+  // Analytical max P&L — bypass findExtrema which may miss strikes outside chartBounds
+  const analyticalMaxProfit = isLong ? spreadWidth + premium : premium;
+  const analyticalMaxLoss = isLong ? premium : premium - spreadWidth;
+
+  const chartMin = Math.min(spot, longK, shortK) * 0.85;
+  const chartMax = Math.max(spot, longK, shortK) * 1.15;
+
   return {
     strategyId: "call_spread",
     tradeType: "call_spread",
@@ -145,13 +153,13 @@ export function adaptCallSpread(f) {
     netPremium: premium,
     contracts: 1,
     returnBasis: "net_premium",
-    chartBounds: { min: spot * 0.74, max: spot * 1.26 },
-    buildMetrics: ({ breakevens, extrema }) => [
+    chartBounds: { min: chartMin, max: chartMax },
+    buildMetrics: ({ breakevens }) => [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
       { label: dir + " Call Spread", value: `${fmt(longK)} / ${fmt(shortK)}` },
       { label: "Expiry", value: f.expiry || "—", sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
-      { label: "Max Gain", value: fmt(extrema.maxProfit), sub: isLong ? `Above ${fmt(shortK)}` : "Premium income", positive: true },
-      { label: "Max Loss", value: fmt(Math.abs(extrema.maxLoss)), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(longK)}`, negative: true },
+      { label: isLong ? "Max Payout" : "Max Gain", value: fmt(analyticalMaxProfit), sub: isLong ? `Above ${fmt(shortK)}` : "Premium income", positive: true },
+      { label: "Max Loss", value: fmt(Math.abs(analyticalMaxLoss)), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(longK)}`, negative: true },
       { label: "Breakeven", value: breakevens.length > 0 ? fmt(breakevens[0]) : "—" },
     ],
     buildLegs: () => isLong

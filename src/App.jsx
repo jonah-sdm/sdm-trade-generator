@@ -225,7 +225,7 @@ function RichTextFieldToolbar() {
   );
 }
 
-function FieldInput({ field, value, onChange }) {
+function FieldInput({ field, value, onChange, allValues = {} }) {
   const editorRef = useRef(null);
 
   const inputStyle = {
@@ -244,7 +244,7 @@ function FieldInput({ field, value, onChange }) {
   if (field.type === "textarea") {
     return (
       <div className="field-group field-group-wide">
-        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
+        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.labelFn ? field.labelFn(allValues) : field.label}</label>
         <RichTextFieldToolbar />
         <div
           ref={editorRef}
@@ -263,7 +263,7 @@ function FieldInput({ field, value, onChange }) {
   if (field.type === "select") {
     return (
       <div className="field-group">
-        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
+        <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.labelFn ? field.labelFn(allValues) : field.label}</label>
         <select
           style={{ ...inputStyle, appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
           value={value || ""}
@@ -2909,7 +2909,7 @@ export default function App() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
               {selectedTrade.fields.map(field => (
-                <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} />
+                <FieldInput key={field.key} field={field} value={fieldValues[field.key] || ""} onChange={handleFieldChange} allValues={fieldValues} />
               ))}
             </div>
 
@@ -3014,7 +3014,7 @@ export default function App() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
               {selectedTrade.fields.map(field => (
-                <FieldInput key={field.key} field={field} value={fieldValues[field.key]} onChange={handleFieldChange} />
+                <FieldInput key={field.key} field={field} value={fieldValues[field.key]} onChange={handleFieldChange} allValues={fieldValues} />
               ))}
             </div>
             {(fieldValues.spot || fieldValues.current_price || fieldValues.spot_price) && (
