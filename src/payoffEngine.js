@@ -215,7 +215,7 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
         : kc2 + (spot - kc1) - netPremPerUnit;
       const maxLossTotal = Math.abs((kp - spot) * notional + netPremTotal);
       const beAboveSpot = breakeven > spot;
-      return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} generates ${isCredit ? "net premium income" : "partially offsets the net debit"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
+      return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} ${isCredit ? "generates net premium income" : "partially offsets the net debit cost"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
     }
 
     default:
