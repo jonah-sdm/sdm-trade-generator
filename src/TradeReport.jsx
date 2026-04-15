@@ -103,9 +103,11 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
+  // Long BTC reference: use actual spot qty if held, else 1 BTC for reference
+  const longSpotQty = (spotQuantity || 0) > 0 ? spotQuantity : 1;
   const longSpotPoints = visXs.map(x => ({
     price: x,
-    pnl: (x - spot) * (spotQuantity || 1),
+    pnl: (x - spot) * longSpotQty,
   }));
 
   // Per-leg curves
@@ -117,6 +119,7 @@ function PayoffChart({ analysis, accentColor }) {
   // ── Y range ────────────────────────────────────────────────────────────
   const allVisiblePnls = [
     ...(showNetPnl ? netPnlPoints.map(p => p.pnl) : []),
+    // Only include longSpot in Y-scaling when strategy actually holds spot (avoid compressing pure options charts)
     ...(showLongSpot && hasSpotQty ? longSpotPoints.map(p => p.pnl) : []),
     ...legCurves.filter((_, i) => legVisibility[i]).flatMap(l => l.points.map(p => p.pnl)),
     0,
@@ -169,7 +172,7 @@ function PayoffChart({ analysis, accentColor }) {
   ).join(" ");
 
   const linePath = buildPath(netPnlPoints);
-  const spotLinePath = hasSpotQty ? buildPath(longSpotPoints) : "";
+  const spotLinePath = buildPath(longSpotPoints);
 
   // ── Fill areas (net P&L only) ──────────────────────────────────────────
   const buildFillPath = (filterFn) => {
@@ -267,11 +270,11 @@ function PayoffChart({ analysis, accentColor }) {
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
             Net P&L
           </button>
-          {/* Long Spot — only for strategies that hold spot */}
-          {hasSpotQty && !analysis.chartLabel && (
+          {/* Long BTC P&L reference — always shown */}
+          {!analysis.chartLabel && (
             <button style={toggleBtnStyle(showLongSpot, "#8A8A88")} onClick={() => setShowLongSpot(v => !v)}>
               <span style={{ width: 8, height: 2, background: showLongSpot ? "#8A8A88" : "#C8C7C2", display: "inline-block", borderRadius: 1, marginRight: 2 }} />
-              Long Spot
+              Long BTC P&L
             </button>
           )}
           {/* Individual legs */}
@@ -342,20 +345,20 @@ function PayoffChart({ analysis, accentColor }) {
           )}
         </g>
 
-        {/* Long Spot reference line */}
-        {hasSpotQty && showLongSpot && !analysis.chartLabel && spotLinePath && (
+        {/* Long BTC P&L reference line — always available */}
+        {showLongSpot && !analysis.chartLabel && spotLinePath && (
           <g clipPath="url(#chartClip)">
             <path d={spotLinePath} fill="none" stroke="#C8C7C2" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
           </g>
         )}
-        {hasSpotQty && showLongSpot && !analysis.chartLabel && (() => {
+        {showLongSpot && !analysis.chartLabel && (() => {
           const labelPrice = Math.min(visMax * 0.98, dataMax);
           const labelY = scaleY((labelPrice - spot) * (spotQuantity || 1));
           if (labelY < PAD.top || labelY > H - PAD.bottom) return null;
           return (
             <text x={scaleX(labelPrice) - 4} y={labelY - 6}
               textAnchor="end" fill="#8A8A88" fontSize="8" fontFamily="'Poppins', sans-serif" fontWeight="500">
-              Long Spot
+              Long BTC P&L
             </text>
           );
         })()}
