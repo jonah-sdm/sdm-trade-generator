@@ -64,13 +64,16 @@ function PayoffChart({ analysis, accentColor, entryOverride }) {
   const [xPctRange, setXPctRange] = useState(defaultPctRange);
   const [xIncrement, setXIncrementRaw] = useState("");
   const [fitY, setFitY] = useState(false);
+  const [xStartInput, setXStartInput] = useState("");
 
   const setXIncrement = (v) => setXIncrementRaw(v);
 
-  // Compute visible price range (centred on spot, ±xPctRange%)
+  // Compute visible price range (centred on spot, ±xPctRange%; optionally pin left edge)
   const effectiveSpot = (entryOverride > 0 ? entryOverride : 0) || spot || (dataMin + dataMax) / 2;
   const halfRange = effectiveSpot * (xPctRange / 100);
-  const visMin = Math.max(effectiveSpot - halfRange, dataMin * 0.5);
+  const xStartNum = parseFloat(String(xStartInput).replace(/[$,\s]/g, ""));
+  const xStartValid = isFinite(xStartNum) && xStartNum > 0 && xStartNum < effectiveSpot;
+  const visMin = xStartValid ? xStartNum : Math.max(effectiveSpot - halfRange, dataMin * 0.5);
   const visMax = Math.min(effectiveSpot + halfRange, dataMax * 1.5);
 
   // ── Leg toggle state ───────────────────────────────────────────────────
@@ -462,6 +465,18 @@ function PayoffChart({ analysis, accentColor, entryOverride }) {
             onChange={e => setXPctRange(Number(e.target.value))}
             style={{ width: 100, accentColor: "#FFC32C", cursor: "pointer" }} />
         </div>
+        {/* X start price input */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+            Start $
+          </span>
+          <input type="text" placeholder={Math.round(visMin)} value={xStartInput}
+            onChange={e => setXStartInput(e.target.value)}
+            style={{ ...inputStyle, width: 72 }} />
+          {xStartInput && (
+            <button onClick={() => setXStartInput("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#8A8A88", fontSize: 12, padding: "0 2px", lineHeight: 1 }}>✕</button>
+          )}
+        </div>
         {/* X increment input */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
@@ -722,7 +737,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
   const [execHover, setExecHover] = useState(false);
   const [entryOverrideInput, setEntryOverrideInput] = useState("");
   const [scenarioPreset, setScenarioPreset] = useState("key_levels");
-  useEffect(() => { setScenarioPreset("key_levels"); }, [trade.id]);
+  const [scenarioRows, setScenarioRows] = useState(null);
+  useEffect(() => { setScenarioPreset("key_levels"); setScenarioRows(null); }, [trade.id]);
 
   const entryOverride = (() => {
     const v = parseFloat(String(entryOverrideInput).replace(/[$,\s]/g, ""));
@@ -734,6 +750,14 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
   }, []);
 
   const analysis = useMemo(() => computeTradeAnalysis(trade.id, fieldValues), [trade.id, fieldValues]);
+
+  // Reset scenario rows when preset changes (trade.id reset handled above)
+  useEffect(() => {
+    if (!analysis || !analysis.spot) return;
+    const raw = getScenarioPrices(scenarioPreset, analysis.spot, analysis, fieldValues);
+    setScenarioRows(raw.slice(0, 5).map(p => String(Math.round(p))));
+  }, [scenarioPreset, trade.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!analysis) return null;
 
   const now = new Date();
@@ -1065,17 +1089,12 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           const range = maxP - minP;
           const tt = analysis.tradeType;
 
-          // Generate rows via preset helper; filter to chart bounds and deduplicate
-          const rawPrices = getScenarioPrices(scenarioPreset, spot, analysis, fieldValues);
-          const sorted = [...new Set(rawPrices)]
-            .filter(p => p > 0 && p >= minP * 0.99 && p <= maxP * 1.01)
-            .sort((a, b) => a - b)
-            .slice(0, 10);
-          // Always ensure spot is included
-          if (spot > 0 && !sorted.some(p => Math.abs(p - spot) < range * 0.005)) {
-            sorted.push(spot);
-            sorted.sort((a, b) => a - b);
-          }
+          // Derive display rows from state, or initialise from preset (5 rows default)
+          const displayRows = (() => {
+            if (scenarioRows && scenarioRows.length > 0) return scenarioRows;
+            const raw = getScenarioPrices(scenarioPreset, spot, analysis, fieldValues);
+            return raw.slice(0, 5).map(p => String(Math.round(p)));
+          })();
 
           // Use analytical pnlAtPrice if available (exact), else interpolate from curve
           const findPnl = analysis.pnlAtPrice ? analysis.pnlAtPrice : (price) => {
@@ -1091,12 +1110,6 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           };
 
           // Format helpers
-          const fmtP = (v) => {
-            const hasDecimals = Math.abs(v - Math.round(v)) > 0.001;
-            if (v >= 1000) return `$${v.toLocaleString(undefined, { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: hasDecimals ? 2 : 0 })}`;
-            if (v >= 1) return `$${v.toFixed(2)}`;
-            return `$${v.toFixed(4)}`;
-          };
           const fmtPnl = (v) => v >= 0 ? `+$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : `-$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
           const fmtPct = (v) => v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 
@@ -1115,7 +1128,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
 
           const presetOpts = getPresetOptions(tt);
           const thStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: hasComparisonCol ? 7 : 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
-          const tdStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Poppins',sans-serif", fontSize: hasComparisonCol ? 11 : 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
+          const tdStyle = { padding: hasComparisonCol ? "6px 10px" : "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: hasComparisonCol ? 11 : 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
 
           return (
             <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
@@ -1142,95 +1155,95 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    <th style={thStyle}>Price at Expiry</th>
+                    <th style={{ ...thStyle, paddingLeft: hasComparisonCol ? 30 : 36 }}>Price at Expiry</th>
                     <th style={thStyle}>Move vs Spot</th>
                     {hasComparisonCol && <th style={thStyle}>Spot-Only P&L</th>}
                     <th style={thStyle}>Strategy P&L</th>
                     {hasComparisonCol && <th style={thStyle}>{comparisonColLabel}</th>}
                     <th style={thStyle}>Return on Notional</th>
-                    <th style={thStyle}>Outcome</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((price, i) => {
-                    const pnl = findPnl(price);
-                    const moveVsSpot = spot > 0 ? ((price - spot) / spot) * 100 : 0;
-                    const notionalReturn = currentNotional > 0 ? (pnl / currentNotional) * 100 : 0;
-                    const isSpot = spot > 0 && Math.abs(price - spot) < Math.max(range * 0.005, 0.01);
-                    const isBe = (analysis.breakevens || []).some(b => Math.abs(price - b) < Math.max(range * 0.005, 0.01));
+                  {displayRows.map((priceStr, i) => {
+                    const price = parseFloat(String(priceStr).replace(/[$,]/g, "")) || 0;
+                    const isValid = price > 0;
+                    const pnl = isValid ? findPnl(price) : 0;
+                    const moveVsSpot = isValid && spot > 0 ? ((price - spot) / spot) * 100 : 0;
+                    const notionalReturn = isValid && currentNotional > 0 ? (pnl / currentNotional) * 100 : 0;
+                    const isSpot = isValid && spot > 0 && Math.abs(price - spot) < Math.max(range * 0.005, 0.01);
+                    const isBe = isValid && (analysis.breakevens || []).some(b => Math.abs(price - b) < Math.max(range * 0.005, 0.01));
 
-                    // Spot-only P&L: what you'd get from raw spot exposure without the strategy overlay
-                    const spotOnlyPnl = hasComparisonCol ? (price - costBasis) * spotQuantity : 0;
+                    const spotOnlyPnl = isValid && hasComparisonCol ? (price - costBasis) * spotQuantity : 0;
                     const diff = pnl - spotOnlyPnl;
 
                     let comparisonValue = 0;
                     let comparisonSubLabel = "";
-                    if (isDownside) {
+                    if (isValid && isDownside) {
                       comparisonValue = diff;
                       comparisonSubLabel = diff > 0 ? "Hedge Saving" : diff < 0 ? "Hedge Cost" : "";
-                    } else if (isYield) {
+                    } else if (isValid && isYield) {
                       comparisonValue = diff;
                       comparisonSubLabel = diff < 0 ? "Foregone Upside" : diff > 0 ? "Premium Gain" : "";
                     }
 
-                    // Outcome labels
-                    let outcome = "Neutral";
-                    if (isBe) {
-                      outcome = "Breakeven";
-                    } else if (tt === "call_spread_collar") {
-                      const kp = analysis.kp, kc1 = analysis.kc1, kc2 = analysis.kc2;
-                      if (kp && price < kp) outcome = "Put floor active";
-                      else if (kc1 && kc2 && price >= kc1 && price <= kc2) outcome = "Soft cap zone";
-                      else if (kc2 && price > kc2) outcome = "Re-participation zone";
-                      else outcome = "Active range";
-                    } else if (isDownside) {
-                      if (pnl > 0) outcome = "Positive carry";
-                      else if (pnl < 0 && diff > 0) outcome = "Hedge active — loss mitigated";
-                      else if (pnl < 0) outcome = moveVsSpot < -15 ? "Net loss region" : "Net loss — partial offset";
-                      else outcome = "Neutral";
-                    } else if (isYield) {
-                      if (pnl > 0 && diff < 0) outcome = "Capped upside region";
-                      else if (pnl > 0) outcome = "Positive carry";
-                      else if (pnl < 0) outcome = moveVsSpot < -15 ? "Net loss region" : "Carry offsets partial loss";
-                      else outcome = "Neutral";
-                    } else {
-                      outcome = pnl > 0 ? "Positive carry" : pnl < 0 ? (moveVsSpot < -15 ? "Net loss region" : "Net loss") : "Neutral";
-                    }
-
                     return (
                       <tr key={i} style={{ background: isSpot ? "rgba(255,195,44,0.06)" : "transparent" }}>
-                        <td style={tdStyle}>
-                          <strong>{fmtP(price)}</strong>
-                          {isSpot && <span style={{ background: "rgba(255,195,44,0.15)", color: THEME.goldText, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6 }}>SPOT</span>}
+                        {/* Editable price cell with delete button */}
+                        <td style={{ ...tdStyle, padding: "4px 8px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <button
+                              className="noprint"
+                              onClick={() => setScenarioRows(r => (r || displayRows).filter((_, idx) => idx !== i))}
+                              style={{ flexShrink: 0, border: "none", background: "none", color: THEME.textMuted, cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "0 3px", opacity: 0.4 }}
+                            >×</button>
+                            <input
+                              type="text"
+                              value={priceStr}
+                              onChange={e => setScenarioRows(r => (r || displayRows).map((v, idx) => idx === i ? e.target.value : v))}
+                              placeholder="Enter price…"
+                              style={{ width: 90, border: "none", background: "transparent", fontFamily: "'Poppins',sans-serif", fontSize: 12, fontWeight: 700, color: "#1A1A18", outline: "none", padding: "4px 0" }}
+                            />
+                            {isSpot && <span style={{ background: "rgba(255,195,44,0.15)", color: THEME.goldText, fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 10, flexShrink: 0 }}>SPOT</span>}
+                          </div>
                         </td>
-                        <td style={tdStyle}>{fmtPct(moveVsSpot)}</td>
+                        <td style={tdStyle}>{isValid ? fmtPct(moveVsSpot) : "—"}</td>
                         {hasComparisonCol && (
-                          <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: spotOnlyPnl > 0 ? THEME.positive : spotOnlyPnl < 0 ? THEME.negative : THEME.textMuted }}>
-                            {fmtPnl(spotOnlyPnl)}
+                          <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: isValid ? (spotOnlyPnl > 0 ? THEME.positive : spotOnlyPnl < 0 ? THEME.negative : THEME.textMuted) : THEME.textMuted }}>
+                            {isValid ? fmtPnl(spotOnlyPnl) : "—"}
                           </td>
                         )}
-                        <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: pnl > 0 ? THEME.positive : pnl < 0 ? THEME.negative : THEME.textMuted }}>
-                          {isBe ? "$0 (breakeven)" : fmtPnl(pnl)}
+                        <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: isValid ? (pnl > 0 ? THEME.positive : pnl < 0 ? THEME.negative : THEME.textMuted) : THEME.textMuted }}>
+                          {isValid ? (isBe ? "$0 (breakeven)" : fmtPnl(pnl)) : "—"}
                         </td>
                         {hasComparisonCol && (
                           <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600 }}>
-                            <span style={{ color: comparisonValue > 0 ? THEME.positive : comparisonValue < 0 ? THEME.negative : THEME.textMuted }}>
-                              {fmtPnl(comparisonValue)}
-                            </span>
-                            {comparisonSubLabel && (
-                              <span style={{ display: "block", fontSize: 8, fontWeight: 400, color: THEME.textMuted, marginTop: 1 }}>{comparisonSubLabel}</span>
-                            )}
+                            {isValid ? (
+                              <>
+                                <span style={{ color: comparisonValue > 0 ? THEME.positive : comparisonValue < 0 ? THEME.negative : THEME.textMuted }}>
+                                  {fmtPnl(comparisonValue)}
+                                </span>
+                                {comparisonSubLabel && (
+                                  <span style={{ display: "block", fontSize: 8, fontWeight: 400, color: THEME.textMuted, marginTop: 1 }}>{comparisonSubLabel}</span>
+                                )}
+                              </>
+                            ) : "—"}
                           </td>
                         )}
-                        <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: notionalReturn > 0 ? THEME.positive : notionalReturn < 0 ? THEME.negative : THEME.textMuted }}>
-                          {isBe ? "0.00%" : fmtPct(notionalReturn)}
+                        <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: isValid ? (notionalReturn > 0 ? THEME.positive : notionalReturn < 0 ? THEME.negative : THEME.textMuted) : THEME.textMuted }}>
+                          {isValid ? (isBe ? "0.00%" : fmtPct(notionalReturn)) : "—"}
                         </td>
-                        <td style={tdStyle}>{outcome}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              {/* Add row button */}
+              <div className="noprint" style={{ padding: "8px 20px", borderTop: `0.5px solid ${THEME.border}` }}>
+                <button
+                  onClick={() => setScenarioRows(r => [...(r || displayRows), ""])}
+                  style={{ background: "none", border: `0.5px solid ${THEME.border}`, borderRadius: 6, padding: "4px 14px", fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: THEME.textMuted, cursor: "pointer" }}
+                >+ ADD ROW</button>
+              </div>
             </div>
           );
         })()}
