@@ -79,7 +79,7 @@ function PayoffChart({ analysis, accentColor }) {
   // ── Leg toggle state ───────────────────────────────────────────────────
   const hasSpotQty = (spotQuantity || 0) > 0;
   // Filter out any "Long Spot" leg — we replace it with a single unified "Long P&L" reference
-  const displayLegs = (legPayoffs || []).filter(l => l.label !== "Long Spot");
+  const displayLegs = (legPayoffs || []).filter(l => l.label.replace(/\s+/g, " ").trim() !== "Long Spot");
   const hasLegs = displayLegs.length > 0;
 
   // Net P&L always on; Long P&L reference always on; individual legs off by default
