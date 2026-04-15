@@ -83,7 +83,7 @@ const DRAW_TOOLS = [
 const DRAW_COLOURS = ["#FFC32C", "#ef4444", "#22c55e", "#3b82f6", "#a855f7", "#f97316"];
 
 // ── ChartPanel ────────────────────────────────────────────────────────────
-function ChartPanel({ title, candles, showLevels, zoomPresets }) {
+function ChartPanel({ title, candles, showLevels, defaultDays, maxDays }) {
   // DOM refs
   const chartDomRef  = useRef(null);
   const rsiDomRef    = useRef(null);
@@ -104,6 +104,7 @@ function ChartPanel({ title, candles, showLevels, zoomPresets }) {
   const [drawMode,   setDrawMode]   = useState("cursor");
   const [hasPending, setHasPending] = useState(false);
   const [drawCount,  setDrawCount]  = useState(0); // bump to show clear button
+  const [visibleDays, setVisibleDays] = useState(defaultDays);
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -189,7 +190,14 @@ function ChartPanel({ title, candles, showLevels, zoomPresets }) {
       });
     }
 
-    chart.timeScale().fitContent();
+    // Apply initial time range from slider state
+    const initDays = defaultDays;
+    if (initDays > 0) {
+      const now = Math.floor(Date.now() / 1000);
+      chart.timeScale().setVisibleRange({ from: now - initDays * 86400, to: now + 7200 });
+    } else {
+      chart.timeScale().fitContent();
+    }
 
     // ── RSI chart
     const rsiChart = LWC.createChart(rsiDomRef.current, {
@@ -305,7 +313,7 @@ function ChartPanel({ title, candles, showLevels, zoomPresets }) {
   // Toolbar button styles
   const pillActive = { padding: "3px 9px", borderRadius: 20, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.08em", border: "none", background: "#1A1A18", color: "#fff", transition: "all 0.12s" };
   const pillInactive = { ...pillActive, border: "0.5px solid #E8E7E2", background: "transparent", color: "#8A8A88" };
-  const zoomBtn = { padding: "2px 8px", borderRadius: 4, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, border: "0.5px solid #E8E7E2", background: "transparent", color: "#8A8A88", transition: "all 0.12s" };
+  const zoomBtn = { padding: "2px 8px", borderRadius: 4, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, border: "0.5px solid #E8E7E2", background: "transparent", color: "#8A8A88", transition: "all 0.12s" }; // used by clear button
 
   return (
     <div ref={containerRef} style={{ background: "#F9F9F9", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: 12, minWidth: 0 }}>
@@ -323,12 +331,24 @@ function ChartPanel({ title, candles, showLevels, zoomPresets }) {
 
       {/* Row 2: zoom presets (left) + draw tools (right) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
-        {/* Zoom range presets */}
-        <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
-          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", color: "#8A8A88", marginRight: 4, textTransform: "uppercase" }}>Range</span>
-          {zoomPresets.map(({ label, days }) => (
-            <button key={label} style={zoomBtn} onClick={() => zoomTo(days)}>{label}</button>
-          ))}
+        {/* Zoom range slider */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+            Range {visibleDays}D
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={maxDays}
+            step={1}
+            value={visibleDays}
+            onChange={e => {
+              const d = Number(e.target.value);
+              setVisibleDays(d);
+              zoomTo(d);
+            }}
+            style={{ width: 100, accentColor: "#FFC32C", cursor: "pointer" }}
+          />
         </div>
 
         {/* Draw tools */}
@@ -412,18 +432,6 @@ export default function MBChartSection06() {
     });
   }, [lwcLoaded]);
 
-  const DAILY_PRESETS = [
-    { label: "1W",  days: 7  },
-    { label: "2W",  days: 14 },
-    { label: "1M",  days: 30 },
-    { label: "ALL", days: 0  },
-  ];
-  const FH_PRESETS = [
-    { label: "1D",  days: 1 },
-    { label: "3D",  days: 3 },
-    { label: "1W",  days: 7 },
-    { label: "ALL", days: 0 },
-  ];
 
   return (
     <>
@@ -456,8 +464,8 @@ export default function MBChartSection06() {
 
       {!loading && !error && (daily || fourH) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-          {daily && <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true}  zoomPresets={DAILY_PRESETS} />}
-          {fourH && <ChartPanel title="BTC 4H — 30 Days"   candles={fourH} showLevels={false} zoomPresets={FH_PRESETS}   />}
+          {daily && <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true}  defaultDays={30} maxDays={90} />}
+          {fourH && <ChartPanel title="BTC 4H — 30 Days"   candles={fourH} showLevels={false} defaultDays={7}  maxDays={30} />}
         </div>
       )}
 
