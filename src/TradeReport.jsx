@@ -51,7 +51,7 @@ const toolbarBtnStyle = {
 };
 
 // ─── SVG PAYOFF CHART (light theme, with zoom / leg toggles / entry override) ───
-function PayoffChart({ analysis, accentColor, entryOverride }) {
+function PayoffChart({ analysis, accentColor }) {
   const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice } = analysis;
   if (!curve || curve.length === 0) return null;
 
@@ -69,7 +69,7 @@ function PayoffChart({ analysis, accentColor, entryOverride }) {
   const setXIncrement = (v) => setXIncrementRaw(v);
 
   // Compute visible price range (centred on spot, ±xPctRange%; optionally pin left edge)
-  const effectiveSpot = (entryOverride > 0 ? entryOverride : 0) || spot || (dataMin + dataMax) / 2;
+  const effectiveSpot = spot || (dataMin + dataMax) / 2;
   const halfRange = effectiveSpot * (xPctRange / 100);
   const xStartNum = parseFloat(String(xStartInput).replace(/[$,\s]/g, ""));
   const xStartValid = isFinite(xStartNum) && xStartNum > 0 && xStartNum < effectiveSpot;
@@ -94,23 +94,13 @@ function PayoffChart({ analysis, accentColor, entryOverride }) {
 
   const toggleLeg = (i) => setLegVisibility(v => v.map((b, j) => j === i ? !b : b));
 
-  // ── Entry override ─────────────────────────────────────────────────────
-  // Shift net P&L by (spot - entryOverride) * spotQuantity when override is set
-  const entryShift = (entryOverride > 0 && spot > 0 && (spotQuantity || 0) > 0)
-    ? (spot - entryOverride) * spotQuantity
-    : 0;
-
-  const shiftedPnlAtPrice = pnlAtPrice
-    ? (p) => pnlAtPrice(p) + entryShift
-    : null;
-
   // ── Build visible curve (re-sample within visible X range) ─────────────
   const STEPS = 300;
   const visXs = Array.from({ length: STEPS + 1 }, (_, i) => visMin + (visMax - visMin) * (i / STEPS));
 
   const netPnlPoints = visXs.map(x => ({
     price: x,
-    pnl: shiftedPnlAtPrice ? shiftedPnlAtPrice(x) : 0,
+    pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
   const longSpotPoints = visXs.map(x => ({
@@ -378,18 +368,6 @@ function PayoffChart({ analysis, accentColor, entryOverride }) {
           </g>
         )}
 
-        {/* Entry override vertical line */}
-        {entryOverride > 0 && entryOverride >= visMin && entryOverride <= visMax && (
-          <g>
-            <line x1={scaleX(entryOverride)} y1={PAD.top} x2={scaleX(entryOverride)} y2={H - PAD.bottom}
-              stroke="#FFC32C" strokeWidth="1.5" strokeDasharray="5,4" />
-            <rect x={scaleX(entryOverride) - 22} y={H - PAD.bottom + 26} width="44" height="18" rx="2" fill="#FFF8E1" />
-            <text x={scaleX(entryOverride)} y={H - PAD.bottom + 38} textAnchor="middle"
-              fill="#7A5500" fontSize="9" fontFamily="'Montserrat', sans-serif" fontWeight="600">
-              ENTRY
-            </text>
-          </g>
-        )}
 
         {/* Spot price vertical */}
         {spot >= visMin && spot <= visMax && (
@@ -735,15 +713,9 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
     return `<p style="margin-bottom:12px">${raw.replace(/\n\n/g, `</p><p style="margin-bottom:12px">`).replace(/\n/g, "<br/>")}</p>`;
   });
   const [execHover, setExecHover] = useState(false);
-  const [entryOverrideInput, setEntryOverrideInput] = useState("");
   const [scenarioPreset, setScenarioPreset] = useState("key_levels");
   const [scenarioRows, setScenarioRows] = useState(null);
   useEffect(() => { setScenarioPreset("key_levels"); setScenarioRows(null); }, [trade.id]);
-
-  const entryOverride = (() => {
-    const v = parseFloat(String(entryOverrideInput).replace(/[$,\s]/g, ""));
-    return isFinite(v) && v > 0 ? v : 0;
-  })();
 
   const handleExecBlur = useCallback(() => {
     if (editorRef.current) setExecHtml(editorRef.current.innerHTML);
@@ -911,38 +883,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               )}
             </div>
           </div>
-          {/* Entry override input row */}
-          {(analysis.spotQuantity || 0) > 0 && (
-            <div className="noprint" style={{ padding: "8px 20px", borderBottom: `0.5px solid ${THEME.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted }}>
-                Entry / Buy Price Override
-              </span>
-              <input
-                type="text"
-                placeholder={`Default: spot price`}
-                value={entryOverrideInput}
-                onChange={e => setEntryOverrideInput(e.target.value)}
-                style={{
-                  border: `1px solid ${entryOverride > 0 ? "#FFC32C" : THEME.border}`,
-                  borderRadius: 4, padding: "4px 10px",
-                  fontFamily: "'Poppins',sans-serif", fontSize: 11, color: THEME.text,
-                  background: entryOverride > 0 ? "#FFFBEB" : THEME.bg, width: 140, outline: "none",
-                }}
-              />
-              {entryOverride > 0 && (
-                <>
-                  <span style={{ fontFamily: "'Poppins',sans-serif", fontSize: 10, color: "#7A5500" }}>
-                    P&L shifted by{" "}
-                    {(analysis.spot - entryOverride) * (analysis.spotQuantity || 1) >= 0 ? "+" : ""}
-                    {((analysis.spot - entryOverride) * (analysis.spotQuantity || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                  <button onClick={() => setEntryOverrideInput("")} style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted, fontSize: 11, padding: "2px 4px", fontFamily: "'Poppins',sans-serif" }}>✕ Clear</button>
-                </>
-              )}
-            </div>
-          )}
           <div style={{ padding: "20px 20px 12px" }}>
-            <PayoffChart analysis={analysis} accentColor={trade.color} entryOverride={entryOverride} />
+            <PayoffChart analysis={analysis} accentColor={trade.color} />
           </div>
           {analysis.zones && analysis.zones.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0 20px 16px", gap: 8 }}>
@@ -1016,7 +958,6 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                     <th style={thSt}>Hedged Strategy P&L</th>
                     <th style={thSt}>Protection Savings vs Spot</th>
                     <th style={thSt}>Opportunity Cost vs Spot</th>
-                    <th style={thSt}>Outcome</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1031,25 +972,10 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                     const isCap    = Math.abs(price - kc1)  < 1;
                     const isReEntry = Math.abs(price - kc2) < 1;
 
-                    // Protection savings: hedge is net saving money (below kp region)
                     const inProtected = price <= kp;
-                    // Upside cost: cap is biting (above kc1)
                     const inCapped = price >= kc1;
-
-                    // Protection savings: positive delta means hedge outperforms spot (shown below kp)
                     const protSavings = inProtected ? delta : null;
-                    // Opportunity cost: negative delta means cap is biting; show as positive cost value
                     const upsideCost  = !inProtected && inCapped ? -delta : null;
-
-                    let outcome = "—";
-                    if (isEntry)             outcome = "Current entry";
-                    else if (price < kp)     outcome = "Floor active — loss capped vs spot";
-                    else if (price === kp)   outcome = "Put strike reached — protection begins below";
-                    else if (price < kc1)    outcome = delta >= 0 ? "Net premium benefit" : "Below breakeven — premium not yet recovered";
-                    else if (price === kc1)  outcome = "Soft cap begins — gains flattened";
-                    else if (price < kc2)    outcome = "Upside flattened — gains resume above re-entry";
-                    else if (price === kc2)  outcome = "Re-participation starts";
-                    else                     outcome = "Tail upside restored — reparticipating above cap";
 
                     return (
                       <tr key={i} style={{ background: isEntry ? "rgba(255,195,44,0.06)" : "transparent" }}>
@@ -1069,7 +995,6 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                         <td style={{ ...tdSt, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: upsideCost !== null ? THEME.goldText : THEME.textMuted }}>
                           {upsideCost !== null ? `$${Math.abs(Math.round(upsideCost)).toLocaleString()}` : "—"}
                         </td>
-                        <td style={tdSt}>{outcome}</td>
                       </tr>
                     );
                   })}
