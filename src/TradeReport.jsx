@@ -270,11 +270,11 @@ function PayoffChart({ analysis, accentColor }) {
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
             Net P&L
           </button>
-          {/* Long BTC P&L reference — always shown */}
+          {/* Long P&L reference — always shown */}
           {!analysis.chartLabel && (
             <button style={toggleBtnStyle(showLongSpot, "#8A8A88")} onClick={() => setShowLongSpot(v => !v)}>
               <span style={{ width: 8, height: 2, background: showLongSpot ? "#8A8A88" : "#C8C7C2", display: "inline-block", borderRadius: 1, marginRight: 2 }} />
-              Long BTC P&L
+              Long P&L
             </button>
           )}
           {/* Individual legs */}
@@ -345,7 +345,7 @@ function PayoffChart({ analysis, accentColor }) {
           )}
         </g>
 
-        {/* Long BTC P&L reference line — always available */}
+        {/* Long P&L reference line — always available */}
         {showLongSpot && !analysis.chartLabel && spotLinePath && (
           <g clipPath="url(#chartClip)">
             <path d={spotLinePath} fill="none" stroke="#C8C7C2" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
@@ -358,7 +358,7 @@ function PayoffChart({ analysis, accentColor }) {
           return (
             <text x={scaleX(labelPrice) - 4} y={labelY - 6}
               textAnchor="end" fill="#8A8A88" fontSize="8" fontFamily="'Poppins', sans-serif" fontWeight="500">
-              Long BTC P&L
+              Long P&L
             </text>
           );
         })()}
