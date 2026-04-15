@@ -78,8 +78,7 @@ function PayoffChart({ analysis, accentColor }) {
 
   // ── Leg toggle state ───────────────────────────────────────────────────
   const hasSpotQty = (spotQuantity || 0) > 0;
-  // Separate the "Long Spot" leg (becomes the unified "Long P&L" button) from the rest
-  const longSpotLeg = (legPayoffs || []).find(l => l.label.replace(/\s+/g, " ").trim() === "Long Spot");
+  // Filter out any "Long Spot" legPayoff — the unified blue "Long P&L" line replaces it
   const displayLegs = (legPayoffs || []).filter(l => l.label.replace(/\s+/g, " ").trim() !== "Long Spot");
   const hasLegs = displayLegs.length > 0;
 
@@ -107,9 +106,8 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long P&L: use legPayoff fn when strategy holds spot, else plain (price − spot)
-  const longSpotFn = longSpotLeg ? longSpotLeg.fn : (x) => x - spot;
-  const longSpotPoints = visXs.map(x => ({ price: x, pnl: longSpotFn(x) }));
+  // Long P&L: always (price − spot) × 1 unit — pure "going long from here" reference
+  const longSpotPoints = visXs.map(x => ({ price: x, pnl: x - spot }));
 
 
   // Per-leg curves (Long Spot excluded — handled separately above)
