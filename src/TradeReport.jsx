@@ -78,18 +78,22 @@ function PayoffChart({ analysis, accentColor }) {
 
   // ── Leg toggle state ───────────────────────────────────────────────────
   const hasSpotQty = (spotQuantity || 0) > 0;
-  const displayLegs = legPayoffs || [];
+  // Separate the "Long Spot" leg (becomes the unified "Long P&L" button) from the rest
+  const longSpotLeg = (legPayoffs || []).find(l => l.label.replace(/\s+/g, " ").trim() === "Long Spot");
+  const displayLegs = (legPayoffs || []).filter(l => l.label.replace(/\s+/g, " ").trim() !== "Long Spot");
   const hasLegs = displayLegs.length > 0;
 
-  // Net P&L always on; individual legs off by default
+  // Net P&L always on; Long P&L always on by default; individual legs off by default
   const [showNetPnl, setShowNetPnl] = useState(true);
+  const [showLongSpot, setShowLongSpot] = useState(true);
   const [legVisibility, setLegVisibility] = useState(() =>
     displayLegs.map(() => false)
   );
 
   // Reset leg visibility when analysis changes (different trade)
   useEffect(() => {
-    setLegVisibility((legPayoffs || []).map(() => false));
+    setLegVisibility(displayLegs.map(() => false));
+    setShowLongSpot(true);
   }, [analysis]); // eslint-disable-line
 
   const toggleLeg = (i) => setLegVisibility(v => v.map((b, j) => j === i ? !b : b));
@@ -103,7 +107,12 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Per-leg curves
+  // Long P&L: use legPayoff fn when strategy holds spot, else plain (price − spot)
+  const longSpotFn = longSpotLeg ? longSpotLeg.fn : (x) => x - spot;
+  const longSpotPoints = visXs.map(x => ({ price: x, pnl: longSpotFn(x) }));
+
+
+  // Per-leg curves (Long Spot excluded — handled separately above)
   const legCurves = displayLegs.map(leg => ({
     ...leg,
     points: visXs.map(x => ({ price: x, pnl: leg.fn(x) })),
@@ -163,6 +172,7 @@ function PayoffChart({ analysis, accentColor }) {
   ).join(" ");
 
   const linePath = buildPath(netPnlPoints);
+  const spotLinePath = buildPath(longSpotPoints);
 
   // ── Fill areas (net P&L only) ──────────────────────────────────────────
   const buildFillPath = (filterFn) => {
@@ -252,7 +262,7 @@ function PayoffChart({ analysis, accentColor }) {
   return (
     <div>
       {/* ── Leg toggle panel ── */}
-      {!analysis.chartLabel && (hasSpotQty || hasLegs) && (
+      {!analysis.chartLabel && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
           {/* Net P&L always present */}
@@ -260,11 +270,16 @@ function PayoffChart({ analysis, accentColor }) {
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
             Net P&L
           </button>
-          {/* Individual legs — "Long Spot" relabelled as "Long P&L" */}
+          {/* Long P&L — always present on every trade, blue dot */}
+          <button style={toggleBtnStyle(showLongSpot, "#00C2FF")} onClick={() => setShowLongSpot(v => !v)}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: showLongSpot ? "#00C2FF" : "#C8C7C2" }} />
+            Long P&L
+          </button>
+          {/* Individual option legs */}
           {displayLegs.map((leg, i) => (
             <button key={i} style={toggleBtnStyle(legVisibility[i], leg.color)} onClick={() => toggleLeg(i)}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: legVisibility[i] ? leg.color : "#C8C7C2" }} />
-              {leg.label.replace(/\s+/g, " ").trim() === "Long Spot" ? "Long P&L" : leg.label}
+              {leg.label}
             </button>
           ))}
         </div>
@@ -327,6 +342,14 @@ function PayoffChart({ analysis, accentColor }) {
             ) : null
           )}
         </g>
+
+        {/* Long P&L reference line — blue, dashed, behind net P&L */}
+        {showLongSpot && (
+          <g clipPath="url(#chartClip)">
+            <path d={spotLinePath} fill="none" stroke="#00C2FF" strokeWidth="1.5"
+              strokeDasharray="6,4" strokeLinecap="round" opacity="0.7" />
+          </g>
+        )}
 
         {/* Net P&L strategy line */}
         {showNetPnl && (
