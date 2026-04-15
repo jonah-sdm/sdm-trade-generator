@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from "react";
 const CHART_THEME = {
   layout: { background: { color: "#F9F9F9" }, textColor: "#4A4A48", fontSize: 10 },
   grid: { vertLines: { color: "#E8E7E2" }, horzLines: { color: "#E8E7E2" } },
-  crosshair: { vertLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" }, horzLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" } },
+  crosshair: {
+    vertLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" },
+    horzLine: { color: "#8A8A88", labelBackgroundColor: "#1A1A18" },
+  },
   timeScale: { borderColor: "#E8E7E2", timeVisible: true },
   rightPriceScale: { borderColor: "#E8E7E2" },
 };
@@ -22,10 +25,7 @@ async function cgFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url);
-      if (res.status === 429) {
-        await new Promise(r => setTimeout(r, 1400 * (i + 1)));
-        continue;
-      }
+      if (res.status === 429) { await new Promise(r => setTimeout(r, 1400 * (i + 1))); continue; }
       if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
       return res.json();
     } catch (e) {
@@ -35,7 +35,6 @@ async function cgFetch(url, retries = 3) {
   }
   throw new Error("CoinGecko rate limited after retries");
 }
-
 
 const toCandles = raw => raw.map(([ts, o, h, l, c]) => ({
   time: Math.floor(ts / 1000), open: o, high: h, low: l, close: c,
@@ -72,25 +71,98 @@ function calcRSI(candles, period = 14) {
   return rsi;
 }
 
-function ChartPanel({ title, candles, showLevels }) {
-  const chartRef = useRef(null);
-  const rsiRef = useRef(null);
+// ── Drawing tools ─────────────────────────────────────────────────────────
+const DRAW_TOOLS = [
+  { key: "cursor",    icon: "↖",  label: "Select",  title: "Pan / select mode (scroll to zoom)" },
+  { key: "hline",     icon: "—",  label: "H-Line",  title: "Click chart to draw a horizontal support/resistance line" },
+  { key: "trendline", icon: "⟋",  label: "Trend",   title: "Click two points to draw a trend line" },
+  { key: "ray",       icon: "→",  label: "Ray",     title: "Click two points to draw a ray (extends right)" },
+];
+
+// Drawing line colour palette (cycles through these)
+const DRAW_COLOURS = ["#FFC32C", "#ef4444", "#22c55e", "#3b82f6", "#a855f7", "#f97316"];
+
+// ── ChartPanel ────────────────────────────────────────────────────────────
+function ChartPanel({ title, candles, showLevels, zoomPresets }) {
+  // DOM refs
+  const chartDomRef  = useRef(null);
+  const rsiDomRef    = useRef(null);
   const containerRef = useRef(null);
 
+  // LWC instance refs (accessed by React handlers without causing re-renders)
+  const chartRef       = useRef(null);
+  const candleSeriesRef = useRef(null);
+  const timeScaleRef   = useRef(null);
+
+  // Drawing state refs (avoid stale closures in LWC callbacks)
+  const drawModeRef  = useRef("cursor");
+  const pendingRef   = useRef(null);           // first click of in-progress line
+  const drawingsRef  = useRef([]);             // {type, priceLine?, series?}
+  const colourIdxRef = useRef(0);
+
+  // React UI state (toolbar rendering only)
+  const [drawMode,   setDrawMode]   = useState("cursor");
+  const [hasPending, setHasPending] = useState(false);
+  const [drawCount,  setDrawCount]  = useState(0); // bump to show clear button
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+
+  const nextColour = () => {
+    const c = DRAW_COLOURS[colourIdxRef.current % DRAW_COLOURS.length];
+    colourIdxRef.current += 1;
+    return c;
+  };
+
+  const setMode = (mode) => {
+    drawModeRef.current = mode;
+    setDrawMode(mode);
+    if (mode !== "trendline" && mode !== "ray") {
+      pendingRef.current = null;
+      setHasPending(false);
+    }
+  };
+
+  const clearAll = () => {
+    const chart = chartRef.current;
+    const cs    = candleSeriesRef.current;
+    if (!chart || !cs) return;
+    drawingsRef.current.forEach(d => {
+      try {
+        if (d.priceLine) cs.removePriceLine(d.priceLine);
+        if (d.series)    chart.removeSeries(d.series);
+      } catch (_) {}
+    });
+    drawingsRef.current = [];
+    colourIdxRef.current = 0;
+    pendingRef.current = null;
+    setHasPending(false);
+    setDrawCount(0);
+  };
+
+  const zoomTo = (days) => {
+    const ts = timeScaleRef.current;
+    if (!ts) return;
+    if (days === 0) { ts.fitContent(); return; }
+    const now = Math.floor(Date.now() / 1000);
+    ts.setVisibleRange({ from: now - days * 86400, to: now + 7200 });
+  };
+
+  // ── Chart lifecycle ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!candles?.length || !window.LightweightCharts) return;
-
     const LWC = window.LightweightCharts;
 
-    // Main chart
-    const chart = LWC.createChart(chartRef.current, {
+    // ── Main chart (scroll + scale ENABLED)
+    const chart = LWC.createChart(chartDomRef.current, {
       ...CHART_THEME,
-      width: chartRef.current.clientWidth,
-      height: 260,
-      handleScroll: false,
-      handleScale: false,
-      crosshair: { mode: 0 },
+      width:        chartDomRef.current.clientWidth,
+      height:       280,
+      handleScroll: true,
+      handleScale:  true,
+      crosshair:    { mode: 1 },
     });
+    chartRef.current       = chart;
+    timeScaleRef.current   = chart.timeScale();
 
     const candleSeries = chart.addCandlestickSeries({
       upColor: "#16a34a", downColor: "#dc2626",
@@ -98,6 +170,7 @@ function ChartPanel({ title, candles, showLevels }) {
       wickUpColor: "#16a34a", wickDownColor: "#dc2626",
     });
     candleSeries.setData(candles);
+    candleSeriesRef.current = candleSeries;
 
     // EMAs
     const ema20 = chart.addLineSeries({ color: "#2563eb", lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false });
@@ -112,48 +185,94 @@ function ChartPanel({ title, candles, showLevels }) {
     // S/R levels (daily only)
     if (showLevels) {
       SR_LEVELS.forEach(l => {
-        candleSeries.createPriceLine({
-          price: l.price,
-          color: l.color,
-          lineWidth: 1,
-          lineStyle: 2, // dashed
-          axisLabelVisible: true,
-        });
+        candleSeries.createPriceLine({ price: l.price, color: l.color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
       });
     }
 
     chart.timeScale().fitContent();
 
-    // RSI chart
-    const rsiChart = LWC.createChart(rsiRef.current, {
+    // ── RSI chart
+    const rsiChart = LWC.createChart(rsiDomRef.current, {
       ...CHART_THEME,
-      width: rsiRef.current.clientWidth,
+      width:  rsiDomRef.current.clientWidth,
       height: 72,
       rightPriceScale: { borderColor: "#dde1e6", scaleMargins: { top: 0.1, bottom: 0.1 } },
-      handleScroll: false,
-      handleScale: false,
-      crosshair: { mode: 0 },
+      handleScroll: true,
+      handleScale:  false,
+      crosshair: { mode: 1 },
     });
-
     const rsiSeries = rsiChart.addLineSeries({
       color: "#1a3a5c", lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false,
       autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }),
     });
     rsiSeries.setData(calcRSI(candles));
-
-    // RSI reference lines
     [{ val: 30, color: "#dc2626", title: "OS" }, { val: 50, color: "#aaa", title: "" }, { val: 70, color: "#dc2626", title: "OB" }].forEach(l => {
       rsiSeries.createPriceLine({ price: l.val, color: l.color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: l.title });
     });
-
     rsiChart.timeScale().fitContent();
 
-    // Sync scrolling
+    // Sync scroll between main + RSI
     chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
       if (range) rsiChart.timeScale().setVisibleLogicalRange(range);
     });
     rsiChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
       if (range) chart.timeScale().setVisibleLogicalRange(range);
+    });
+
+    // ── Drawing tool click handler ──────────────────────────────────────────
+    chart.subscribeClick((param) => {
+      const mode = drawModeRef.current;
+      if (mode === "cursor" || !param.point || !param.time) return;
+
+      const cs    = candleSeriesRef.current;
+      const price = cs?.coordinateToPrice(param.point.y);
+      if (price == null) return;
+
+      const time  = typeof param.time === "number" ? param.time : Number(param.time);
+      const colour = nextColour();
+
+      if (mode === "hline") {
+        const pl = cs.createPriceLine({
+          price, color: colour, lineWidth: 1.5, lineStyle: 2, axisLabelVisible: true,
+        });
+        drawingsRef.current.push({ type: "hline", priceLine: pl });
+        setDrawCount(n => n + 1);
+
+      } else if (mode === "trendline" || mode === "ray") {
+        const pending = pendingRef.current;
+        if (!pending) {
+          pendingRef.current = { time, price, colour };
+          setHasPending(true);
+        } else {
+          // Build data points — sort chronologically
+          const pts = [
+            { time: pending.time, value: pending.price },
+            { time,               value: price },
+          ].sort((a, b) => a.time - b.time);
+
+          if (pts[0].time !== pts[1].time) {
+            // For a ray: extend end point far into future (+ 10 years)
+            const farFuture = pts[1].time + 365 * 86400 * 10;
+            const slope = (pts[1].value - pts[0].value) / (pts[1].time - pts[0].time);
+
+            const data = mode === "ray"
+              ? [pts[0], { time: farFuture, value: pts[0].value + slope * (farFuture - pts[0].time) }]
+              : pts;
+
+            const tl = chart.addLineSeries({
+              color: pending.colour, lineWidth: 1.5, lineStyle: 0,
+              priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+            });
+            tl.setData(data);
+            drawingsRef.current.push({ type: mode, series: tl });
+            setDrawCount(n => n + 1);
+          }
+          pendingRef.current = null;
+          setHasPending(false);
+          // cycle colour for next line
+          colourIdxRef.current += 1;
+        }
+      }
     });
 
     // Responsive resize
@@ -168,17 +287,30 @@ function ChartPanel({ title, candles, showLevels }) {
 
     return () => {
       ro.disconnect();
+      drawingsRef.current  = [];
+      pendingRef.current   = null;
+      chartRef.current     = null;
+      candleSeriesRef.current = null;
+      timeScaleRef.current = null;
+      colourIdxRef.current = 0;
       chart.remove();
       rsiChart.remove();
     };
-  }, [candles, showLevels]);
+  }, [candles, showLevels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const last = candles?.[candles.length - 1];
   const prev = candles?.[candles.length - 2];
-  const pct = last && prev ? ((last.close - prev.close) / prev.close * 100).toFixed(2) : null;
+  const pct  = last && prev ? ((last.close - prev.close) / prev.close * 100).toFixed(2) : null;
+
+  // Toolbar button styles
+  const pillActive = { padding: "3px 9px", borderRadius: 20, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.08em", border: "none", background: "#1A1A18", color: "#fff", transition: "all 0.12s" };
+  const pillInactive = { ...pillActive, border: "0.5px solid #E8E7E2", background: "transparent", color: "#8A8A88" };
+  const zoomBtn = { padding: "2px 8px", borderRadius: 4, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, border: "0.5px solid #E8E7E2", background: "transparent", color: "#8A8A88", transition: "all 0.12s" };
 
   return (
     <div ref={containerRef} style={{ background: "#F9F9F9", border: "0.5px solid #E8E7E2", borderRadius: 14, padding: 12, minWidth: 0 }}>
+
+      {/* Row 1: title + last price */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#1A1A18", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</span>
         {last && (
@@ -188,18 +320,56 @@ function ChartPanel({ title, candles, showLevels }) {
           </span>
         )}
       </div>
-      <div ref={chartRef} />
-      <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#8A8A88", margin: "4px 0 2px", textAlign: "center" }}>RSI (14)</div>
-      <div ref={rsiRef} />
+
+      {/* Row 2: zoom presets (left) + draw tools (right) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+        {/* Zoom range presets */}
+        <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", color: "#8A8A88", marginRight: 4, textTransform: "uppercase" }}>Range</span>
+          {zoomPresets.map(({ label, days }) => (
+            <button key={label} style={zoomBtn} onClick={() => zoomTo(days)}>{label}</button>
+          ))}
+        </div>
+
+        {/* Draw tools */}
+        <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", color: "#8A8A88", marginRight: 2, textTransform: "uppercase" }}>Draw</span>
+          {DRAW_TOOLS.map(t => (
+            <button key={t.key} title={t.title} style={drawMode === t.key ? pillActive : pillInactive} onClick={() => setMode(t.key)}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+          {drawCount > 0 && (
+            <button style={{ ...zoomBtn, marginLeft: 4, color: "#dc2626", borderColor: "#fca5a5" }} onClick={clearAll} title="Clear all drawings">
+              ✕ Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Pending trendline / ray hint */}
+      {hasPending && (
+        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 9, color: "#FFC32C", marginBottom: 6 }}>
+          {drawMode === "ray" ? "→" : "⟋"} Click a second point to complete — or press <strong>Select</strong> to cancel
+        </div>
+      )}
+
+      {/* Chart area — crosshair cursor in draw mode */}
+      <div style={{ cursor: drawMode === "cursor" ? "default" : "crosshair" }}>
+        <div ref={chartDomRef} />
+        <div style={{ fontFamily: "'Courier New',monospace", fontSize: 9, color: "#8A8A88", margin: "4px 0 2px", textAlign: "center" }}>RSI (14)</div>
+        <div ref={rsiDomRef} />
+      </div>
     </div>
   );
 }
 
+// ── Main export ────────────────────────────────────────────────────────────
 export default function MBChartSection06() {
-  const [daily, setDaily] = useState(null);
-  const [fourH, setFourH] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [daily,     setDaily]     = useState(null);
+  const [fourH,     setFourH]     = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
   const [lwcLoaded, setLwcLoaded] = useState(!!window.LightweightCharts);
 
   // Load lightweight-charts from CDN
@@ -207,7 +377,7 @@ export default function MBChartSection06() {
     if (window.LightweightCharts) { setLwcLoaded(true); return; }
     const s = document.createElement("script");
     s.src = "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js";
-    s.onload = () => setLwcLoaded(true);
+    s.onload  = () => setLwcLoaded(true);
     s.onerror = () => setError("Failed to load chart library");
     document.head.appendChild(s);
   }, []);
@@ -216,23 +386,21 @@ export default function MBChartSection06() {
     if (!lwcLoaded) return;
     setLoading(true);
 
-    // Kraken OHLC fetcher (primary — reliable, no auth, no rate limits)
     const krakenOHLC = (interval, days) =>
       fetch(`https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=${interval}&since=${Math.floor(Date.now()/1000) - days*86400}`)
         .then(r => r.json())
         .then(json => {
-          const key = Object.keys(json.result || {}).find(k => k !== "last");
+          const key  = Object.keys(json.result || {}).find(k => k !== "last");
           const rows = json.result?.[key] || [];
           if (!rows.length) throw new Error("Kraken returned empty data");
           return rows.map(([ts,o,h,l,c]) => ({ time: Number(ts), open: +o, high: +h, low: +l, close: +c }));
         });
 
-    // Try Kraken first (like Section07), fall back to CoinGecko
-    const fetchDaily = krakenOHLC(1440, 90)
-      .catch(() => cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90").then(d => toCandles(d)));
+    const fetchDaily = krakenOHLC(1440, 90).catch(() =>
+      cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90").then(d => toCandles(d)));
 
-    const fetch4H = krakenOHLC(240, 30)
-      .catch(() => cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30").then(d => toCandles(d)));
+    const fetch4H = krakenOHLC(240, 30).catch(() =>
+      cgFetch("https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30").then(d => toCandles(d)));
 
     Promise.allSettled([fetchDaily, fetch4H]).then(([dailyResult, fourHResult]) => {
       const d90 = dailyResult.status === "fulfilled" && dailyResult.value?.length ? dailyResult.value : null;
@@ -243,6 +411,19 @@ export default function MBChartSection06() {
       setLoading(false);
     });
   }, [lwcLoaded]);
+
+  const DAILY_PRESETS = [
+    { label: "1W",  days: 7  },
+    { label: "2W",  days: 14 },
+    { label: "1M",  days: 30 },
+    { label: "ALL", days: 0  },
+  ];
+  const FH_PRESETS = [
+    { label: "1D",  days: 1 },
+    { label: "3D",  days: 3 },
+    { label: "1W",  days: 7 },
+    { label: "ALL", days: 0 },
+  ];
 
   return (
     <>
@@ -270,13 +451,13 @@ export default function MBChartSection06() {
         </div>
       </div>
 
-      {loading && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", padding: 20, textAlign: "center" }}>Loading BTC charts from CoinGecko...</div>}
-      {error && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#dc2626", padding: 20 }}>Chart error: {error}</div>}
+      {loading && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#8A8A88", padding: 20, textAlign: "center" }}>Loading BTC charts from Kraken / CoinGecko…</div>}
+      {error   && <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 12, color: "#dc2626", padding: 20 }}>Chart error: {error}</div>}
 
       {!loading && !error && (daily || fourH) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-          {daily && <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true} />}
-          {fourH && <ChartPanel title="BTC 4H — 30 Days" candles={fourH} showLevels={false} />}
+          {daily && <ChartPanel title="BTC Daily — 90 Days" candles={daily} showLevels={true}  zoomPresets={DAILY_PRESETS} />}
+          {fourH && <ChartPanel title="BTC 4H — 30 Days"   candles={fourH} showLevels={false} zoomPresets={FH_PRESETS}   />}
         </div>
       )}
 
