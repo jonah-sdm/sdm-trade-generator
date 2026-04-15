@@ -79,6 +79,10 @@ function PayoffChart({ analysis, accentColor }) {
   // ── Leg toggle state ───────────────────────────────────────────────────
   const hasSpotQty = (spotQuantity || 0) > 0;
   const hasLegs = legPayoffs && legPayoffs.length > 0;
+  // Only show the extra "Long P&L" reference on pure-options strategies.
+  // When the strategy physically holds spot (covered call, collar), the spot
+  // leg is already rendered via legPayoffs — adding a second line duplicates it.
+  const showLongPnlRef = !hasSpotQty;
 
   // Net P&L toggle always on; individual legs off by default
   const [showNetPnl, setShowNetPnl] = useState(true);
@@ -103,11 +107,10 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long BTC reference: use actual spot qty if held, else 1 BTC for reference
-  const longSpotQty = (spotQuantity || 0) > 0 ? spotQuantity : 1;
+  // Long P&L reference: always 1 unit from spot (pure reference line, no cost basis)
   const longSpotPoints = visXs.map(x => ({
     price: x,
-    pnl: (x - spot) * longSpotQty,
+    pnl: (x - spot),
   }));
 
   // Per-leg curves
@@ -270,8 +273,8 @@ function PayoffChart({ analysis, accentColor }) {
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
             Net P&L
           </button>
-          {/* Long P&L reference — always shown */}
-          {!analysis.chartLabel && (
+          {/* Long P&L reference — only on pure-options trades (spot-holding trades already have the leg) */}
+          {showLongPnlRef && !analysis.chartLabel && (
             <button style={toggleBtnStyle(showLongSpot, "#8A8A88")} onClick={() => setShowLongSpot(v => !v)}>
               <span style={{ width: 8, height: 2, background: showLongSpot ? "#8A8A88" : "#C8C7C2", display: "inline-block", borderRadius: 1, marginRight: 2 }} />
               Long P&L
@@ -345,15 +348,15 @@ function PayoffChart({ analysis, accentColor }) {
           )}
         </g>
 
-        {/* Long P&L reference line — always available */}
-        {showLongSpot && !analysis.chartLabel && spotLinePath && (
+        {/* Long P&L reference line — pure-options trades only */}
+        {showLongPnlRef && showLongSpot && !analysis.chartLabel && spotLinePath && (
           <g clipPath="url(#chartClip)">
             <path d={spotLinePath} fill="none" stroke="#C8C7C2" strokeWidth="1.5" strokeDasharray="6,4" strokeLinecap="round" />
           </g>
         )}
-        {showLongSpot && !analysis.chartLabel && (() => {
+        {showLongPnlRef && showLongSpot && !analysis.chartLabel && (() => {
           const labelPrice = Math.min(visMax * 0.98, dataMax);
-          const labelY = scaleY((labelPrice - spot) * (spotQuantity || 1));
+          const labelY = scaleY((labelPrice - spot) * 1);
           if (labelY < PAD.top || labelY > H - PAD.bottom) return null;
           return (
             <text x={scaleX(labelPrice) - 4} y={labelY - 6}
