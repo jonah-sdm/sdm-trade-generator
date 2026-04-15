@@ -106,8 +106,11 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long P&L: always (price − spot) × 1 unit — pure "going long from here" reference
-  const longSpotPoints = visXs.map(x => ({ price: x, pnl: x - spot }));
+  // Long P&L: anchored to the strategy's P&L at spot, then ±$1 per $1 price move.
+  // This makes it overlap exactly wherever the strategy has delta=1 (truly going long),
+  // and visibly peel away where the strategy caps/floors (e.g. above a short call strike).
+  const pnlAtSpot = pnlAtPrice ? pnlAtPrice(spot) : 0;
+  const longSpotPoints = visXs.map(x => ({ price: x, pnl: (x - spot) + pnlAtSpot }));
 
 
   // Per-leg curves (Long Spot excluded — handled separately above)
