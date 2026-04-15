@@ -296,7 +296,7 @@ function ChartPanel({ title, candles, showLevels, zoomPresets }) {
       chart.remove();
       rsiChart.remove();
     };
-  }, [candles, showLevels]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [candles, showLevels]); // eslint-disable-line
 
   const last = candles?.[candles.length - 1];
   const prev = candles?.[candles.length - 2];

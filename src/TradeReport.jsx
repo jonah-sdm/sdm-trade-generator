@@ -728,7 +728,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
     if (!analysis || !analysis.spot) return;
     const raw = getScenarioPrices(scenarioPreset, analysis.spot, analysis, fieldValues);
     setScenarioRows(raw.slice(0, 5).map(p => String(Math.round(p))));
-  }, [scenarioPreset, trade.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [scenarioPreset, trade.id]); // eslint-disable-line
 
   if (!analysis) return null;
 
