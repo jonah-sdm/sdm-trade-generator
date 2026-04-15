@@ -432,7 +432,7 @@ function PayoffChart({ analysis, accentColor }) {
         ))}
 
         <text x={PAD.left - 10} y={12} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">P&amp;L</text>
-        <text x={W - PAD.right} y={H - PAD.bottom + 18} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">Price</text>
+        <text x={W - PAD.right} y={H - PAD.bottom + 32} textAnchor="end" fill="#8A8A88" fontSize="9" fontFamily="'Poppins', sans-serif">Price</text>
       </svg>
 
       {/* ── Zoom / axis controls ── */}
