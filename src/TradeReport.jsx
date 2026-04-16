@@ -1072,25 +1072,9 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
 
           return (
             <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
-              {/* Header row with title + preset pills */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: `0.5px solid ${THEME.border}` }}>
+              {/* Header row */}
+              <div style={{ padding: "12px 20px", borderBottom: `0.5px solid ${THEME.border}` }}>
                 <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: THEME.textMuted }}>Scenario Analysis — P&L at Expiry</span>
-                <div className="noprint" style={{ display: "flex", gap: 4 }}>
-                  {presetOpts.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setScenarioPreset(opt.value)}
-                      style={{
-                        padding: "3px 10px", borderRadius: 20,
-                        fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em",
-                        border: scenarioPreset === opt.value ? "none" : `0.5px solid ${THEME.border}`,
-                        background: scenarioPreset === opt.value ? "#1A1A18" : "transparent",
-                        color: scenarioPreset === opt.value ? "#fff" : THEME.textMuted,
-                        cursor: "pointer", transition: "all 0.15s",
-                      }}
-                    >{opt.label}</button>
-                  ))}
-                </div>
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
