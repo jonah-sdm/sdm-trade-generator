@@ -51,8 +51,8 @@ const toolbarBtnStyle = {
 };
 
 // ─── SVG PAYOFF CHART (light theme, with zoom / leg toggles / entry override) ───
-function PayoffChart({ analysis, accentColor }) {
-  const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice, currentNotional } = analysis;
+function PayoffChart({ analysis, accentColor, fieldValues }) {
+  const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice } = analysis;
   if (!curve || curve.length === 0) return null;
 
   // ── Axis / zoom state ──────────────────────────────────────────────────
@@ -111,12 +111,17 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long P&L reference: scale by the same position size as the strategy so the line
-  // stays visible regardless of holdings. Use spotQuantity when a real spot leg exists
-  // (covered_call, collar, wheel). For pure options strategies, derive qty from currentNotional.
-  const longPnlQty = spotQuantity > 0
-    ? spotQuantity
-    : (currentNotional > 0 && spot > 0 ? currentNotional / spot : 1);
+  // Long P&L reference: scale by position size so the line stays visible.
+  // For spot-holding strategies (covered_call, collar, wheel) use spotQuantity.
+  // For pure options strategies, read holdings directly from fieldValues.
+  const fvHoldings = Math.max(1,
+    parseFloat(fieldValues?.holdings) ||
+    parseFloat(fieldValues?.contracts) ||
+    parseFloat(fieldValues?.notional) ||
+    parseFloat(fieldValues?.btc_amount) ||
+    1
+  );
+  const longPnlQty = spotQuantity > 0 ? spotQuantity : fvHoldings;
   const longSpotPoints = visXs.map(x => ({ price: x, pnl: (x - spot) * longPnlQty }));
 
 
@@ -929,7 +934,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             </div>
           </div>
           <div style={{ padding: "20px 20px 12px" }}>
-            <PayoffChart analysis={analysis} accentColor={trade.color} />
+            <PayoffChart analysis={analysis} accentColor={trade.color} fieldValues={fieldValues} />
           </div>
           {analysis.zones && analysis.zones.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0 20px 16px", gap: 8 }}>
