@@ -72,9 +72,9 @@ function PayoffChart({ analysis, accentColor }) {
   const effectiveSpot = spot || (dataMin + dataMax) / 2;
   const halfRange = effectiveSpot * (xPctRange / 100);
   const xStartNum = parseFloat(String(xStartInput).replace(/[$,\s]/g, ""));
-  const xStartValid = isFinite(xStartNum) && xStartNum > 0 && xStartNum < effectiveSpot;
-  const visMin = xStartValid ? xStartNum : Math.max(effectiveSpot - halfRange, dataMin * 0.5);
   const visMax = Math.min(effectiveSpot + halfRange, dataMax * 1.5);
+  const xStartValid = isFinite(xStartNum) && xStartNum > 0 && xStartNum < visMax;
+  const visMin = xStartValid ? xStartNum : Math.max(effectiveSpot - halfRange, dataMin * 0.5);
 
   // ── Leg toggle state ───────────────────────────────────────────────────
   const hasSpotQty = (spotQuantity || 0) > 0;
