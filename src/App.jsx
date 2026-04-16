@@ -3052,7 +3052,6 @@ export default function App() {
           loanComponent={loanComponent}
           onBack={() => navigateTo(PHASES.CONFIGURE)}
           onReset={handleReset}
-          onFieldChange={handleFieldChange}
         />
       )}
 

@@ -137,11 +137,10 @@ export function adaptCallSpread(f) {
         { type: "call", side: "long", strike: longK },
       ];
 
-  const qty = Math.max(1, n(f.contracts) || 1);
   const spreadWidth = shortK - longK;
   // Analytical max P&L — bypass findExtrema which may miss strikes outside chartBounds
-  const analyticalMaxProfit = (isLong ? spreadWidth + premium : premium) * qty;
-  const analyticalMaxLoss = (isLong ? premium : premium - spreadWidth) * qty;
+  const analyticalMaxProfit = isLong ? spreadWidth + premium : premium;
+  const analyticalMaxLoss = isLong ? premium : premium - spreadWidth;
 
   const chartMin = Math.min(spot, longK, shortK) * 0.85;
   const chartMax = Math.max(spot, longK, shortK) * 1.15;
@@ -152,7 +151,7 @@ export function adaptCallSpread(f) {
     spot,
     legs,
     netPremium: premium,
-    contracts: qty,
+    contracts: 1,
     returnBasis: "net_premium",
     chartBounds: { min: chartMin, max: chartMax },
     buildMetrics: ({ breakevens }) => [
@@ -185,7 +184,6 @@ export function adaptPutSpread(f) {
   const premium = n(f.premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  const qty = Math.max(1, n(f.contracts) || 1);
 
   const legs = isLong
     ? [
@@ -203,7 +201,7 @@ export function adaptPutSpread(f) {
     spot,
     legs,
     netPremium: premium,
-    contracts: qty,
+    contracts: 1,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
@@ -235,7 +233,6 @@ export function adaptStraddle(f) {
   const premium = n(f.total_premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  const qty = Math.max(1, n(f.contracts) || 1);
 
   const legs = isLong
     ? [
@@ -253,7 +250,7 @@ export function adaptStraddle(f) {
     spot,
     legs,
     netPremium: premium, // negative for long (debit), positive for short (credit)
-    contracts: qty,
+    contracts: 1,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
@@ -289,7 +286,6 @@ export function adaptStrangle(f) {
   const premium = n(f.total_premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  const qty = Math.max(1, n(f.contracts) || 1);
 
   const legs = isLong
     ? [
@@ -307,7 +303,7 @@ export function adaptStrangle(f) {
     spot,
     legs,
     netPremium: premium,
-    contracts: qty,
+    contracts: 1,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
