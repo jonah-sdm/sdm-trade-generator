@@ -269,26 +269,48 @@ function PayoffChart({ analysis, accentColor }) {
 
   return (
     <div>
-      {/* ── Leg toggle panel ── */}
+      {/* ── Leg toggle panel (interactive, hidden in PDF) ── */}
       {!analysis.chartLabel && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
-          <span className="noprint" style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
-          {/* Net P&L — hide in PDF if toggled off */}
-          <button className={showNetPnl ? undefined : "noprint"} style={toggleBtnStyle(showNetPnl, accentColor || "#1A1A18")} onClick={() => setShowNetPnl(v => !v)}>
+        <div className="noprint" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
+          <button style={toggleBtnStyle(showNetPnl, accentColor || "#1A1A18")} onClick={() => setShowNetPnl(v => !v)}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
             Net P&L
           </button>
-          {/* Long P&L — hide in PDF if toggled off */}
-          <button className={showLongSpot ? undefined : "noprint"} style={toggleBtnStyle(showLongSpot, "#00C2FF")} onClick={() => setShowLongSpot(v => !v)}>
+          <button style={toggleBtnStyle(showLongSpot, "#00C2FF")} onClick={() => setShowLongSpot(v => !v)}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showLongSpot ? "#00C2FF" : "#C8C7C2" }} />
             Long P&L
           </button>
-          {/* Individual option legs — hide in PDF if toggled off */}
           {displayLegs.map((leg, i) => (
-            <button key={i} className={legVisibility[i] ? undefined : "noprint"} style={toggleBtnStyle(legVisibility[i], leg.color)} onClick={() => toggleLeg(i)}>
+            <button key={i} style={toggleBtnStyle(legVisibility[i], leg.color)} onClick={() => toggleLeg(i)}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: legVisibility[i] ? leg.color : "#C8C7C2" }} />
               {leg.label}
             </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── PDF-only legend (static, shown in PDF via .pdf-legend CSS) ── */}
+      {!analysis.chartLabel && (
+        <div className="pdf-legend" style={{ display: "none", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
+          {showNetPnl && (
+            <span style={{ ...toggleBtnStyle(true, accentColor || "#1A1A18"), pointerEvents: "none" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor || "#1A1A18" }} />
+              Net P&L
+            </span>
+          )}
+          {showLongSpot && (
+            <span style={{ ...toggleBtnStyle(true, "#00C2FF"), pointerEvents: "none" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00C2FF" }} />
+              Long P&L
+            </span>
+          )}
+          {displayLegs.map((leg, i) => legVisibility[i] && (
+            <span key={i} style={{ ...toggleBtnStyle(true, leg.color), pointerEvents: "none" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: leg.color }} />
+              {leg.label}
+            </span>
           ))}
         </div>
       )}
@@ -503,7 +525,19 @@ function buildStandaloneHtml(reportRef, trade) {
   styleSheets.forEach(sheet => {
     try { Array.from(sheet.cssRules).forEach(rule => { cssText += rule.cssText + "\n"; }); } catch (e) {}
   });
-  let reportHtml = reportRef.current.outerHTML;
+
+  // Clone DOM, strip noprint elements, force-show pdf-legend elements
+  const clone = reportRef.current.cloneNode(true);
+  clone.querySelectorAll(".noprint").forEach(el => el.remove());
+  clone.querySelectorAll(".pdf-legend").forEach(el => {
+    el.style.display = "flex";
+    el.style.flexWrap = "wrap";
+    el.style.gap = "6px";
+    el.style.marginBottom = "10px";
+    el.style.padding = "0 4px";
+  });
+
+  let reportHtml = clone.outerHTML;
   reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
                          .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
   const now = new Date();
@@ -520,6 +554,7 @@ function buildStandaloneHtml(reportRef, trade) {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .noprint { display: none !important; }
+.pdf-legend { display: flex !important; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; padding: 0 4px; }
 ${cssText}
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -566,7 +601,23 @@ function handleExportPDF(reportRef, trade) {
   styleSheets.forEach(sheet => {
     try { Array.from(sheet.cssRules).forEach(rule => { cssText += rule.cssText + "\n"; }); } catch (e) {}
   });
-  let reportHtml = reportRef.current.outerHTML;
+
+  // Clone DOM so we can mutate without affecting the live page
+  const clone = reportRef.current.cloneNode(true);
+
+  // Strip all noprint elements from the clone
+  clone.querySelectorAll(".noprint").forEach(el => el.remove());
+
+  // Force-show all pdf-legend elements (override the display:none inline style)
+  clone.querySelectorAll(".pdf-legend").forEach(el => {
+    el.style.display = "flex";
+    el.style.flexWrap = "wrap";
+    el.style.gap = "6px";
+    el.style.marginBottom = "10px";
+    el.style.padding = "0 4px";
+  });
+
+  let reportHtml = clone.outerHTML;
   reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
                          .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
 
@@ -588,6 +639,7 @@ function handleExportPDF(reportRef, trade) {
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .noprint { display: none !important; }
+.pdf-legend { display: flex !important; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; padding: 0 4px; }
 ${cssText}
 @media print {
   @page {
