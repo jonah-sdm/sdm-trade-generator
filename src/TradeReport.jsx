@@ -267,7 +267,7 @@ function PayoffChart({ analysis, accentColor }) {
     <div>
       {/* ── Leg toggle panel ── */}
       {!analysis.chartLabel && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
+        <div className="noprint" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
           {/* Net P&L always present */}
           <button style={toggleBtnStyle(showNetPnl, accentColor || "#1A1A18")} onClick={() => setShowNetPnl(v => !v)}>
@@ -428,7 +428,7 @@ function PayoffChart({ analysis, accentColor }) {
       </svg>
 
       {/* ── Zoom / axis controls ── */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 10, padding: "8px 4px 0", borderTop: "0.5px solid #E8E7E2" }}>
+      <div className="noprint" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 10, padding: "8px 4px 0", borderTop: "0.5px solid #E8E7E2" }}>
         {/* X range slider */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>

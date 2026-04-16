@@ -125,8 +125,11 @@ export function adaptCallSpread(f) {
   const shortK = n(f.short_strike);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
-  const premium = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
+  const holdings = Math.max(1, parseFloat(f.holdings) || parseFloat(f.contracts) || 1);
+
+  // Total premium entered by user. Convert to per-unit so the engine can multiply by holdings.
+  const totalPremium = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
+  const premiumPerUnit = totalPremium / holdings;
 
   const legs = isLong
     ? [
@@ -139,9 +142,9 @@ export function adaptCallSpread(f) {
       ];
 
   const spreadWidth = shortK - longK;
-  // Analytical max P&L — bypass findExtrema which may miss strikes outside chartBounds
-  const analyticalMaxProfit = isLong ? spreadWidth + premium : premium;
-  const analyticalMaxLoss = isLong ? premium : premium - spreadWidth;
+  // Analytical max P&L — scaled by holdings
+  const analyticalMaxProfit = isLong ? (spreadWidth + premiumPerUnit) * holdings : totalPremium;
+  const analyticalMaxLoss = isLong ? totalPremium : (premiumPerUnit - spreadWidth) * holdings;
 
   const chartMin = Math.min(spot, longK, shortK) * 0.85;
   const chartMax = Math.max(spot, longK, shortK) * 1.15;
@@ -151,13 +154,13 @@ export function adaptCallSpread(f) {
     tradeType: "call_spread",
     spot,
     legs,
-    netPremium: premium,
-    contracts: 1,
+    netPremium: premiumPerUnit,
+    contracts: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: chartMin, max: chartMax },
     buildMetrics: ({ breakevens }) => [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
-      { label: dir + " Call Spread", value: `${fmt(longK)} / ${fmt(shortK)}` },
+      { label: dir + " Call Spread", value: `${fmt(longK)} / ${fmt(shortK)}`, sub: holdings > 1 ? `${holdings} units` : undefined },
       { label: "Expiry", value: f.expiry || "—", sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
       { label: isLong ? "Max Payout" : "Max Gain", value: fmt(analyticalMaxProfit), sub: isLong ? `Above ${fmt(shortK)}` : "Premium income", positive: true },
       { label: "Max Loss", value: fmt(Math.abs(analyticalMaxLoss)), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(longK)}`, negative: true },
@@ -184,8 +187,11 @@ export function adaptPutSpread(f) {
   const shortK = n(f.short_strike);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
-  const premium = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
+  const holdings = Math.max(1, parseFloat(f.holdings) || parseFloat(f.contracts) || 1);
+
+  // Total premium → per-unit so engine can multiply by holdings
+  const totalPremium = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
+  const premiumPerUnit = totalPremium / holdings;
 
   const legs = isLong
     ? [
@@ -202,13 +208,13 @@ export function adaptPutSpread(f) {
     tradeType: "put_spread",
     spot,
     legs,
-    netPremium: premium,
-    contracts: 1,
+    netPremium: premiumPerUnit,
+    contracts: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
       { label: "Spot Price", value: fmt(spot), sub: f.asset || "—" },
-      { label: dir + " Put Spread", value: `${fmt(longK)} / ${fmt(shortK)}` },
+      { label: dir + " Put Spread", value: `${fmt(longK)} / ${fmt(shortK)}`, sub: holdings > 1 ? `${holdings} units` : undefined },
       { label: "Expiry", value: f.expiry || "—", sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
       { label: "Max Gain", value: fmt(extrema.maxProfit), sub: isLong ? `Below ${fmt(shortK)}` : "Premium income", positive: true },
       { label: "Max Loss", value: fmt(Math.abs(extrema.maxLoss)), sub: isLong ? `Above ${fmt(longK)}` : `Below ${fmt(shortK)}`, negative: true },
@@ -234,8 +240,11 @@ export function adaptStraddle(f) {
   const atmK = n(f.atm_strike);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
-  const premium = isLong ? -Math.abs(n(f.total_premium)) : Math.abs(n(f.total_premium));
+  const holdings = Math.max(1, parseFloat(f.holdings) || parseFloat(f.contracts) || 1);
+
+  // Total premium → per-unit so engine can multiply by holdings
+  const totalPremium = isLong ? -Math.abs(n(f.total_premium)) : Math.abs(n(f.total_premium));
+  const premiumPerUnit = totalPremium / holdings;
 
   const legs = isLong
     ? [
@@ -252,8 +261,8 @@ export function adaptStraddle(f) {
     tradeType: "straddle",
     spot,
     legs,
-    netPremium: premium, // negative for long (debit), positive for short (credit)
-    contracts: 1,
+    netPremium: premiumPerUnit, // per-unit; engine multiplies by contracts (holdings)
+    contracts: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
@@ -288,8 +297,11 @@ export function adaptStrangle(f) {
   const putK = n(f.put_strike);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
-  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
-  const premium = isLong ? -Math.abs(n(f.total_premium)) : Math.abs(n(f.total_premium));
+  const holdings = Math.max(1, parseFloat(f.holdings) || parseFloat(f.contracts) || 1);
+
+  // Total premium → per-unit so engine can multiply by holdings
+  const totalPremium = isLong ? -Math.abs(n(f.total_premium)) : Math.abs(n(f.total_premium));
+  const premiumPerUnit = totalPremium / holdings;
 
   const legs = isLong
     ? [
@@ -306,8 +318,8 @@ export function adaptStrangle(f) {
     tradeType: "strangle",
     spot,
     legs,
-    netPremium: premium,
-    contracts: 1,
+    netPremium: premiumPerUnit,
+    contracts: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
