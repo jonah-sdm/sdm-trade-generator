@@ -271,21 +271,21 @@ function PayoffChart({ analysis, accentColor }) {
     <div>
       {/* ── Leg toggle panel ── */}
       {!analysis.chartLabel && (
-        <div className="noprint" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
-          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
-          {/* Net P&L always present */}
-          <button style={toggleBtnStyle(showNetPnl, accentColor || "#1A1A18")} onClick={() => setShowNetPnl(v => !v)}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, padding: "0 4px" }}>
+          <span className="noprint" style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", display: "flex", alignItems: "center", marginRight: 4 }}>Layers</span>
+          {/* Net P&L — hide in PDF if toggled off */}
+          <button className={showNetPnl ? undefined : "noprint"} style={toggleBtnStyle(showNetPnl, accentColor || "#1A1A18")} onClick={() => setShowNetPnl(v => !v)}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showNetPnl ? (accentColor || "#1A1A18") : "#C8C7C2" }} />
             Net P&L
           </button>
-          {/* Long P&L — always present on every trade, blue dot */}
-          <button style={toggleBtnStyle(showLongSpot, "#00C2FF")} onClick={() => setShowLongSpot(v => !v)}>
+          {/* Long P&L — hide in PDF if toggled off */}
+          <button className={showLongSpot ? undefined : "noprint"} style={toggleBtnStyle(showLongSpot, "#00C2FF")} onClick={() => setShowLongSpot(v => !v)}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: showLongSpot ? "#00C2FF" : "#C8C7C2" }} />
             Long P&L
           </button>
-          {/* Individual option legs */}
+          {/* Individual option legs — hide in PDF if toggled off */}
           {displayLegs.map((leg, i) => (
-            <button key={i} style={toggleBtnStyle(legVisibility[i], leg.color)} onClick={() => toggleLeg(i)}>
+            <button key={i} className={legVisibility[i] ? undefined : "noprint"} style={toggleBtnStyle(legVisibility[i], leg.color)} onClick={() => toggleLeg(i)}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: legVisibility[i] ? leg.color : "#C8C7C2" }} />
               {leg.label}
             </button>
