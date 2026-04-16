@@ -217,6 +217,7 @@ export const TRADE_TYPES = [
       { key: "expiry", label: "Expiry", type: "text", placeholder: "28 Apr 2025" },
       { key: "iv", label: "IV", type: "text", placeholder: "62%" },
       { key: "delta", label: "Delta", type: "number", placeholder: "0.28" },
+      { key: "contracts", label: "Contracts", type: "number", default: "1", placeholder: "1" },
     ]
   },
   {
@@ -237,6 +238,7 @@ export const TRADE_TYPES = [
       { key: "expiry", label: "Expiry", type: "text", placeholder: "30 May 2025" },
       { key: "iv", label: "IV", type: "text", placeholder: "64%" },
       { key: "delta", label: "Delta", type: "number", placeholder: "-0.35" },
+      { key: "contracts", label: "Contracts", type: "number", default: "1", placeholder: "1" },
     ]
   },
   {
@@ -256,6 +258,7 @@ export const TRADE_TYPES = [
       { key: "expiry", label: "Expiry", type: "text", placeholder: "30 May 2025" },
       { key: "iv", label: "IV", type: "text", placeholder: "63%" },
       { key: "delta", label: "Delta", type: "number", placeholder: "0.02" },
+      { key: "contracts", label: "Contracts", type: "number", default: "1", placeholder: "1" },
     ]
   },
   {
@@ -276,6 +279,7 @@ export const TRADE_TYPES = [
       { key: "expiry", label: "Expiry", type: "text", placeholder: "30 May 2025" },
       { key: "iv", label: "IV", type: "text", placeholder: "60%" },
       { key: "delta", label: "Delta", type: "number", placeholder: "0.04" },
+      { key: "contracts", label: "Contracts", type: "number", default: "1", placeholder: "1" },
     ]
   },
 ];
