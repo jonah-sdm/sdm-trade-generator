@@ -692,10 +692,11 @@ function getScenarioPrices(preset, spot, analysis, fieldValues) {
 }
 
 // ─── MAIN REPORT ───
-export default function TradeReport({ trade, fieldValues, loanComponent, onBack, onReset }) {
+export default function TradeReport({ trade, fieldValues, loanComponent, onBack, onReset, onFieldChange }) {
   const reportRef = useRef(null);
   const editorRef = useRef(null);
   const [linkText, setLinkText] = useState("Link");
+  const [showEditModal, setShowEditModal] = useState(false);
   const [execHtml, setExecHtml] = useState(() => {
     const raw = fieldValues.executive_summary;
     if (!raw) return "";
@@ -774,6 +775,20 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
               Edit
+            </button>
+          )}
+          {onFieldChange && (
+            <button onClick={() => setShowEditModal(true)} style={{
+              background: "#FFC32C", border: "none", borderRadius: 6,
+              color: "#1A1A18", padding: "7px 14px",
+              fontFamily: "'Poppins',sans-serif", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Edit Parameters
             </button>
           )}
           <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 2, color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
@@ -1314,6 +1329,146 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
         </div>
 
       </div>
+
+      {/* ─── Edit Parameters Modal ─── */}
+      {showEditModal && onFieldChange && (
+        <div
+          onClick={() => setShowEditModal(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 500,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 420, height: "100vh",
+              background: "#FDFCF7",
+              display: "flex", flexDirection: "column",
+              boxShadow: "-8px 0 32px rgba(0,0,0,0.18)",
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "20px 24px 16px",
+              borderBottom: "1px solid #E8E7E2",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              flexShrink: 0,
+            }}>
+              <div>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", marginBottom: 4 }}>
+                  {trade.tag}
+                </div>
+                <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>
+                  Edit Parameters
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  background: "none", border: "1px solid #E8E7E2", borderRadius: 6,
+                  width: 32, height: 32, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#8A8A88",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            {/* Scrollable fields */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                {(trade.fields || []).map(field => {
+                  const label = field.labelFn ? field.labelFn(fieldValues) : field.label;
+                  const val = fieldValues[field.key] ?? "";
+                  const inputStyle = {
+                    width: "100%", boxSizing: "border-box",
+                    background: "#FFFFFF", border: "1px solid #E8E7E2",
+                    borderRadius: 6, padding: "10px 12px",
+                    fontSize: 13, color: "#1A1A18",
+                    fontFamily: "'Poppins',sans-serif", outline: "none",
+                  };
+                  const labelEl = (
+                    <label style={{
+                      fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 700,
+                      letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88",
+                      display: "block", marginBottom: 6,
+                    }}>
+                      {label}
+                    </label>
+                  );
+
+                  if (field.type === "textarea") {
+                    return (
+                      <div key={field.key}>
+                        {labelEl}
+                        <textarea
+                          rows={5}
+                          defaultValue={String(val).replace(/<[^>]*>/g, "")}
+                          onBlur={e => onFieldChange(field.key, e.target.value)}
+                          style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
+                        />
+                      </div>
+                    );
+                  }
+                  if (field.type === "select") {
+                    return (
+                      <div key={field.key}>
+                        {labelEl}
+                        <select
+                          value={val}
+                          onChange={e => onFieldChange(field.key, e.target.value)}
+                          style={{
+                            ...inputStyle, cursor: "pointer",
+                            appearance: "none",
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
+                          }}
+                        >
+                          {(field.options || []).map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={field.key}>
+                      {labelEl}
+                      <input
+                        key={field.key + "|" + val}
+                        type="text"
+                        defaultValue={val}
+                        placeholder={field.placeholder || ""}
+                        onBlur={e => onFieldChange(field.key, e.target.value)}
+                        style={inputStyle}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: "16px 24px", borderTop: "1px solid #E8E7E2", flexShrink: 0 }}>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  width: "100%", padding: "12px",
+                  background: "#1A1A18", border: "none", borderRadius: 6,
+                  color: "#FFC32C", fontFamily: "'Montserrat',sans-serif",
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
+                  textTransform: "uppercase", cursor: "pointer",
+                }}
+              >
+                Done — Update Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
