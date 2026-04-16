@@ -52,7 +52,7 @@ const toolbarBtnStyle = {
 
 // ─── SVG PAYOFF CHART (light theme, with zoom / leg toggles / entry override) ───
 function PayoffChart({ analysis, accentColor }) {
-  const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice } = analysis;
+  const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice, currentNotional } = analysis;
   if (!curve || curve.length === 0) return null;
 
   // ── Axis / zoom state ──────────────────────────────────────────────────
@@ -111,9 +111,13 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long P&L: (price − spot) — buy 1 unit at current spot, P&L from there.
-  // Crosses zero at spot. +$1 per $1 rise, −$1 per $1 fall. Clean reference.
-  const longSpotPoints = visXs.map(x => ({ price: x, pnl: x - spot }));
+  // Long P&L reference: scale by the same position size as the strategy so the line
+  // stays visible regardless of holdings. Use spotQuantity when a real spot leg exists
+  // (covered_call, collar, wheel). For pure options strategies, derive qty from currentNotional.
+  const longPnlQty = spotQuantity > 0
+    ? spotQuantity
+    : (currentNotional > 0 && spot > 0 ? currentNotional / spot : 1);
+  const longSpotPoints = visXs.map(x => ({ price: x, pnl: (x - spot) * longPnlQty }));
 
 
   // Per-leg curves (Long Spot excluded — handled separately above)
