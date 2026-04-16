@@ -73,6 +73,7 @@ export const TRADE_TYPES = [
     icon: "↓",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC, ETH", default: "BTC" },
+      { key: "holdings", label: "Holdings (Units)", type: "number", placeholder: "1", default: "1" },
       { key: "current_price", label: "Current Price ($)", type: "number", placeholder: "95000", default: "95000" },
       { key: "strike", label: "Put Strike ($)", type: "number", placeholder: "85000", default: "85000" },
       { key: "expiry", label: "Expiry Date", type: "text", placeholder: "28 Mar 2025", default: "26 Jun 2026" },
@@ -188,6 +189,7 @@ export const TRADE_TYPES = [
     icon: "⚡",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC, ETH", default: "BTC" },
+      { key: "holdings", label: "Holdings (Units)", type: "number", placeholder: "1", default: "1" },
       { key: "current_price", label: "Current Price ($)", type: "number", placeholder: "95000", default: "95000" },
       { key: "event_date", label: "Event Date", type: "text", placeholder: "15 Apr 2025", default: "15 Apr 2026" },
       { key: "expected_move_pct", label: "Market-Priced Expected Move (%)", type: "number", placeholder: "8.5", default: "8.5" },
@@ -209,6 +211,7 @@ export const TRADE_TYPES = [
     icon: "⟋",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
+      { key: "holdings", label: "Holdings (Units)", type: "number", placeholder: "1", default: "1" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "long_strike", label: "Long Strike", type: "number", placeholder: "84000" },
@@ -229,6 +232,7 @@ export const TRADE_TYPES = [
     icon: "⟍",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
+      { key: "holdings", label: "Holdings (Units)", type: "number", placeholder: "1", default: "1" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "long_strike", label: "Long Strike (higher put)", type: "number", placeholder: "84000" },
@@ -249,6 +253,7 @@ export const TRADE_TYPES = [
     icon: "⟺",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
+      { key: "holdings", label: "Holdings (Units)", type: "number", placeholder: "1", default: "1" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "atm_strike", label: "ATM Strike", type: "number", placeholder: "84000" },
@@ -268,6 +273,7 @@ export const TRADE_TYPES = [
     icon: "⟻",
     fields: [
       { key: "asset", label: "Asset", type: "text", placeholder: "e.g. BTC" },
+      { key: "holdings", label: "Holdings (Units)", type: "number", placeholder: "1", default: "1" },
       { key: "spot", label: "Spot Price", type: "number", placeholder: "84000" },
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"] },
       { key: "call_strike", label: "OTM Call Strike", type: "number", placeholder: "90000" },

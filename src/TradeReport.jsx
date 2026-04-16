@@ -565,21 +565,47 @@ function handleExportPDF(reportRef, trade) {
   let reportHtml = reportRef.current.outerHTML;
   reportHtml = reportHtml.replace(/src="\/sdm-logo[^"]*\.svg"/g, `src="${SDM_LOGO_SVG}"`)
                          .replace(/src="\/sdm-logo[^"]*\.png"/g, `src="${SDM_LOGO_SVG}"`);
+
+  // Measure the actual rendered content height so we can set @page to exactly that size.
+  // This makes the PDF a single continuous page with no cropping or page breaks.
+  const contentW = reportRef.current.scrollWidth;
+  const contentH = reportRef.current.scrollHeight + 40; // +40px breathing room
+  // Convert px → mm (96 dpi: 1px = 0.264583mm)
+  const pageWmm = Math.ceil(contentW * 0.264583);
+  const pageHmm = Math.ceil(contentH * 0.264583);
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Report — SDM Trade Idea Studio</title>
+<title>${trade.label} — SDM Trade Idea Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; margin: 0; padding: 32px 36px; -webkit-font-smoothing: antialiased; }
+body { background: #FDFCF7; color: #1A1A18; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 .report-actions, .report-share-bar, .btn-edit-thesis, .btn-save-thesis, .noprint { display: none !important; }
 ${cssText}
 @media print {
-  @page { size: A4; margin: 0 !important; }
-  *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background: #FDFCF7 !important; padding: 12mm !important; }
+  @page {
+    size: ${pageWmm}mm ${pageHmm}mm;
+    margin: 0 !important;
+  }
+  html, body {
+    width: ${contentW}px !important;
+    height: ${contentH}px !important;
+    overflow: visible !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+  body { background: #FDFCF7 !important; }
 }
 </style>
 </head>
@@ -589,7 +615,7 @@ ${cssText}
   if (!printWindow) return;
   printWindow.document.write(html);
   printWindow.document.close();
-  setTimeout(() => { printWindow.print(); }, 800);
+  setTimeout(() => { printWindow.print(); }, 1000);
 }
 
 function handleShare(platform, trade, analysis) {
