@@ -111,8 +111,13 @@ function PayoffChart({ analysis, accentColor }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long P&L reference line — buy 1 unit at spot, slope = 1. Used as a directional reference.
-  const longSpotPoints = visXs.map(x => ({ price: x, pnl: x - spot }));
+  // Long P&L reference line — scaled by position size so it stays visible at any holdings count.
+  // spotQuantity used for strategies that hold actual spot (covered_call, collar, wheel).
+  // positionSize used for pure options strategies (call_spread, put_spread, straddle, strangle).
+  const longPnlQty = analysis.spotQuantity > 0
+    ? analysis.spotQuantity
+    : (analysis.positionSize || 1);
+  const longSpotPoints = visXs.map(x => ({ price: x, pnl: (x - spot) * longPnlQty }));
 
 
   // Per-leg curves (Long Spot excluded — handled separately above)

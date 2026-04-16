@@ -155,6 +155,7 @@ export function adaptCallSpread(f) {
     legs,
     netPremium: premiumPerUnit,   // per-unit; engine multiplies by contracts (holdings)
     contracts: holdings,
+    positionSize: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: chartMin, max: chartMax },
     buildMetrics: ({ breakevens }) => [
@@ -209,6 +210,7 @@ export function adaptPutSpread(f) {
     legs,
     netPremium: premiumPerUnit,
     contracts: holdings,
+    positionSize: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
@@ -262,6 +264,7 @@ export function adaptStraddle(f) {
     legs,
     netPremium: premiumPerUnit, // per-unit; engine multiplies by contracts (holdings)
     contracts: holdings,
+    positionSize: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [
@@ -319,6 +322,7 @@ export function adaptStrangle(f) {
     legs,
     netPremium: premiumPerUnit,
     contracts: holdings,
+    positionSize: holdings,
     returnBasis: "net_premium",
     chartBounds: { min: spot * 0.74, max: spot * 1.26 },
     buildMetrics: ({ breakevens, extrema }) => [

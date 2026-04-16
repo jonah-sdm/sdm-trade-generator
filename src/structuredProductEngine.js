@@ -297,6 +297,7 @@ export function analyzeStructuredProduct(def) {
     breakevens,
     tradeType: def.tradeType || def.strategyId,
     currentNotional,
+    positionSize: def.positionSize || def.holdings || contracts,
     pnlAtPrice,
     maxProfit: extrema.maxProfit,
     maxLoss: extrema.maxLoss,
