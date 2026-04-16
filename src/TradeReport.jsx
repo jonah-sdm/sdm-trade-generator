@@ -860,8 +860,11 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
         </div>
 
         {/* ── METRICS STRIP ── */}
-        <div style={{ background: "#fff", borderBottom: `0.5px solid ${THEME.border}`, display: "grid", gridTemplateColumns: `repeat(${Math.min(analysis.metrics.length, 6)}, 1fr)` }}>
-          {analysis.metrics.slice(0, 6).map((m, i, arr) => (
+        {(() => {
+          const displayMetrics = analysis.metrics.filter(m => m.label !== "Spot Price" && m.label !== "Current Price");
+          return (
+        <div style={{ background: "#fff", borderBottom: `0.5px solid ${THEME.border}`, display: "grid", gridTemplateColumns: `repeat(${Math.min(displayMetrics.length, 6)}, 1fr)` }}>
+          {displayMetrics.slice(0, 6).map((m, i, arr) => (
             <div key={i} style={{ padding: "18px 20px", borderRight: i < arr.length - 1 ? `0.5px solid ${THEME.border}` : "none" }}>
               <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: THEME.textMuted, marginBottom: 6 }}>{m.label}</div>
               <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: m.positive ? THEME.positive : m.negative ? THEME.negative : THEME.text }}>{m.value}</div>
@@ -869,6 +872,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             </div>
           ))}
         </div>
+          );
+        })()}
 
         {/* ── CONTENT ── */}
         <div style={{ padding: "36px 40px" }}>
