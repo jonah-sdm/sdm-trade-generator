@@ -51,7 +51,7 @@ const toolbarBtnStyle = {
 };
 
 // ─── SVG PAYOFF CHART (light theme, with zoom / leg toggles / entry override) ───
-function PayoffChart({ analysis, accentColor, fieldValues }) {
+function PayoffChart({ analysis, accentColor }) {
   const { curve, spot, breakevens, zones, legs, spotQuantity, legPayoffs, pnlAtPrice } = analysis;
   if (!curve || curve.length === 0) return null;
 
@@ -111,18 +111,8 @@ function PayoffChart({ analysis, accentColor, fieldValues }) {
     pnl: pnlAtPrice ? pnlAtPrice(x) : 0,
   }));
 
-  // Long P&L reference: scale by position size so the line stays visible.
-  // For spot-holding strategies (covered_call, collar, wheel) use spotQuantity.
-  // For pure options strategies, read holdings directly from fieldValues.
-  const fvHoldings = Math.max(1,
-    parseFloat(fieldValues?.holdings) ||
-    parseFloat(fieldValues?.contracts) ||
-    parseFloat(fieldValues?.notional) ||
-    parseFloat(fieldValues?.btc_amount) ||
-    1
-  );
-  const longPnlQty = spotQuantity > 0 ? spotQuantity : fvHoldings;
-  const longSpotPoints = visXs.map(x => ({ price: x, pnl: (x - spot) * longPnlQty }));
+  // Long P&L reference line — buy 1 unit at spot, slope = 1. Used as a directional reference.
+  const longSpotPoints = visXs.map(x => ({ price: x, pnl: x - spot }));
 
 
   // Per-leg curves (Long Spot excluded — handled separately above)
@@ -934,7 +924,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
             </div>
           </div>
           <div style={{ padding: "20px 20px 12px" }}>
-            <PayoffChart analysis={analysis} accentColor={trade.color} fieldValues={fieldValues} />
+            <PayoffChart analysis={analysis} accentColor={trade.color} />
           </div>
           {analysis.zones && analysis.zones.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0 20px 16px", gap: 8 }}>
