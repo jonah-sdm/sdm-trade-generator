@@ -1019,8 +1019,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           );
         })()}
 
-        {/* ── SCENARIO ANALYSIS TABLE ── */}
-        {analysis.curve && analysis.curve.length > 0 && (() => {
+        {/* ── SCENARIO ANALYSIS TABLE (skip call_spread_collar — has its own hedged table above) ── */}
+        {analysis.curve && analysis.curve.length > 0 && analysis.tradeType !== "call_spread_collar" && (() => {
           const spot = analysis.spot || 0;
           const curve = analysis.curve;
           const prices = curve.map(c => c.price);
