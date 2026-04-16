@@ -34,7 +34,7 @@ function fmtExact(v) {
 export function adaptCashSecuredPut(f) {
   const price = n(f.current_price);
   const strike = n(f.strike);
-  const premium = n(f.premium);
+  const premium = Math.abs(n(f.premium)); // always received — force positive
   const dte = n(f.dte);
   const capitalReq = n(f.capital_required) || strike;
   const effectiveBasis = n(f.effective_basis) || (strike - premium);
@@ -72,9 +72,9 @@ export function adaptCashSecuredPut(f) {
 export function adaptLeap(f) {
   const price = n(f.current_price);
   const strike = n(f.strike);
-  const premium = n(f.premium);
+  const premium = Math.abs(n(f.premium)); // always a cost — force positive
   const contracts = n(f.contracts) || 1;
-  const totalOutlay = n(f.total_outlay) || premium * contracts;
+  const totalOutlay = Math.abs(n(f.total_outlay) || premium * contracts); // always paid
   const dte = n(f.dte);
   const target = n(f.target_price);
   const delta = f.delta || "—";
@@ -123,9 +123,10 @@ export function adaptCallSpread(f) {
   const spot = n(f.spot);
   const longK = n(f.long_strike);
   const shortK = n(f.short_strike);
-  const premium = n(f.premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
+  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
+  const premium = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
 
   const legs = isLong
     ? [
@@ -181,9 +182,10 @@ export function adaptPutSpread(f) {
   const spot = n(f.spot);
   const longK = n(f.long_strike);
   const shortK = n(f.short_strike);
-  const premium = n(f.premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
+  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
+  const premium = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
 
   const legs = isLong
     ? [
@@ -230,9 +232,10 @@ export function adaptPutSpread(f) {
 export function adaptStraddle(f) {
   const spot = n(f.spot);
   const atmK = n(f.atm_strike);
-  const premium = n(f.total_premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
+  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
+  const premium = isLong ? -Math.abs(n(f.total_premium)) : Math.abs(n(f.total_premium));
 
   const legs = isLong
     ? [
@@ -283,9 +286,10 @@ export function adaptStrangle(f) {
   const spot = n(f.spot);
   const callK = n(f.call_strike);
   const putK = n(f.put_strike);
-  const premium = n(f.total_premium);
   const dir = f.direction || "Long";
   const isLong = dir === "Long";
+  // Long = debit (you pay) → must be negative. Short = credit (you receive) → must be positive.
+  const premium = isLong ? -Math.abs(n(f.total_premium)) : Math.abs(n(f.total_premium));
 
   const legs = isLong
     ? [

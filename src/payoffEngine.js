@@ -404,7 +404,7 @@ function computeCoveredCall(f) {
   const price = n(f.current_price);
   const strike = n(f.strike);
   const cost = n(f.cost_basis);
-  const premium = n(f.premium);        // TOTAL flat premium for the whole position (NOT per unit)
+  const premium = Math.abs(n(f.premium)); // always received — force positive; TOTAL for whole position (NOT per unit)
   const holdings = n(f.holdings) || 10;
   const dte = n(f.dte);
 
@@ -467,7 +467,7 @@ function computeCoveredCall(f) {
 function computeCashSecuredPut(f) {
   const price = n(f.current_price);
   const strike = n(f.strike);
-  const premium = n(f.premium);
+  const premium = Math.abs(n(f.premium)); // always received — force positive
   const dte = n(f.dte);
   const capital = n(f.capital_required);
   const effectiveBasis = n(f.effective_basis) || (strike - premium);
@@ -508,9 +508,9 @@ function computeCashSecuredPut(f) {
 function computeLeap(f) {
   const price = n(f.current_price);
   const strike = n(f.strike);
-  const premium = n(f.premium);
+  const premium = Math.abs(n(f.premium)); // always a cost — force positive
   const contracts = n(f.contracts) || 1;
-  const totalOutlay = n(f.total_outlay) || premium * contracts;
+  const totalOutlay = Math.abs(n(f.total_outlay) || premium * contracts); // always paid
   const dte = n(f.dte);
   const target = n(f.target_price);
 
@@ -576,7 +576,7 @@ function computeWheel(f) {
   const costBasis = n(f.cost_basis);           // Already adjusted for historical premium
   const totalPremium = n(f.total_premium);     // Informational only — NOT used in P&L
   const currentStrike = n(f.current_strike);
-  const currentPremium = n(f.current_premium); // Current cycle TOTAL premium (for all units)
+  const currentPremium = Math.abs(n(f.current_premium)); // always received — force positive; TOTAL for all units
   const cycles = n(f.cycles_completed);
   const dte = n(f.dte) || 30;
 
@@ -672,10 +672,10 @@ function computeCollar(f) {
   const cost = n(f.cost_basis);
   const putStrike = n(f.put_strike);
   const callStrike = n(f.call_strike);
-  const putPrem = n(f.put_premium);
-  const callPrem = n(f.call_premium);
+  const putPrem = Math.abs(n(f.put_premium));   // you pay this — force positive
+  const callPrem = Math.abs(n(f.call_premium)); // you receive this — force positive
   const holdings = n(f.holdings) || 50;
-  const netCost = putPrem - callPrem;
+  const netCost = putPrem - callPrem; // positive = net debit, negative = net credit
   const protectedVal = n(f.protected_value);
 
   const minP = putStrike * 0.85;
@@ -731,9 +731,9 @@ function computeCallSpreadCollar(f) {
   const kp          = n(f.put_strike);    // BUY put — floor
   const kc1         = n(f.short_call);   // SELL call — soft cap start
   const kc2         = n(f.long_call);    // BUY call — re-participation
-  const putPrem     = n(f.put_premium);
-  const scPrem      = n(f.short_call_premium);
-  const lcPrem      = n(f.long_call_premium);
+  const putPrem     = Math.abs(n(f.put_premium));         // you pay this — force positive
+  const scPrem      = Math.abs(n(f.short_call_premium));  // you receive this — force positive
+  const lcPrem      = Math.abs(n(f.long_call_premium));   // you pay this — force positive
 
   // Net premium (total, signed): positive = net credit received
   const netPremTotal    = (scPrem - putPrem - lcPrem) * notional;
@@ -821,7 +821,7 @@ function computeEarningsPlay(f) {
   const price = n(f.current_price);
   const move = n(f.expected_move_pct);
   const strike = n(f.strike);
-  const premCollected = n(f.premium_collected);
+  const premCollected = Math.abs(n(f.premium_collected)); // always received — force positive
 
   const downTarget = price * (1 - move / 100);
   const upTarget = price * (1 + move / 100);
