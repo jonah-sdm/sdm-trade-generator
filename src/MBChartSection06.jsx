@@ -121,6 +121,17 @@ function ChartPanel({ title, candles, showLevels, defaultDays, maxDays }) {
       pendingRef.current = null;
       setHasPending(false);
     }
+    // Toggle chart pan/zoom based on mode:
+    //  - cursor mode: pan & scale ON (mouse drag pans the chart, wheel zooms)
+    //  - any draw mode: pan & scale OFF (so click events aren't eaten by drag-to-pan)
+    const chart = chartRef.current;
+    if (chart) {
+      const interactive = mode === "cursor";
+      chart.applyOptions({
+        handleScroll: interactive,
+        handleScale:  interactive,
+      });
+    }
   };
 
   const clearAll = () => {

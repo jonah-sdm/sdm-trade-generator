@@ -11,8 +11,19 @@ function n(v) {
 
 // Shared formatters
 function fmt(v, decimals = 0) {
-  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(decimals > 0 ? decimals : 0)}K`;
+  if (Math.abs(v) >= 1e6) {
+    const m = v / 1e6;
+    const isWholeM = Math.abs(m - Math.round(m)) < 0.05;
+    return `$${m.toFixed(isWholeM ? 0 : 1)}M`;
+  }
+  if (Math.abs(v) >= 1e3) {
+    const k = v / 1e3;
+    if (decimals > 0) return `$${k.toFixed(decimals)}K`;
+    // Auto: keep 1 decimal for non-whole thousands so $2,700 and $3,200 don't both
+    // collapse to "$3K". Whole thousands still render cleanly (e.g. $70K, not $70.0K).
+    const isWholeK = Math.abs(k - Math.round(k)) < 0.05;
+    return `$${k.toFixed(isWholeK ? 0 : 1)}K`;
+  }
   if (Math.abs(v) < 1 && v !== 0) return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
   if (Math.abs(v) < 100 && v !== 0) return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `$${v.toLocaleString(undefined, { maximumFractionDigits: decimals })}`;
@@ -130,14 +141,17 @@ export function adaptCallSpread(f) {
   // User enters premium PER UNIT. Engine receives per-unit and multiplies by contracts (holdings).
   const premiumPerUnit = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
 
+  // Long call spread  (debit, bullish): buy the LOWER call (longK), sell the HIGHER call (shortK).
+  // Short call spread (credit, bearish): flip BOTH sides — sell the LOWER call, buy the HIGHER call.
+  // Strike-to-side mapping MUST flip; just re-ordering the legs keeps the same position.
   const legs = isLong
     ? [
         { type: "call", side: "long", strike: longK },
         { type: "call", side: "short", strike: shortK },
       ]
     : [
-        { type: "call", side: "short", strike: shortK },
-        { type: "call", side: "long", strike: longK },
+        { type: "call", side: "short", strike: longK },
+        { type: "call", side: "long", strike: shortK },
       ];
 
   const spreadWidth = shortK - longK;
@@ -164,7 +178,7 @@ export function adaptCallSpread(f) {
       { label: "Expiry", value: f.expiry || "—", sub: `IV: ${f.iv || "—"} · Δ ${f.delta || "—"}` },
       { label: "Units", value: holdings.toLocaleString(), sub: "Contracts" },
       { label: isLong ? "Max Payout" : "Max Gain", value: fmt(analyticalMaxProfit), sub: isLong ? `Above ${fmt(shortK)}` : "Premium income", positive: true },
-      { label: "Max Loss", value: fmt(Math.abs(analyticalMaxLoss)), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(longK)}`, negative: true },
+      { label: "Max Loss", value: fmt(Math.abs(analyticalMaxLoss)), sub: isLong ? `Below ${fmt(longK)}` : `Above ${fmt(shortK)}`, negative: true },
       { label: "Breakeven", value: breakevens.length > 0 ? fmt(breakevens[0]) : "—" },
     ],
     buildLegs: () => isLong
@@ -173,8 +187,8 @@ export function adaptCallSpread(f) {
           { action: "SELL", type: "Call", strike: shortK, label: `${fmt(shortK)} Call`, color: "#ef4444" },
         ]
       : [
-          { action: "SELL", type: "Call", strike: shortK, label: `${fmt(shortK)} Call`, color: "#ef4444" },
-          { action: "BUY", type: "Call", strike: longK, label: `${fmt(longK)} Call`, color: "#378ADD" },
+          { action: "SELL", type: "Call", strike: longK, label: `${fmt(longK)} Call`, color: "#ef4444" },
+          { action: "BUY", type: "Call", strike: shortK, label: `${fmt(shortK)} Call`, color: "#378ADD" },
         ],
     buildZones: () => [],
   };
@@ -193,14 +207,17 @@ export function adaptPutSpread(f) {
   // User enters premium PER UNIT. Engine receives per-unit and multiplies by contracts (holdings).
   const premiumPerUnit = isLong ? -Math.abs(n(f.premium)) : Math.abs(n(f.premium));
 
+  // Long put spread  (debit, bearish): buy the HIGHER put (longK), sell the LOWER put (shortK).
+  // Short put spread (credit, bullish): flip BOTH sides — sell the HIGHER put, buy the LOWER put.
+  // Strike-to-side mapping MUST flip; just re-ordering the legs keeps the same position.
   const legs = isLong
     ? [
         { type: "put", side: "long", strike: longK },
         { type: "put", side: "short", strike: shortK },
       ]
     : [
-        { type: "put", side: "short", strike: shortK },
-        { type: "put", side: "long", strike: longK },
+        { type: "put", side: "short", strike: longK },
+        { type: "put", side: "long", strike: shortK },
       ];
 
   return {
@@ -228,8 +245,8 @@ export function adaptPutSpread(f) {
           { action: "SELL", type: "Put", strike: shortK, label: `${fmt(shortK)} Put`, color: "#ef4444" },
         ]
       : [
-          { action: "SELL", type: "Put", strike: shortK, label: `${fmt(shortK)} Put`, color: "#ef4444" },
-          { action: "BUY", type: "Put", strike: longK, label: `${fmt(longK)} Put`, color: "#378ADD" },
+          { action: "SELL", type: "Put", strike: longK, label: `${fmt(longK)} Put`, color: "#ef4444" },
+          { action: "BUY", type: "Put", strike: shortK, label: `${fmt(shortK)} Put`, color: "#378ADD" },
         ],
     buildZones: () => [],
   };

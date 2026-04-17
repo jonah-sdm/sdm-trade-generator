@@ -259,8 +259,19 @@ function n(v) {
   return Number(cleaned) || 0;
 }
 function fmt(v, decimals = 0) {
-  if (Math.abs(v) >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `$${(v / 1e3).toFixed(decimals > 0 ? decimals : 0)}K`;
+  if (Math.abs(v) >= 1e6) {
+    const m = v / 1e6;
+    const isWholeM = Math.abs(m - Math.round(m)) < 0.05;
+    return `$${m.toFixed(isWholeM ? 0 : 1)}M`;
+  }
+  if (Math.abs(v) >= 1e3) {
+    const k = v / 1e3;
+    if (decimals > 0) return `$${k.toFixed(decimals)}K`;
+    // Auto: keep 1 decimal for non-whole thousands so $2,700 and $3,200 don't both
+    // collapse to "$3K". Whole thousands still render cleanly (e.g. $70K, not $70.0K).
+    const isWholeK = Math.abs(k - Math.round(k)) < 0.05;
+    return `$${k.toFixed(isWholeK ? 0 : 1)}K`;
+  }
   if (Math.abs(v) < 1 && v !== 0) return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
   if (Math.abs(v) < 100 && v !== 0) return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `$${v.toLocaleString(undefined, { maximumFractionDigits: decimals })}`;

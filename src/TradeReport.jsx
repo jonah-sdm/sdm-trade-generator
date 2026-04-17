@@ -220,8 +220,17 @@ function PayoffChart({ analysis, accentColor }) {
 
   // ── Formatters ─────────────────────────────────────────────────────────
   const fmtAxis = (v) => {
-    if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-    if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+    if (Math.abs(v) >= 1e6) {
+      const m = v / 1e6;
+      const isWholeM = Math.abs(m - Math.round(m)) < 0.05;
+      return `${m.toFixed(isWholeM ? 0 : 1)}M`;
+    }
+    if (Math.abs(v) >= 1e3) {
+      const k = v / 1e3;
+      // Keep 1 decimal for non-whole thousands so 2.7K and 3.2K don't collapse to 3K.
+      const isWholeK = Math.abs(k - Math.round(k)) < 0.05;
+      return `${k.toFixed(isWholeK ? 0 : 1)}K`;
+    }
     if (Math.abs(v) < 1 && v !== 0) return v.toFixed(4);
     if (Math.abs(v) < 100) return v.toFixed(2);
     return v.toFixed(0);
@@ -1135,13 +1144,15 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           const fmtPnl = (v) => v >= 0 ? `+$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : `-$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
           const fmtPct = (v) => v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 
-          // Categorise strategy type for dynamic column logic
+          // Categorise strategy type for dynamic column logic.
+          // Loss Prevention / Strategy vs Spot comparison column has been removed.
+          // Spot-Only P&L is still shown for downside/yield strategies so the user can
+          // compare a strategy trade against just holding the underlying.
           const DOWNSIDE_STRATEGIES = ["collar", "cash_secured_put", "put_spread", "long_seagull", "call_spread_collar"];
           const YIELD_STRATEGIES = ["covered_call", "call_spread"];
           const isDownside = DOWNSIDE_STRATEGIES.includes(tt);
           const isYield = YIELD_STRATEGIES.includes(tt);
-          const hasComparisonCol = isDownside || isYield;
-          const comparisonColLabel = isDownside ? "Loss Prevention" : "Strategy vs Spot";
+          const hasSpotOnlyCol = isDownside || isYield;
 
           const costBasis = analysis.costBasis || spot;
           const holdings = parseFloat(fieldValues.holdings) || parseFloat(fieldValues.notional) || parseFloat(fieldValues.contracts) || 1;
@@ -1149,8 +1160,8 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
           const currentNotional = analysis.currentNotional || (spot * spotQuantity);
 
           const presetOpts = getPresetOptions(tt);
-          const thStyle = { padding: hasComparisonCol ? "8px 10px" : "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: hasComparisonCol ? 7 : 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
-          const tdStyle = { padding: hasComparisonCol ? "6px 10px" : "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: hasComparisonCol ? 11 : 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
+          const thStyle = { padding: hasSpotOnlyCol ? "8px 10px" : "10px 16px", fontFamily: "'Montserrat',sans-serif", fontSize: hasSpotOnlyCol ? 7 : 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: THEME.textMuted, background: THEME.bg2, borderBottom: `0.5px solid ${THEME.border}`, textAlign: "left" };
+          const tdStyle = { padding: hasSpotOnlyCol ? "6px 10px" : "8px 16px", fontFamily: "'Poppins',sans-serif", fontSize: hasSpotOnlyCol ? 11 : 12, color: "#4A4A48", borderBottom: `0.5px solid ${THEME.border}` };
 
           return (
             <div style={{ background: "#fff", border: `0.5px solid ${THEME.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 24, pageBreakInside: "avoid" }}>
@@ -1161,11 +1172,10 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    <th style={{ ...thStyle, paddingLeft: hasComparisonCol ? 30 : 36 }}>Price at Expiry</th>
+                    <th style={{ ...thStyle, paddingLeft: hasSpotOnlyCol ? 30 : 36 }}>Price at Expiry</th>
                     <th style={thStyle}>Move vs Spot</th>
-                    {hasComparisonCol && <th style={thStyle}>Spot-Only P&L</th>}
+                    {hasSpotOnlyCol && <th style={thStyle}>Spot-Only P&L</th>}
                     <th style={thStyle}>Strategy P&L</th>
-                    {hasComparisonCol && <th style={thStyle}>{comparisonColLabel}</th>}
                     <th style={thStyle}>Return on Notional</th>
                   </tr>
                 </thead>
@@ -1179,18 +1189,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                     const isSpot = isValid && spot > 0 && Math.abs(price - spot) < Math.max(range * 0.005, 0.01);
                     const isBe = isValid && (analysis.breakevens || []).some(b => Math.abs(price - b) < Math.max(range * 0.005, 0.01));
 
-                    const spotOnlyPnl = isValid && hasComparisonCol ? (price - costBasis) * spotQuantity : 0;
-                    const diff = pnl - spotOnlyPnl;
-
-                    let comparisonValue = 0;
-                    let comparisonSubLabel = "";
-                    if (isValid && isDownside) {
-                      comparisonValue = diff;
-                      comparisonSubLabel = diff > 0 ? "Hedge Saving" : diff < 0 ? "Hedge Cost" : "";
-                    } else if (isValid && isYield) {
-                      comparisonValue = diff;
-                      comparisonSubLabel = diff < 0 ? "Foregone Upside" : diff > 0 ? "Premium Gain" : "";
-                    }
+                    const spotOnlyPnl = isValid && hasSpotOnlyCol ? (price - costBasis) * spotQuantity : 0;
 
                     return (
                       <tr key={i} style={{ background: isSpot ? "rgba(255,195,44,0.06)" : "transparent" }}>
@@ -1213,7 +1212,7 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                           </div>
                         </td>
                         <td style={tdStyle}>{isValid ? fmtPct(moveVsSpot) : "—"}</td>
-                        {hasComparisonCol && (
+                        {hasSpotOnlyCol && (
                           <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: isValid ? (spotOnlyPnl > 0 ? THEME.positive : spotOnlyPnl < 0 ? THEME.negative : THEME.textMuted) : THEME.textMuted }}>
                             {isValid ? fmtPnl(spotOnlyPnl) : "—"}
                           </td>
@@ -1221,20 +1220,6 @@ export default function TradeReport({ trade, fieldValues, loanComponent, onBack,
                         <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: isValid ? (pnl > 0 ? THEME.positive : pnl < 0 ? THEME.negative : THEME.textMuted) : THEME.textMuted }}>
                           {isValid ? (isBe ? "$0 (breakeven)" : fmtPnl(pnl)) : "—"}
                         </td>
-                        {hasComparisonCol && (
-                          <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600 }}>
-                            {isValid ? (
-                              <>
-                                <span style={{ color: comparisonValue > 0 ? THEME.positive : comparisonValue < 0 ? THEME.negative : THEME.textMuted }}>
-                                  {fmtPnl(comparisonValue)}
-                                </span>
-                                {comparisonSubLabel && (
-                                  <span style={{ display: "block", fontSize: 8, fontWeight: 400, color: THEME.textMuted, marginTop: 1 }}>{comparisonSubLabel}</span>
-                                )}
-                              </>
-                            ) : "—"}
-                          </td>
-                        )}
                         <td style={{ ...tdStyle, fontFamily: "'Montserrat',sans-serif", fontWeight: 600, color: isValid ? (notionalReturn > 0 ? THEME.positive : notionalReturn < 0 ? THEME.negative : THEME.textMuted) : THEME.textMuted }}>
                           {isValid ? (isBe ? "0.00%" : fmtPct(notionalReturn)) : "—"}
                         </td>
