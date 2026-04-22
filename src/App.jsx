@@ -281,7 +281,7 @@ function FieldInput({ field, value, onChange, allValues = {} }) {
     : (value || "");
   return (
     <div className="field-group">
-      <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.label}</label>
+      <label style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, letterSpacing: 1.5, color: "#8A8A88", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: 6 }}>{field.labelFn ? field.labelFn(allValues) : field.label}</label>
       <input
         style={inputStyle}
         type="text"
