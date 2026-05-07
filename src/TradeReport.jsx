@@ -159,42 +159,44 @@ function PayoffChart({ analysis, accentColor }) {
   const scaleY = (v) => PAD.top + cH - ((v - minPnl) / (maxPnl - minPnl)) * cH;
   const zeroY = scaleY(0);
 
+  // Pick a "nice" step (1/2/5 × 10ⁿ) close to a rough target step — guarantees
+  // every auto-generated tick lands on a round number.
+  const niceStep = (rough) => {
+    if (!isFinite(rough) || rough <= 0) return 1;
+    const exp = Math.floor(Math.log10(rough));
+    const frac = rough / Math.pow(10, exp);
+    const nice = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10;
+    return nice * Math.pow(10, exp);
+  };
+
+  // Place ticks at multiples of `step` between lo and hi (inclusive of overlap), capped at 20.
+  const buildTicks = (lo, hi, step) => {
+    const ticks = [];
+    if (!(step > 0) || !isFinite(step)) return ticks;
+    const first = Math.ceil(lo / step) * step;
+    for (let v = first; v <= hi + step * 1e-9 && ticks.length < 20; v += step) {
+      // Snap to step grid to kill floating-point drift (e.g. 0.30000000000000004 → 0.3)
+      ticks.push(Math.round(v / step) * step);
+    }
+    return ticks;
+  };
+
   // ── X tick marks ───────────────────────────────────────────────────────
   const incNum = parseFloat(xIncrement);
   const xGridLines = (() => {
-    if (incNum > 0 && isFinite(incNum)) {
-      const ticks = [];
-      const start = Math.ceil(visMin / incNum) * incNum;
-      for (let v = start; v <= visMax; v += incNum) {
-        ticks.push({ x: scaleX(v), val: v });
-      }
-      return ticks.slice(0, 20); // cap at 20 labels
-    }
-    const tickCount = 6;
-    return Array.from({ length: tickCount + 1 }, (_, i) => {
-      const val = visMin + (visMax - visMin) * (i / tickCount);
-      return { x: scaleX(val), val };
-    });
+    const step = (incNum > 0 && isFinite(incNum))
+      ? incNum
+      : niceStep((visMax - visMin) / 6);
+    return buildTicks(visMin, visMax, step).map(val => ({ x: scaleX(val), val }));
   })();
 
   // ── Y grid ─────────────────────────────────────────────────────────────
-  // If user provided an explicit Y increment, place ticks at multiples; otherwise use 6 evenly-spaced.
   const yIncNum = parseFloat(yIncrement);
   const yGridLines = (() => {
-    if (yIncNum > 0 && isFinite(yIncNum)) {
-      const ticks = [];
-      const start = Math.ceil(minPnl / yIncNum) * yIncNum;
-      for (let v = start; v <= maxPnl; v += yIncNum) {
-        ticks.push({ y: scaleY(v), val: v });
-      }
-      return ticks.slice(0, 20); // cap at 20 labels (matches X)
-    }
-    const out = [];
-    for (let i = 0; i <= 5; i++) {
-      const val = minPnl + (maxPnl - minPnl) * (i / 5);
-      out.push({ y: scaleY(val), val });
-    }
-    return out;
+    const step = (yIncNum > 0 && isFinite(yIncNum))
+      ? yIncNum
+      : niceStep((maxPnl - minPnl) / 5);
+    return buildTicks(minPnl, maxPnl, step).map(val => ({ y: scaleY(val), val }));
   })();
 
   // ── Path builder ───────────────────────────────────────────────────────
