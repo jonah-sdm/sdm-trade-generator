@@ -63,8 +63,11 @@ function PayoffChart({ analysis, accentColor }) {
 
   const [xPctRange, setXPctRange] = useState(defaultPctRange);
   const [xIncrement, setXIncrementRaw] = useState("");
-  const [fitY, setFitY] = useState(false);
   const [xStartInput, setXStartInput] = useState("");
+  // Y-axis controls — same pattern as X
+  const [yPctRange, setYPctRange] = useState(12);   // % padding around data extremes
+  const [yIncrement, setYIncrement] = useState(""); // explicit Y tick spacing
+  const [yStartInput, setYStartInput] = useState(""); // pin Y bottom (P&L floor)
 
   const setXIncrement = (v) => setXIncrementRaw(v);
 
@@ -135,9 +138,16 @@ function PayoffChart({ analysis, accentColor }) {
   const rawMinPnl = Math.min(...allVisiblePnls);
   const rawMaxPnl = Math.max(...allVisiblePnls);
   const pnlRange = rawMaxPnl - rawMinPnl || 1;
-  const pnlPad = pnlRange * 0.12;
-  const minPnl = rawMinPnl - pnlPad;
-  const maxPnl = rawMaxPnl + pnlPad;
+  const pnlPad = pnlRange * (yPctRange / 100);
+  // Y start input pins the bottom of the chart; if invalid/empty, auto-fit with padding.
+  const yStartNum = parseFloat(String(yStartInput).replace(/[$,\s]/g, ""));
+  const yStartValid = isFinite(yStartNum);
+  const minPnl = yStartValid ? yStartNum : rawMinPnl - pnlPad;
+  // If pinned start sits above the auto-fit top, extend the top so data still fits.
+  const defaultMaxPnl = rawMaxPnl + pnlPad;
+  const maxPnl = yStartValid
+    ? Math.max(defaultMaxPnl, yStartNum + pnlRange + 2 * pnlPad)
+    : defaultMaxPnl;
 
   // ── Chart geometry ─────────────────────────────────────────────────────
   const W = 720, H = 340;
@@ -168,11 +178,24 @@ function PayoffChart({ analysis, accentColor }) {
   })();
 
   // ── Y grid ─────────────────────────────────────────────────────────────
-  const yGridLines = [];
-  for (let i = 0; i <= 5; i++) {
-    const val = minPnl + (maxPnl - minPnl) * (i / 5);
-    yGridLines.push({ y: scaleY(val), val });
-  }
+  // If user provided an explicit Y increment, place ticks at multiples; otherwise use 6 evenly-spaced.
+  const yIncNum = parseFloat(yIncrement);
+  const yGridLines = (() => {
+    if (yIncNum > 0 && isFinite(yIncNum)) {
+      const ticks = [];
+      const start = Math.ceil(minPnl / yIncNum) * yIncNum;
+      for (let v = start; v <= maxPnl; v += yIncNum) {
+        ticks.push({ y: scaleY(v), val: v });
+      }
+      return ticks.slice(0, 20); // cap at 20 labels (matches X)
+    }
+    const out = [];
+    for (let i = 0; i <= 5; i++) {
+      const val = minPnl + (maxPnl - minPnl) * (i / 5);
+      out.push({ y: scaleY(val), val });
+    }
+    return out;
+  })();
 
   // ── Path builder ───────────────────────────────────────────────────────
   const buildPath = (points) => points.map((p, i) =>
@@ -463,50 +486,76 @@ function PayoffChart({ analysis, accentColor }) {
       </svg>
 
       {/* ── Zoom / axis controls ── */}
-      <div className="noprint" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 10, padding: "8px 4px 0", borderTop: "0.5px solid #E8E7E2" }}>
-        {/* X range slider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
-            Range ±{xPctRange}%
-          </span>
-          <input type="range" min={5} max={80} step={5} value={xPctRange}
-            onChange={e => setXPctRange(Number(e.target.value))}
-            style={{ width: 100, accentColor: "#FFC32C", cursor: "pointer" }} />
+      <div className="noprint" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10, padding: "8px 4px 0", borderTop: "0.5px solid #E8E7E2" }}>
+        {/* X-axis controls row */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1A1A18", whiteSpace: "nowrap", minWidth: 24 }}>X</span>
+          {/* X range slider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+              Range ±{xPctRange}%
+            </span>
+            <input type="range" min={5} max={80} step={5} value={xPctRange}
+              onChange={e => setXPctRange(Number(e.target.value))}
+              style={{ width: 100, accentColor: "#FFC32C", cursor: "pointer" }} />
+          </div>
+          {/* X start price input */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+              Start $
+            </span>
+            <input type="text" placeholder={Math.round(visMin)} value={xStartInput}
+              onChange={e => setXStartInput(e.target.value)}
+              style={{ ...inputStyle, width: 72 }} />
+            {xStartInput && (
+              <button onClick={() => setXStartInput("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#8A8A88", fontSize: 12, padding: "0 2px", lineHeight: 1 }}>✕</button>
+            )}
+          </div>
+          {/* X increment input */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+              Increment
+            </span>
+            <input type="number" placeholder="auto" value={xIncrement}
+              onChange={e => setXIncrement(e.target.value)}
+              style={inputStyle} />
+          </div>
         </div>
-        {/* X start price input */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
-            Start $
-          </span>
-          <input type="text" placeholder={Math.round(visMin)} value={xStartInput}
-            onChange={e => setXStartInput(e.target.value)}
-            style={{ ...inputStyle, width: 72 }} />
-          {xStartInput && (
-            <button onClick={() => setXStartInput("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#8A8A88", fontSize: 12, padding: "0 2px", lineHeight: 1 }}>✕</button>
-          )}
+
+        {/* Y-axis controls row */}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
+          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1A1A18", whiteSpace: "nowrap", minWidth: 24 }}>Y</span>
+          {/* Y range slider — controls padding around data */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+              Range ±{yPctRange}%
+            </span>
+            <input type="range" min={5} max={80} step={5} value={yPctRange}
+              onChange={e => setYPctRange(Number(e.target.value))}
+              style={{ width: 100, accentColor: "#FFC32C", cursor: "pointer" }} />
+          </div>
+          {/* Y start (P&L floor) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+              Start $
+            </span>
+            <input type="text" placeholder={Math.round(minPnl)} value={yStartInput}
+              onChange={e => setYStartInput(e.target.value)}
+              style={{ ...inputStyle, width: 72 }} />
+            {yStartInput && (
+              <button onClick={() => setYStartInput("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#8A8A88", fontSize: 12, padding: "0 2px", lineHeight: 1 }}>✕</button>
+            )}
+          </div>
+          {/* Y increment */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
+              Increment
+            </span>
+            <input type="number" placeholder="auto" value={yIncrement}
+              onChange={e => setYIncrement(e.target.value)}
+              style={inputStyle} />
+          </div>
         </div>
-        {/* X increment input */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
-            X Increment
-          </span>
-          <input type="number" placeholder="auto" value={xIncrement}
-            onChange={e => setXIncrement(e.target.value)}
-            style={inputStyle} />
-        </div>
-        {/* Fit Y button */}
-        <button
-          onClick={() => setFitY(v => !v)}
-          style={{
-            padding: "4px 10px", borderRadius: 4, cursor: "pointer",
-            fontFamily: "'Poppins',sans-serif", fontSize: 10, fontWeight: 500,
-            border: `1px solid ${fitY ? "#FFC32C" : "#E8E7E2"}`,
-            background: fitY ? "rgba(255,195,44,0.1)" : "transparent",
-            color: fitY ? "#7A5500" : "#8A8A88",
-          }}
-        >
-          Fit Y to view
-        </button>
       </div>
     </div>
   );
