@@ -284,4 +284,24 @@ export const TRADE_TYPES = [
       { key: "delta", label: "Delta", type: "number", placeholder: "0.04" },
     ]
   },
+  {
+    id: "binary_option",
+    label: "Binary Option",
+    category: "Digital",
+    tag: "BINARY",
+    description: "All-or-nothing payoff — each contract pays $1 if the event occurs (price above strike for a call, below for a put), $0 otherwise. Premium is quoted as a probability percentage.",
+    color: "#8B5CF6",
+    icon: "◐",
+    fields: [
+      { key: "asset", label: "Asset / Underlying", type: "text", placeholder: "e.g. BTC, ETH", default: "BTC" },
+      { key: "spot", label: "Spot Price ($)", type: "number", placeholder: "85000", default: "85000" },
+      { key: "type", label: "Option Type", type: "select", options: ["Call", "Put"], default: "Call" },
+      { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"], default: "Long" },
+      { key: "strike", label: "Strike ($)", type: "number", placeholder: "90000", default: "90000" },
+      { key: "expiry", label: "Expiry Date", type: "text", placeholder: "30 May 2026", default: "30 May 2026" },
+      { key: "quantity", label: "Quantity (Contracts)", type: "number", placeholder: "100000", default: "100000" },
+      { key: "premium", label: "Premium (% — probability of event)", type: "number", placeholder: "40", default: "40" },
+      { key: "executive_summary", label: "Executive Summary", type: "textarea", placeholder: "Provide market context, macro outlook, catalysts, and rationale for this trade..." },
+    ]
+  },
 ];

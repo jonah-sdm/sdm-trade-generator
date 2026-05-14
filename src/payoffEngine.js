@@ -218,6 +218,26 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
       return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} ${isCredit ? "generates net premium income" : "partially offsets the net debit cost"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
     }
 
+    case "binary_option": {
+      const spot      = parseNum(fields.spot);
+      const strike    = parseNum(fields.strike);
+      const type      = fields.type || "Call";
+      const direction = fields.direction || "Long";
+      const isCall    = type === "Call";
+      const isLong    = direction === "Long";
+      const quantity  = Math.max(1, parseNum(fields.quantity) || 1);
+      const premiumPct = Math.max(0.01, Math.min(99.99, parseNum(fields.premium)));
+      const costPerContract = premiumPct / 100;
+      const totalCost  = costPerContract * quantity;
+      const totalPayout = quantity; // $1 per contract
+      const payoutMultiple = costPerContract > 0 ? (1 / costPerContract) : 0;
+      const condition = isCall ? `above ${$(strike)}` : `below ${$(strike)}`;
+      const oppCondition = isCall ? `at or below ${$(strike)}` : `at or above ${$(strike)}`;
+      return isLong
+        ? `This is a long binary ${type.toLowerCase()} on ${asset || "the underlying"}, expiring ${fields.expiry || "on the target date"}. The position pays a fixed ${$(totalPayout)} (${quantity.toLocaleString()} contracts × $1) if ${asset || "the underlying"} settles ${condition}, and zero if it does not. Premium of ${premiumPct.toFixed(2)}% — equivalent to ${$(totalCost)} paid upfront — represents the market-implied probability of the event. If correct, net profit is ${$(totalPayout - totalCost)} (payout multiple of ${payoutMultiple.toFixed(2)}× the premium); if wrong, maximum loss is the ${$(totalCost)} premium paid. This is an all-or-nothing structure with no continuous payoff between the two states.`
+        : `This is a short binary ${type.toLowerCase()} on ${asset || "the underlying"}, expiring ${fields.expiry || "on the target date"}. The position collects ${$(totalCost)} upfront (${premiumPct.toFixed(2)}% per contract) and keeps the full premium if ${asset || "the underlying"} settles ${oppCondition}. If the event triggers (price settles ${condition}), the seller pays ${$(totalPayout)}, for a maximum loss of ${$(totalPayout - totalCost)}. This is an all-or-nothing income trade where the premium effectively prices the market-implied probability of the event.`;
+    }
+
     default:
       return "Trade analysis summary is being prepared.";
   }
@@ -247,6 +267,7 @@ export function computeTradeAnalysis(tradeId, fields) {
     case "wheel":           return computeWheel(fields);
     case "collar":          return computeCollar(fields);
     case "earnings_play":   return computeEarningsPlay(fields);
+    case "binary_option":   return computeBinaryOption(fields);
     default: return null;
   }
 }
@@ -1075,5 +1096,111 @@ function computeStrangle(f) {
           { action: "SELL", type: "Put", strike: putK, label: `${fmt(putK)} Put`, color: "#ef4444" },
         ],
     zones: [],
+  };
+}
+
+// --- BINARY OPTION ---
+// Each contract pays $1 if the event occurs (price ≥ strike for call, price ≤ strike for put),
+// $0 otherwise. Premium is entered as a percentage (e.g. 40 = 40%) and represents both the
+// cost per contract ($0.40) and the implied probability of the event.
+// Payout multiple = 1 / premium (e.g. 40% → 2.5×).
+function computeBinaryOption(f) {
+  const spot      = n(f.spot);
+  const strike    = n(f.strike);
+  const type      = (f.type || "Call");
+  const direction = (f.direction || "Long");
+  const isCall    = type === "Call";
+  const isLong    = direction === "Long";
+  const quantity  = Math.max(1, n(f.quantity) || 1);
+  const premiumPct = Math.max(0.01, Math.min(99.99, n(f.premium))); // clamp to (0,100) %
+  const costPerContract = premiumPct / 100;            // dollars per contract
+  const totalCost  = costPerContract * quantity;       // dollars paid (long) / received (short)
+  const totalMaxPayout = 1 * quantity;                 // $1 per contract × N
+
+  const payoutMultiple = costPerContract > 0 ? (1 / costPerContract) : 0;
+
+  // Per-position P&L if the event occurs vs. doesn't occur
+  // - Long: pay totalCost up front; on event receive totalMaxPayout → net = payout - cost
+  // - Short: collect totalCost up front; on event pay totalMaxPayout → net = cost - payout
+  const pnlEvent    = isLong ? (totalMaxPayout - totalCost) : (totalCost - totalMaxPayout);
+  const pnlNoEvent  = isLong ? (-totalCost)                 : (totalCost);
+
+  const eventHappens = (price) => isCall ? price >= strike : price <= strike;
+  const pnlAtPrice = (price) => eventHappens(price) ? pnlEvent : pnlNoEvent;
+
+  const maxProfit = Math.max(pnlEvent, pnlNoEvent);
+  const maxLoss   = Math.min(pnlEvent, pnlNoEvent);
+
+  // Chart bounds — show strike with ±30% breathing room, ensure spot is visible
+  const center = strike || spot || 1;
+  const baseHalf = center * 0.3;
+  const minP = Math.max(Math.min(center - baseHalf, (spot || center) * 0.85), 0.01);
+  const maxP = Math.max(center + baseHalf, (spot || center) * 1.15);
+
+  // Build a piecewise step curve — explicitly include the strike from both sides so the
+  // vertical jump renders sharply at the threshold instead of being smoothed by interpolation.
+  const curve = (() => {
+    const pts = [];
+    const STEPS = 200;
+    for (let i = 0; i <= STEPS; i++) {
+      const price = minP + (maxP - minP) * (i / STEPS);
+      pts.push({ price, pnl: pnlAtPrice(price) });
+    }
+    // Insert exact left-of-strike and right-of-strike points to render the step cleanly
+    const eps = (maxP - minP) * 1e-5;
+    pts.push({ price: strike - eps, pnl: pnlAtPrice(strike - eps) });
+    pts.push({ price: strike + eps, pnl: pnlAtPrice(strike + eps) });
+    pts.sort((a, b) => a.price - b.price);
+    return pts;
+  })();
+
+  // Display formatters
+  const fmtExact = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  // Per-contract cost is sub-dollar (e.g. $0.40 for 40% premium) — keep 2-4 decimals so we don't show "$0".
+  const fmtPerContract = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  const fmtPct = (v) => `${(Math.round(v * 100) / 100)}%`;
+
+  // Action verbs for legs
+  const action = isLong ? "BUY" : "SELL";
+  const legColor = isLong ? "#8B5CF6" : "#ef4444";
+
+  // Profit zone — side of strike where the event pays
+  const profitZone = pnlEvent > pnlNoEvent
+    ? (isCall ? { from: strike, to: maxP } : { from: minP, to: strike })
+    : (isCall ? { from: minP, to: strike } : { from: strike, to: maxP });
+
+  return {
+    curve,
+    spot,
+    breakevens: [], // Binary options don't have a continuous breakeven — the strike IS the trigger.
+    tradeType: "binary_option",
+    currentNotional: totalCost,
+    positionSize: quantity,
+    pnlAtPrice,
+    maxProfit,
+    maxLoss,
+    maxProfitBounded: true,
+    maxLossBounded: true,
+    returnDenominator: { value: Math.abs(totalCost) || 1, label: "Cost at risk" },
+    spotQuantity: 0, // Binary options don't track spot exposure — no Long P&L reference line.
+    legPayoffs: [
+      { label: `${direction} Binary ${type}`, color: legColor, fn: (p) => pnlAtPrice(p) },
+    ],
+    metrics: [
+      { label: "Spot Price",    value: fmtFull(spot),                                              sub: f.asset || "—" },
+      { label: `${direction} Binary ${type}`, value: fmtFull(strike),                              sub: `Strike · ${quantity.toLocaleString()} contracts` },
+      { label: "Premium",       value: fmtPct(premiumPct),                                         sub: `${fmtPerContract(costPerContract)} per contract` },
+      { label: "Payout Multiple", value: `${payoutMultiple.toFixed(2)}×`,                          sub: "1 ÷ premium" },
+      { label: "Total Cost",    value: fmtExact(Math.abs(totalCost)),                              sub: isLong ? "Paid upfront" : "Received upfront", positive: !isLong, negative: isLong },
+      { label: "Max Profit",    value: fmtExact(maxProfit),                                        sub: pnlEvent > pnlNoEvent ? "If event occurs" : "If event does not occur", positive: true },
+      { label: "Max Loss",      value: fmtExact(Math.abs(maxLoss)),                                sub: pnlEvent > pnlNoEvent ? "If event does not occur" : "If event occurs", negative: true },
+      { label: "Expiry",        value: f.expiry || "—",                                            sub: `Trigger at ${fmtFull(strike)}` },
+    ],
+    legs: [
+      { action, type: `Binary ${type}`, strike, label: `${quantity.toLocaleString()} × ${fmtFull(strike)} Binary ${type} @ ${fmtPct(premiumPct)}`, color: legColor },
+    ],
+    zones: [
+      { from: profitZone.from, to: profitZone.to, label: "Profit Zone", color: "rgba(139,92,246,0.10)" },
+    ],
   };
 }
