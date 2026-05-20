@@ -60,8 +60,13 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to upload to GitHub', detail: err });
     }
 
-    const rawUrl = `https://raw.githubusercontent.com/${ghRepo}/${ghBranch}/${ghPath}`;
-    const viewUrl = `https://htmlpreview.github.io/?${rawUrl}`;
+    // Serve through our own proxy (api/report.js) instead of htmlpreview.github.io —
+    // htmlpreview is unreliable and has gone down. Our proxy streams the raw HTML
+    // with proper headers (text/html, no CSP sandbox, no X-Frame-Options) so the
+    // iframe embed in Webflow works reliably.
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'sdm-trade-generator.vercel.app';
+    const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+    const viewUrl = `${proto}://${host}/api/report?date=${encodeURIComponent(d)}`;
 
     // Step 2: Delete ALL existing Webflow items with same slug (live + staged)
     const deleteExisting = async (endpoint) => {

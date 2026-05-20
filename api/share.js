@@ -76,10 +76,11 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to save to GitHub', detail: err });
     }
 
-    // Build permanent URL — use raw.githubusercontent.com served through htmlpreview
-    // This is instant (no GitHub Pages build delay)
-    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
-    const viewUrl = `https://htmlpreview.github.io/?${rawUrl}`;
+    // Build permanent URL through our own /api/report proxy (no htmlpreview dependency —
+    // that third-party service is unreliable and has gone down).
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'sdm-trade-generator.vercel.app';
+    const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+    const viewUrl = `${proto}://${host}/api/report?path=${encodeURIComponent(path)}`;
 
     return res.status(200).json({ url: viewUrl });
   } catch (err) {
