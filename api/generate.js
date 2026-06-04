@@ -189,7 +189,9 @@ Select the best trade, populate all fields, and write the executive summary.`;
     // ─── MODE: prompt pass-through (market brief / geopolitical) ─────────────
     const { prompt } = req.body;
     if (prompt) {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Retry once on transient Anthropic 5xx / 429 — large market-brief prompts
+      // occasionally hit overloaded_error which is recoverable on the next attempt.
+      const callClaude = () => fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,6 +204,11 @@ Select the best trade, populate all fields, and write the executive summary.`;
           messages: [{ role: 'user', content: prompt }],
         }),
       });
+      let response = await callClaude();
+      if (!response.ok && (response.status >= 500 || response.status === 429)) {
+        await new Promise(r => setTimeout(r, 1500));
+        response = await callClaude();
+      }
       const data = await response.json();
       return res.status(response.status).json(data);
     }

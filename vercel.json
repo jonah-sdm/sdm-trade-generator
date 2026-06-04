@@ -4,8 +4,8 @@
   "framework": "create-react-app",
   "functions": {
     "api/share.js":        { "maxDuration": 30, "memory": 256 },
-    "api/ask-ai.js":       { "maxDuration": 30, "memory": 256 },
-    "api/generate.js":     { "maxDuration": 30, "memory": 256 },
+    "api/ask-ai.js":       { "maxDuration": 60, "memory": 256 },
+    "api/generate.js":     { "maxDuration": 60, "memory": 512 },
     "api/enrich-leads.js":      { "maxDuration": 60, "memory": 512 },
     "api/webflow-publish.js":   { "maxDuration": 30, "memory": 256 },
     "api/report.js":            { "maxDuration": 15, "memory": 256 },

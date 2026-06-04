@@ -746,6 +746,12 @@ UPCOMING MACRO (14d): ${upcoming.length ? upcoming.map(e=>`${e.date} ${e.ev}`).j
 NEWS TO SUMMARIZE:
 ${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]).join(", ")}\nDESCRIPTION: ${n.description||n.title}`).join("\n\n")}${customArticles.length?`\n\nADDITIONAL ARTICLES:\n${customArticles.map((a,i)=>`[CUSTOM ${i+1}] SOURCE: ${a.name}\n${a.text.slice(0,3000)}`).join("\n\n---\n\n")}`:""} ${geoNews.length?`\n\nGEOPOLITICAL NEWS:\n${geoNews.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]).join(", ")}\nDESCRIPTION: ${n.description||n.title}`).join("\n\n")}`:""}`;
 
+  // Client timeout is 55s — sits BELOW Vercel function maxDuration (60s) so the
+  // client error surfaces our own message instead of a 504 gateway timeout.
+  // The market-brief prompt with all news + geo + macro is large and Claude can
+  // take 30-50+ seconds to return a complete JSON at this token budget; the
+  // previous 28s client / 30s server limits were below the typical Claude
+  // response time, so the request was being aborted mid-generation.
   let resp;
   try {
     resp = await Promise.race([
@@ -754,7 +760,7 @@ ${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({ prompt }),
       }),
-      mbTimeout(28000),
+      mbTimeout(55000),
     ]);
   } catch(e) {
     return { _err:"api_error", msg:`Request failed: ${e.message}` };
