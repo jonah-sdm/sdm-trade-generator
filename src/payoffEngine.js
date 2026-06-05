@@ -218,6 +218,36 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
       return `This structure holds ${notional} ${asset} at ${$(spot)} and overlays a three-leg options hedge expiring ${fields.expiry || "on the target date"}. The long put at ${$(kp)} floors downside losses at ${$(maxLossTotal)}; the short call at ${$(kc1)} ${isCredit ? "generates net premium income" : "partially offsets the net debit cost"} while capping gains; and the long call at ${$(kc2)} restores full participation above the re-entry level. Net premium is ${isCredit ? `a ${$(Math.abs(netPremTotal))} credit` : `a ${$(Math.abs(netPremTotal))} debit`}, with breakeven at ${$(Math.round(breakeven))}.`;
     }
 
+    case "custom_spread": {
+      const spot = parseNum(fields.spot);
+      // Reconstruct active legs from the form to describe what was actually built.
+      const legs = [];
+      let netPremium = 0;
+      for (let i = 1; i <= 4; i++) {
+        const typeFull = (fields[`leg${i}_type`] || "None").toString().trim();
+        if (!typeFull || typeFull === "None") continue;
+        const isLong = typeFull.startsWith("Long");
+        const isCall = typeFull.endsWith("Call");
+        const strike = parseNum(fields[`leg${i}_strike`]);
+        if (!(strike > 0)) continue;
+        const qty = Math.max(1, parseNum(fields[`leg${i}_qty`]) || 1);
+        const prem = Math.abs(parseNum(fields[`leg${i}_premium`]));
+        legs.push({ side: isLong ? "long" : "short", kind: isCall ? "call" : "put", strike, qty, prem });
+        netPremium += (isLong ? -1 : 1) * prem * qty;
+      }
+      if (legs.length === 0) {
+        return `This is a custom multi-leg structure on ${asset || "the underlying"} that currently has no active legs configured. Add at least one leg (long or short call or put) on the parameters page to generate a meaningful payoff.`;
+      }
+      const isCredit = netPremium >= 0;
+      const legPhrases = legs.map(l =>
+        `${l.side === "long" ? "buy" : "sell"} ${l.qty} × the ${$(l.strike)} ${l.kind}${l.prem > 0 ? ` at ${$(l.prem)}` : ""}`
+      );
+      const legSentence = legPhrases.length === 1
+        ? legPhrases[0]
+        : legPhrases.slice(0, -1).join(", ") + ", and " + legPhrases[legPhrases.length - 1];
+      return `This is a custom ${legs.length}-leg structure on ${asset || "the underlying"} at ${$(spot)}, expiring ${fields.expiry || "on the target date"}. The position is built to ${legSentence}. Net ${isCredit ? `credit received is ${$(Math.abs(netPremium))}` : `debit paid is ${$(Math.abs(netPremium))}`}. Because this structure was assembled freely from individual legs rather than a pre-defined template, max profit and max loss should be read directly from the payoff diagram and the metrics panel above — both depend entirely on the strike and quantity combination chosen.`;
+    }
+
     case "binary_option": {
       const spot      = parseNum(fields.spot);
       const strike    = parseNum(fields.strike);
@@ -247,7 +277,7 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
 import { analyzeStructuredProduct } from "./structuredProductEngine.js";
 import {
   adaptCashSecuredPut, adaptLeap, adaptCallSpread, adaptPutSpread,
-  adaptStraddle, adaptStrangle, adaptLongSeagull,
+  adaptStraddle, adaptStrangle, adaptLongSeagull, adaptCustomSpread,
 } from "./strategyAdapters.js";
 
 export function computeTradeAnalysis(tradeId, fields) {
@@ -268,6 +298,7 @@ export function computeTradeAnalysis(tradeId, fields) {
     case "collar":          return computeCollar(fields);
     case "earnings_play":   return computeEarningsPlay(fields);
     case "binary_option":   return computeBinaryOption(fields);
+    case "custom_spread":   return analyzeStructuredProduct(adaptCustomSpread(fields));
     default: return null;
   }
 }

@@ -367,6 +367,114 @@ export function adaptStrangle(f) {
   };
 }
 
+// ── CUSTOM SPREAD ───────────────────────────────────────────────────────
+// Generic multi-leg structure builder. Reads up to MAX_LEGS leg slots from the
+// form (leg{i}_type / leg{i}_strike / leg{i}_qty / leg{i}_premium), skips any
+// slot with type="None" or no strike, then delegates ALL payoff math to the
+// universal structuredProductEngine. Use this for any structure not covered
+// by the named trade types (butterflies, iron condors, ratio spreads, custom
+// seagulls, broken-wing variants, etc.).
+
+const CUSTOM_MAX_LEGS = 4;
+
+// Display colour per leg side+type so the chart and "Trade Structure" list
+// stay readable when several legs render simultaneously.
+const CUSTOM_LEG_COLOR = {
+  "long-call":  "#378ADD",
+  "short-call": "#ef4444",
+  "long-put":   "#A78BFA",
+  "short-put":  "#F472B6",
+};
+
+export function adaptCustomSpread(f) {
+  const spot = n(f.spot);
+
+  const legs = [];          // engine-format legs: { type, side, strike, quantity }
+  const legSummaries = [];  // Display rows for the "Trade Structure" section
+  const strikes = [];
+  let netPremium = 0;       // signed dollars: positive = credit received, negative = debit paid
+
+  for (let i = 1; i <= CUSTOM_MAX_LEGS; i++) {
+    const typeFull = (f[`leg${i}_type`] || "None").toString().trim();
+    if (!typeFull || typeFull === "None") continue;
+    // Parse combined "Long Call" / "Short Put" select into side + type
+    const isLong = typeFull.startsWith("Long");
+    const isCall = typeFull.endsWith("Call");
+    const strike = n(f[`leg${i}_strike`]);
+    if (!(strike > 0)) continue;
+    const qty = Math.max(1, n(f[`leg${i}_qty`]) || 1);
+    const premPerUnit = Math.abs(n(f[`leg${i}_premium`])); // always paid as a positive amount
+
+    const side = isLong ? "long" : "short";
+    const type = isCall ? "call" : "put";
+
+    legs.push({ type, side, strike, quantity: qty });
+    strikes.push(strike);
+    // Long pays the premium (debit, negative); short receives it (credit, positive)
+    netPremium += (isLong ? -1 : 1) * premPerUnit * qty;
+
+    legSummaries.push({
+      action: isLong ? "BUY" : "SELL",
+      type:   isCall ? "Call" : "Put",
+      strike,
+      label: `${qty} × ${fmt(strike)} ${isCall ? "Call" : "Put"} @ ${fmtFull(premPerUnit)}`,
+      color: CUSTOM_LEG_COLOR[`${side}-${type}`],
+    });
+  }
+
+  // Chart bounds — bracket the active strikes (or fall back to spot) with breathing room
+  const refMin = strikes.length ? Math.min(...strikes) : (spot || 1);
+  const refMax = strikes.length ? Math.max(...strikes) : (spot || 1);
+  const center = (refMin + refMax) / 2;
+  const halfWidth = Math.max(refMax - refMin, center * 0.2) * 1.2;
+  const chartMin = Math.max(center - halfWidth, 0.01);
+  const chartMax = center + halfWidth;
+
+  return {
+    strategyId: "custom_spread",
+    tradeType:  "custom_spread",
+    spot,
+    legs,
+    netPremium,
+    contracts: 1,      // leg.quantity already carries the per-leg sizing
+    positionSize: 1,
+    returnBasis: "max_risk",
+    chartBounds: { min: chartMin, max: chartMax },
+
+    buildMetrics: ({ breakevens, extrema }) => {
+      const isCredit = netPremium >= 0;
+      const m = [
+        { label: "Spot Price", value: fmtFull(spot), sub: f.asset || "—" },
+        { label: "Expiry",     value: f.expiry || "—", sub: `${legs.length} active leg${legs.length === 1 ? "" : "s"}` },
+        { label: "Net Premium", value: fmt(Math.abs(netPremium)),
+          sub: isCredit ? "Credit received" : "Debit paid",
+          positive: isCredit, negative: !isCredit },
+        { label: "Max Profit",
+          value: extrema.maxProfitBounded ? fmt(extrema.maxProfit) : "Unbounded",
+          sub: extrema.maxProfitBounded ? `At ${fmtFull(extrema.maxProfitPrice)}` : "Unlimited",
+          positive: true },
+        { label: "Max Loss",
+          value: extrema.maxLossBounded ? fmt(Math.abs(extrema.maxLoss)) : "Unbounded",
+          sub: extrema.maxLossBounded ? `At ${fmtFull(extrema.maxLossPrice)}` : "Unlimited",
+          negative: true },
+      ];
+
+      if (breakevens.length === 0) {
+        m.push({ label: "Breakeven", value: "—", sub: "No zero crossing" });
+      } else if (breakevens.length === 1) {
+        m.push({ label: "Breakeven", value: fmt(breakevens[0]) });
+      } else {
+        m.push({ label: "Lower BE", value: fmt(breakevens[0]) });
+        m.push({ label: "Upper BE", value: fmt(breakevens[breakevens.length - 1]) });
+      }
+      return m;
+    },
+
+    buildLegs: () => legSummaries,
+    buildZones: () => [],
+  };
+}
+
 // ── LONG SEAGULL ────────────────────────────────────────────────────────
 
 export function adaptLongSeagull(f) {

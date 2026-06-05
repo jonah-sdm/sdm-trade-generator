@@ -285,6 +285,45 @@ export const TRADE_TYPES = [
     ]
   },
   {
+    id: "custom_spread",
+    label: "Custom Spread",
+    category: "Custom",
+    tag: "CUSTOM",
+    description: "Build any multi-leg option structure from scratch — up to 4 legs of long/short calls and puts with independent strikes, quantities, and premiums.",
+    color: "#475569",
+    icon: "⊟",
+    fields: [
+      { key: "asset", label: "Asset / Underlying", type: "text", placeholder: "e.g. BTC, ETH", default: "BTC" },
+      { key: "spot", label: "Spot Price ($)", type: "number", placeholder: "85000", default: "85000" },
+      { key: "expiry", label: "Expiry Date", type: "text", placeholder: "27 Jun 2026", default: "27 Jun 2026" },
+
+      // Leg 1 (default to an active long call so a fresh trade renders meaningfully)
+      { key: "leg1_type",    label: "Leg 1 — Type",             type: "select", options: ["None", "Long Call", "Short Call", "Long Put", "Short Put"], default: "Long Call" },
+      { key: "leg1_strike",  label: "Leg 1 — Strike ($)",       type: "number", placeholder: "85000", default: "85000" },
+      { key: "leg1_qty",     label: "Leg 1 — Quantity",         type: "number", placeholder: "1",     default: "1" },
+      { key: "leg1_premium", label: "Leg 1 — Premium / Unit ($)", type: "number", placeholder: "2500", default: "2500" },
+
+      // Leg 2 (default to an active short call so the new user sees a spread on first render)
+      { key: "leg2_type",    label: "Leg 2 — Type",             type: "select", options: ["None", "Long Call", "Short Call", "Long Put", "Short Put"], default: "Short Call" },
+      { key: "leg2_strike",  label: "Leg 2 — Strike ($)",       type: "number", placeholder: "95000", default: "95000" },
+      { key: "leg2_qty",     label: "Leg 2 — Quantity",         type: "number", placeholder: "1",     default: "1" },
+      { key: "leg2_premium", label: "Leg 2 — Premium / Unit ($)", type: "number", placeholder: "1100", default: "1100" },
+
+      // Legs 3 and 4 default to None — extra capacity for butterflies, condors, seagulls, etc.
+      { key: "leg3_type",    label: "Leg 3 — Type",             type: "select", options: ["None", "Long Call", "Short Call", "Long Put", "Short Put"], default: "None" },
+      { key: "leg3_strike",  label: "Leg 3 — Strike ($)",       type: "number", placeholder: "",  default: "" },
+      { key: "leg3_qty",     label: "Leg 3 — Quantity",         type: "number", placeholder: "1", default: "1" },
+      { key: "leg3_premium", label: "Leg 3 — Premium / Unit ($)", type: "number", placeholder: "", default: "" },
+
+      { key: "leg4_type",    label: "Leg 4 — Type",             type: "select", options: ["None", "Long Call", "Short Call", "Long Put", "Short Put"], default: "None" },
+      { key: "leg4_strike",  label: "Leg 4 — Strike ($)",       type: "number", placeholder: "",  default: "" },
+      { key: "leg4_qty",     label: "Leg 4 — Quantity",         type: "number", placeholder: "1", default: "1" },
+      { key: "leg4_premium", label: "Leg 4 — Premium / Unit ($)", type: "number", placeholder: "", default: "" },
+
+      { key: "executive_summary", label: "Executive Summary", type: "textarea", placeholder: "Provide market context, macro outlook, catalysts, and rationale for this trade..." },
+    ]
+  },
+  {
     id: "binary_option",
     label: "Binary Option",
     category: "Digital",
