@@ -9,6 +9,7 @@ import PayoffChart from "./PayoffChart";
 import MBChartSection06 from "./MBChartSection06";
 import MBChartSection07 from "./MBChartSection07";
 import OptionsPricer from "./OptionsPricer";
+import { GoferShell, GF_ICONS } from "./goferShell";
 import "./index.css";
 
 const ASK_AI_PRESETS = [
@@ -2491,9 +2492,44 @@ export default function App() {
     );
   }
 
+  // ─── 0x Gofer sidebar nav: 6 top-level items mapped onto the studio's phases ───
+  const sidebarItems = [
+    { key: "home",    label: "Home",           icon: GF_ICONS.home,    target: PHASES.HOME },
+    { key: "trade",   label: "Trade Builder",  icon: GF_ICONS.chart,   target: PHASES.SELECT },
+    { key: "brief",   label: "Market Brief",   icon: GF_ICONS.brief,   target: PHASES.MARKET_BRIEF },
+    { key: "lending", label: "Lending",        icon: GF_ICONS.lending, target: PHASES.LENDING_CONFIGURE },
+    { key: "library", label: "Sales Library",  icon: GF_ICONS.library, target: PHASES.SALES_LIBRARY },
+    { key: "pricer",  label: "Options Pricer", icon: GF_ICONS.pricer,  target: PHASES.OPTIONS_PRICER },
+  ];
+  const activeKey = (() => {
+    if (phase === PHASES.HOME) return "home";
+    if (phase === PHASES.MARKET_BRIEF) return "brief";
+    if (isLendingPhase) return "lending";
+    if (phase === PHASES.SALES_LIBRARY) return "library";
+    if (phase === PHASES.OPTIONS_PRICER) return "pricer";
+    return "trade"; // SELECT/CONFIGURE/GENERATING/RESULT/AI_* all belong to Trade Builder
+  })();
+  const onSidebarNavigate = (key) => {
+    if (key === activeKey) return; // already there
+    const item = sidebarItems.find(i => i.key === key);
+    if (item) {
+      handleReset(); // clear in-flight state so the sidebar always lands cleanly
+      navigateTo(item.target);
+    }
+  };
+
   return (
-    <div style={S.page}>
-      <AppHeader onReset={handleReset} phase={phase} onNavigate={navigateTo} />
+    <GoferShell
+      sidebarItems={sidebarItems}
+      activeKey={activeKey}
+      onNavigate={onSidebarNavigate}
+      brand="SDM Studio"
+      routeKey={phase}
+    >
+    <div style={{ ...S.page, background: "transparent" }}>
+      {/* Old top-bar AppHeader is hidden — sidebar is now the primary nav.
+          Kept commented in case rollback is needed during phase 2/3 polish. */}
+      {/* <AppHeader onReset={handleReset} phase={phase} onNavigate={navigateTo} /> */}
 
       {/* Breadcrumbs */}
       {isTradingPhase && renderTradingBreadcrumb()}
@@ -3339,5 +3375,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </GoferShell>
   );
 }

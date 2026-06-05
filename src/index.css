@@ -119,3 +119,113 @@ input[type=number] { -moz-appearance: textfield; }
   #root > div > header, #root > div > footer, #root > div > nav { display: none !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   0x GOFER DESIGN TOKENS
+   Theming flows entirely through CSS variables set on <html data-theme>.
+   Components never hard-code a hex — they read a var.
+   Spec: handoff/01-design-tokens.md from 0x Gofer CRM design system.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+html[data-theme="light"] {
+  --gf-bg:          #EFEFF2;
+  --gf-card:        #FFFFFF;
+  --gf-card-2:      #F7F7F9;
+  --gf-fg:          #1D1D1F;
+  --gf-fg2:         #6E6E73;
+  --gf-fg3:         #A1A1A6;
+  --gf-line:        rgba(0,0,0,0.07);
+  --gf-line-2:      rgba(0,0,0,0.12);
+  --gf-accent:      #FFC832;
+  --gf-accent-deep: #E6AE1E;
+  --gf-accent-tint: #FFF6DC;
+  --gf-ink:         #1D1D1F;
+  --gf-pos:         #34C759;
+  --gf-neg:         #FF3B30;
+  --gf-info:        #0A84FF;
+  --gf-shadow:      0 1px 2px rgba(0,0,0,.04), 0 8px 24px -10px rgba(0,0,0,.12);
+  --gf-shadow-lg:   0 2px 6px rgba(0,0,0,.05), 0 30px 60px -20px rgba(0,0,0,.26);
+  --gf-scrim:       rgba(0,0,0,0.28);
+}
+
+html[data-theme="dark"] {
+  --gf-bg:          #000000;
+  --gf-card:        #1C1C1E;
+  --gf-card-2:      #2C2C2E;
+  --gf-fg:          #F5F5F7;
+  --gf-fg2:         #98989D;
+  --gf-fg3:         #6E6E73;
+  --gf-line:        rgba(255,255,255,0.08);
+  --gf-line-2:      rgba(255,255,255,0.14);
+  --gf-accent:      #FFD23F;
+  --gf-accent-deep: #FFDC66;
+  --gf-accent-tint: rgba(255,210,63,0.14);
+  --gf-ink:         #1D1D1F;
+  --gf-pos:         #30D158;
+  --gf-neg:         #FF453A;
+  --gf-info:        #0A84FF;
+  --gf-shadow:      0 1px 2px rgba(0,0,0,.5), 0 10px 30px -12px rgba(0,0,0,.7);
+  --gf-shadow-lg:   0 2px 8px rgba(0,0,0,.6), 0 36px 70px -20px rgba(0,0,0,.85);
+  --gf-scrim:       rgba(0,0,0,0.55);
+}
+
+/* Default (no data-theme yet) inherits light so first paint isn't a flash of unstyled. */
+html { color-scheme: light dark; }
+html:not([data-theme]) {
+  --gf-bg:          #EFEFF2;
+  --gf-card:        #FFFFFF;
+  --gf-card-2:      #F7F7F9;
+  --gf-fg:          #1D1D1F;
+  --gf-fg2:         #6E6E73;
+  --gf-fg3:         #A1A1A6;
+  --gf-line:        rgba(0,0,0,0.07);
+  --gf-line-2:      rgba(0,0,0,0.12);
+  --gf-accent:      #FFC832;
+  --gf-accent-deep: #E6AE1E;
+  --gf-accent-tint: #FFF6DC;
+  --gf-ink:         #1D1D1F;
+  --gf-pos:         #34C759;
+  --gf-neg:         #FF3B30;
+  --gf-info:        #0A84FF;
+  --gf-shadow:      0 1px 2px rgba(0,0,0,.04), 0 8px 24px -10px rgba(0,0,0,.12);
+  --gf-shadow-lg:   0 2px 6px rgba(0,0,0,.05), 0 30px 60px -20px rgba(0,0,0,.26);
+  --gf-scrim:       rgba(0,0,0,0.28);
+}
+
+/* Static constants — theme independent */
+:root {
+  --gf-font: 'Sora', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --gf-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --gf-ease: cubic-bezier(.32,.72,0,1);
+}
+
+/* Theme switch transition — added via .theming class on <html> for 440ms */
+html.theming,
+html.theming * {
+  transition: background-color .4s var(--gf-ease),
+              color .3s var(--gf-ease),
+              border-color .4s var(--gf-ease) !important;
+}
+
+/* Entrance animation used by GoferShell main-content key changes */
+@keyframes gf-rise { from { transform: translateY(18px); } to { transform: none; } }
+.gf-rise { animation: gf-rise .6s var(--gf-ease) both; }
+
+/* Reduced-motion users: disable the rise animation */
+@media (prefers-reduced-motion: reduce) {
+  .gf-rise { animation: none !important; }
+}
+
+/* Mono numerics utility for inline metrics — opt-in */
+.gf-mono { font-family: var(--gf-mono); font-variant-numeric: tabular-nums; }
+
+/* Apply Sora globally as the new default sans (existing inline Poppins/Montserrat
+   styles still take precedence on their components — full per-page restyles
+   happen in phase 2). */
+html[data-theme],
+html.gf-shell-active body {
+  font-family: var(--gf-font);
+  letter-spacing: -0.01em;
+  background: var(--gf-bg);
+  color: var(--gf-fg);
+}
