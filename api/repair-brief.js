@@ -29,23 +29,76 @@ module.exports = async function handler(req, res) {
   const date = typeof body.date === 'string' ? body.date : (req.query && req.query.date);
 
   // ── Strip the error-banner block out of a brief's HTML ──────────────────
-  // The banner is rendered by App.jsx ~line 1689: a red rounded box with
-  // "AI commentary failed" as the first child. Its background and border
-  // colors are unique enough to match safely. We delete the full <div>...</div>.
+  // The banner is rendered by App.jsx ~line 1689 as a red rounded box with
+  // "AI commentary failed" inside. React's outerHTML serializes the inline
+  // style with RGB values (rgb(254, 226, 226) for #fee2e2, rgb(220, 38, 38)
+  // for the border) — not the source hex. We locate the wrapper <div> by
+  // walking backward from the unique text, then find its matching </div>
+  // by counting nesting depth. Robust against attribute order / whitespace.
   const stripBanner = (html) => {
     if (!html || typeof html !== 'string') return { changed: false, html, hits: 0 };
     let out = html;
     let hits = 0;
-    // Loop: there should only be one, but defensively handle multiple.
-    while (true) {
-      // Match: <div ...background:#fee2e2...AI commentary failed...</div>
-      // The depth is exactly 1 inner div ("AI commentary failed" header)
-      // followed by 1 inner div (the error message), then the wrapper closes.
-      const m = out.match(/<div\s+style="[^"]*background:\s*#fee2e2[^"]*">[\s\S]*?AI commentary failed[\s\S]*?<\/div>\s*<\/div>/);
-      if (!m) break;
-      out = out.slice(0, m.index) + out.slice(m.index + m[0].length);
+    for (let safety = 0; safety < 5; safety++) {
+      const textIdx = out.indexOf('AI commentary failed');
+      if (textIdx < 0) break;
+      // Walk backward to find the wrapper <div opening. The wrapper is the
+      // FIRST opening <div whose closing > comes before textIdx and which is
+      // not itself closed before textIdx. Easiest heuristic: scan back for
+      // "<div" occurrences and pick the one whose style contains the unique
+      // "border-radius: 6px; padding: 14px 18px" combo from the banner.
+      const head = out.slice(0, textIdx);
+      const divPositions = [];
+      let p = 0;
+      while (true) {
+        const i = head.indexOf('<div', p);
+        if (i < 0) break;
+        divPositions.push(i);
+        p = i + 1;
+      }
+      // Walk backward through <div openings, find one with the banner's style markers
+      let wrapperStart = -1;
+      for (let i = divPositions.length - 1; i >= 0; i--) {
+        const openTagEnd = out.indexOf('>', divPositions[i]);
+        if (openTagEnd < 0 || openTagEnd > textIdx) continue;
+        const tag = out.slice(divPositions[i], openTagEnd + 1);
+        // The banner div has these distinctive inline-style fragments
+        if (
+          /padding:\s*14px\s*18px/.test(tag) &&
+          /border-radius:\s*6px/.test(tag) &&
+          /margin-bottom:\s*16px/.test(tag)
+        ) {
+          wrapperStart = divPositions[i];
+          break;
+        }
+      }
+      if (wrapperStart < 0) break; // banner text exists but no matching wrapper — bail safely
+
+      // Find matching </div> by depth counting starting from wrapperStart
+      let depth = 0;
+      let scan = wrapperStart;
+      let wrapperEnd = -1;
+      while (scan < out.length) {
+        const nextOpen = out.indexOf('<div', scan);
+        const nextClose = out.indexOf('</div>', scan);
+        if (nextClose < 0) break;
+        if (nextOpen >= 0 && nextOpen < nextClose) {
+          depth++;
+          scan = nextOpen + 4;
+        } else {
+          depth--;
+          if (depth === 0) {
+            wrapperEnd = nextClose + 6; // include "</div>"
+            break;
+          }
+          scan = nextClose + 6;
+        }
+      }
+      if (wrapperEnd < 0) break;
+
+      // Excise the banner (and any leading/trailing whitespace between siblings)
+      out = out.slice(0, wrapperStart) + out.slice(wrapperEnd);
       hits++;
-      if (hits > 5) break; // safety
     }
     return { changed: hits > 0, html: out, hits };
   };
