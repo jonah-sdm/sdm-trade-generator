@@ -340,8 +340,8 @@ function ChartPanel({ title, candles, showLevels, defaultDays, maxDays }) {
         )}
       </div>
 
-      {/* Row 2: zoom presets (left) + draw tools (right) */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+      {/* Row 2: zoom presets (left) + draw tools (right) — editor-only, stripped from export/PDF */}
+      <div className="noprint" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
         {/* Zoom range slider */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8A88", whiteSpace: "nowrap" }}>
@@ -380,7 +380,7 @@ function ChartPanel({ title, candles, showLevels, defaultDays, maxDays }) {
 
       {/* Pending trendline / ray hint */}
       {hasPending && (
-        <div style={{ fontFamily: "'Poppins',sans-serif", fontSize: 9, color: "#FFC32C", marginBottom: 6 }}>
+        <div className="noprint" style={{ fontFamily: "'Poppins',sans-serif", fontSize: 9, color: "#FFC32C", marginBottom: 6 }}>
           {drawMode === "ray" ? "→" : "⟋"} Click a second point to complete — or press <strong>Select</strong> to cancel
         </div>
       )}
