@@ -900,31 +900,93 @@ function buildWebflowHTML(data) {
 }
 
 // ── MB Export helpers ─────────────────────────────────────────────────────────
-function buildExportHTML(rootEl, date) {
-  // Snapshot all canvases to data-URL images BEFORE cloning (canvas content doesn't survive cloneNode)
-  const canvases = rootEl.querySelectorAll("canvas");
+// Charts that have never been on screen may still be at 0-width (their
+// ResizeObserver only sizes them once laid out). Scroll each one into view,
+// let it redraw at full width, then restore the scroll position — otherwise
+// the export snapshots blank 300×150 default canvases.
+async function mbEnsureChartsLaidOut(rootEl) {
+  const widgets = [...rootEl.querySelectorAll(".tv-lightweight-charts")];
+  const needsLayout = widgets.filter(w => w.getBoundingClientRect().width < 10);
+  if (!needsLayout.length) return;
+
+  // Remember scroll offsets of every scrollable ancestor (incl. the page)
+  const scrollers = [];
+  let p = rootEl;
+  while (p) {
+    const oy = p === document.scrollingElement || /(auto|scroll)/.test(getComputedStyle(p).overflowY);
+    if (oy) scrollers.push({ el: p, top: p.scrollTop, left: p.scrollLeft });
+    p = p.parentElement;
+  }
+  if (!scrollers.some(s => s.el === document.scrollingElement)) {
+    scrollers.push({ el: document.scrollingElement, top: document.scrollingElement.scrollTop, left: document.scrollingElement.scrollLeft });
+  }
+
+  for (const w of needsLayout) {
+    w.scrollIntoView({ block: "center" });
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  scrollers.forEach(s => { s.el.scrollTop = s.top; s.el.scrollLeft = s.left; });
+  await new Promise(r => setTimeout(r, 100));
+}
+
+async function buildExportHTML(rootEl, date) {
+  await mbEnsureChartsLaidOut(rootEl);
   const snapshots = [];
-  canvases.forEach(c => {
+
+  // Lightweight-charts widgets: composite ALL internal canvases (panes + price/time
+  // axes) into ONE image at their true offsets. Cloning the LWC DOM doesn't survive
+  // serialization — its absolutely-positioned internals collapse into a smushed,
+  // overlapping mess — so the widget is replaced by a single responsive snapshot.
+  rootEl.querySelectorAll(".tv-lightweight-charts").forEach(w => {
     try {
-      const dataUrl = c.toDataURL("image/png");
+      const rect = w.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dpr = window.devicePixelRatio || 1;
+      const comp = document.createElement("canvas");
+      comp.width  = Math.round(rect.width * dpr);
+      comp.height = Math.round(rect.height * dpr);
+      const ctx = comp.getContext("2d");
+      ctx.fillStyle = "#F9F9F9";
+      ctx.fillRect(0, 0, comp.width, comp.height);
+      w.querySelectorAll("canvas").forEach(c => {
+        const cr = c.getBoundingClientRect();
+        ctx.drawImage(c, (cr.left - rect.left) * dpr, (cr.top - rect.top) * dpr, cr.width * dpr, cr.height * dpr);
+      });
       const img = document.createElement("img");
-      img.src = dataUrl;
+      img.src = comp.toDataURL("image/png");
+      // width:100% so the chart spans the full report width wherever it's embedded
+      img.style.cssText = "width:100%;height:auto;display:block;";
+      img.setAttribute("data-canvas-snapshot", "true");
+      w.parentNode.insertBefore(img, w);
+      w.style.display = "none";
+      snapshots.push({ el: w, img });
+    } catch (e) { /* tainted canvas — skip */ }
+  });
+
+  // Any remaining standalone canvases (outside LWC widgets): snapshot 1:1 as before
+  rootEl.querySelectorAll("canvas").forEach(c => {
+    if (c.closest(".tv-lightweight-charts")) return;
+    try {
+      const img = document.createElement("img");
+      img.src = c.toDataURL("image/png");
       img.style.cssText = `width:${c.offsetWidth}px;height:${c.offsetHeight}px;display:block;`;
       img.setAttribute("data-canvas-snapshot", "true");
       c.parentNode.insertBefore(img, c);
       c.style.display = "none";
-      snapshots.push({ canvas: c, img });
+      snapshots.push({ el: c, img });
     } catch (e) { /* cross-origin canvas — skip */ }
   });
 
   const clone = rootEl.cloneNode(true);
   clone.querySelectorAll(".noprint").forEach(el => el.remove());
-  // Remove the hidden original canvases from the clone
+  // Remove the hidden originals from the clone — the snapshot images replace them
   clone.querySelectorAll("canvas").forEach(el => el.remove());
+  clone.querySelectorAll(".tv-lightweight-charts").forEach(el => el.remove());
 
-  // Restore the original DOM (put canvases back, remove temp images)
-  snapshots.forEach(({ canvas, img }) => {
-    canvas.style.display = "";
+  // Restore the original DOM (unhide originals, remove temp images)
+  snapshots.forEach(({ el, img }) => {
+    el.style.display = "";
     img.remove();
   });
 
@@ -1507,9 +1569,9 @@ function MarketBriefReport({ data, onBack }) {
   const upcoming = MB_ECON.filter(e=>{const d=mbDue(e.date);return d>=0&&d<=30;})
     .sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,8);
 
-  const handleExportHTML = () => {
+  const handleExportHTML = async () => {
     if(!rootRef.current) return;
-    const html = buildExportHTML(rootRef.current, date);
+    const html = await buildExportHTML(rootRef.current, date);
     const blob = new Blob([html],{type:"text/html;charset=utf-8"});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
@@ -1542,7 +1604,7 @@ function MarketBriefReport({ data, onBack }) {
   const handleShare = async () => {
     if(!rootRef.current) return;
     setExporting(true); setShareMsg("Creating link…");
-    const html  = buildExportHTML(rootRef.current, date);
+    const html  = await buildExportHTML(rootRef.current, date);
     const url   = await createShareLink(html, date);
     setExporting(false);
     if(url) {
@@ -1565,7 +1627,7 @@ function MarketBriefReport({ data, onBack }) {
     if(!rootRef.current) return;
     setExporting(true); setShareMsg("Publishing to Webflow…");
     try {
-      const html = buildExportHTML(rootRef.current, date);
+      const html = await buildExportHTML(rootRef.current, date);
       const title = `Daily Market Brief — ${mbFmtLong(date)}`;
       const slug = `daily-market-brief-${date}`;
       const res = await fetch("/api/webflow-publish", {
