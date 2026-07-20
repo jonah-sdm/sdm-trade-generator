@@ -257,15 +257,15 @@ Maximum profit is the ${fmtN(absP)} premium, kept as long as the asset expires b
       const isLong    = direction === "Long";
       const quantity  = Math.max(1, parseNum(fields.quantity) || 1);
       const premiumPct = Math.max(0.01, Math.min(99.99, parseNum(fields.premium)));
-      const costPerContract = premiumPct / 100;
+      const costPerContract = (premiumPct / 100) * spot; // premium is % of spot
       const totalCost  = costPerContract * quantity;
-      const totalPayout = quantity; // $1 per contract
-      const payoutMultiple = costPerContract > 0 ? (1 / costPerContract) : 0;
+      const totalPayout = spot * quantity; // each contract pays the unit's spot value
+      const payoutMultiple = costPerContract > 0 ? (spot / costPerContract) : 0;
       const condition = isCall ? `above ${$(strike)}` : `below ${$(strike)}`;
       const oppCondition = isCall ? `at or below ${$(strike)}` : `at or above ${$(strike)}`;
       return isLong
-        ? `This is a long binary ${type.toLowerCase()} on ${asset || "the underlying"}, expiring ${fields.expiry || "on the target date"}. The position pays a fixed ${$(totalPayout)} (${quantity.toLocaleString()} contracts × $1) if ${asset || "the underlying"} settles ${condition}, and zero if it does not. Premium of ${premiumPct.toFixed(2)}% — equivalent to ${$(totalCost)} paid upfront — represents the market-implied probability of the event. If correct, net profit is ${$(totalPayout - totalCost)} (payout multiple of ${payoutMultiple.toFixed(2)}× the premium); if wrong, maximum loss is the ${$(totalCost)} premium paid. This is an all-or-nothing structure with no continuous payoff between the two states.`
-        : `This is a short binary ${type.toLowerCase()} on ${asset || "the underlying"}, expiring ${fields.expiry || "on the target date"}. The position collects ${$(totalCost)} upfront (${premiumPct.toFixed(2)}% per contract) and keeps the full premium if ${asset || "the underlying"} settles ${oppCondition}. If the event triggers (price settles ${condition}), the seller pays ${$(totalPayout)}, for a maximum loss of ${$(totalPayout - totalCost)}. This is an all-or-nothing income trade where the premium effectively prices the market-implied probability of the event.`;
+        ? `This is a long binary ${type.toLowerCase()} on ${asset || "the underlying"}, expiring ${fields.expiry || "on the target date"}. The position pays a fixed ${$(totalPayout)} (${quantity.toLocaleString()} contracts × ${$(spot)} spot value) if ${asset || "the underlying"} settles ${condition}, and zero if it does not. Premium of ${premiumPct.toFixed(2)}% of spot — equivalent to ${$(totalCost)} paid upfront — represents the market-implied probability of the event. If correct, net profit is ${$(totalPayout - totalCost)} (payout multiple of ${payoutMultiple.toFixed(2)}× the premium); if wrong, maximum loss is the ${$(totalCost)} premium paid. This is an all-or-nothing structure with no continuous payoff between the two states.`
+        : `This is a short binary ${type.toLowerCase()} on ${asset || "the underlying"}, expiring ${fields.expiry || "on the target date"}. The position collects ${$(totalCost)} upfront (${premiumPct.toFixed(2)}% of spot per contract) and keeps the full premium if ${asset || "the underlying"} settles ${oppCondition}. If the event triggers (price settles ${condition}), the seller pays ${$(totalPayout)}, for a maximum loss of ${$(totalPayout - totalCost)}. This is an all-or-nothing income trade where the premium effectively prices the market-implied probability of the event.`;
     }
 
     default:
@@ -1131,10 +1131,11 @@ function computeStrangle(f) {
 }
 
 // --- BINARY OPTION ---
-// Each contract pays $1 if the event occurs (price ≥ strike for call, price ≤ strike for put),
-// $0 otherwise. Premium is entered as a percentage (e.g. 40 = 40%) and represents both the
-// cost per contract ($0.40) and the implied probability of the event.
-// Payout multiple = 1 / premium (e.g. 40% → 2.5×).
+// Each contract covers one unit of the underlying and pays the unit's SPOT VALUE if the
+// event occurs (price ≥ strike for call, price ≤ strike for put), $0 otherwise.
+// Premium is entered as a percentage OF SPOT (e.g. 40 = 40% of spot per contract) and
+// doubles as the market-implied probability of the event.
+// Payout multiple = spot / premium = 1 / pct (e.g. 40% → 2.5×).
 function computeBinaryOption(f) {
   const spot      = n(f.spot);
   const strike    = n(f.strike);
@@ -1144,11 +1145,12 @@ function computeBinaryOption(f) {
   const isLong    = direction === "Long";
   const quantity  = Math.max(1, n(f.quantity) || 1);
   const premiumPct = Math.max(0.01, Math.min(99.99, n(f.premium))); // clamp to (0,100) %
-  const costPerContract = premiumPct / 100;            // dollars per contract
+  const costPerContract = (premiumPct / 100) * spot;   // dollars per contract — % of spot
   const totalCost  = costPerContract * quantity;       // dollars paid (long) / received (short)
-  const totalMaxPayout = 1 * quantity;                 // $1 per contract × N
+  const payoutPerContract = spot;                      // event pays the unit's spot value
+  const totalMaxPayout = payoutPerContract * quantity;
 
-  const payoutMultiple = costPerContract > 0 ? (1 / costPerContract) : 0;
+  const payoutMultiple = costPerContract > 0 ? (payoutPerContract / costPerContract) : 0;
 
   // Per-position P&L if the event occurs vs. doesn't occur
   // - Long: pay totalCost up front; on event receive totalMaxPayout → net = payout - cost
@@ -1187,8 +1189,8 @@ function computeBinaryOption(f) {
 
   // Display formatters
   const fmtExact = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  // Per-contract cost is sub-dollar (e.g. $0.40 for 40% premium) — keep 2-4 decimals so we don't show "$0".
-  const fmtPerContract = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  // Per-contract cost is % of spot (e.g. $34,000 for 40% on $85k spot) — allow cents for small spots.
+  const fmtPerContract = (v) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const fmtPct = (v) => `${(Math.round(v * 100) / 100)}%`;
 
   // Action verbs for legs
@@ -1220,8 +1222,8 @@ function computeBinaryOption(f) {
     metrics: [
       { label: "Spot Price",    value: fmtFull(spot),                                              sub: f.asset || "—" },
       { label: `${direction} Binary ${type}`, value: fmtFull(strike),                              sub: `Strike · ${quantity.toLocaleString()} contracts` },
-      { label: "Premium",       value: fmtPct(premiumPct),                                         sub: `${fmtPerContract(costPerContract)} per contract` },
-      { label: "Payout Multiple", value: `${payoutMultiple.toFixed(2)}×`,                          sub: "1 ÷ premium" },
+      { label: "Premium",       value: fmtPct(premiumPct),                                         sub: `of spot · ${fmtPerContract(costPerContract)} per contract` },
+      { label: "Payout Multiple", value: `${payoutMultiple.toFixed(2)}×`,                          sub: "spot ÷ premium" },
       { label: "Total Cost",    value: fmtExact(Math.abs(totalCost)),                              sub: isLong ? "Paid upfront" : "Received upfront", positive: !isLong, negative: isLong },
       { label: "Max Profit",    value: fmtExact(maxProfit),                                        sub: pnlEvent > pnlNoEvent ? "If event occurs" : "If event does not occur", positive: true },
       { label: "Max Loss",      value: fmtExact(Math.abs(maxLoss)),                                sub: pnlEvent > pnlNoEvent ? "If event does not occur" : "If event occurs", negative: true },

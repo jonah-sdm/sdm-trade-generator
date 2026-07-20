@@ -328,7 +328,7 @@ export const TRADE_TYPES = [
     label: "Binary Option",
     category: "Digital",
     tag: "BINARY",
-    description: "All-or-nothing payoff — each contract pays $1 if the event occurs (price above strike for a call, below for a put), $0 otherwise. Premium is quoted as a probability percentage.",
+    description: "All-or-nothing payoff — each contract pays the asset's spot value if the event occurs (price above strike for a call, below for a put), $0 otherwise. Premium is quoted as a percentage of spot.",
     color: "#8B5CF6",
     icon: "◐",
     fields: [
@@ -338,8 +338,8 @@ export const TRADE_TYPES = [
       { key: "direction", label: "Direction", type: "select", options: ["Long", "Short"], default: "Long" },
       { key: "strike", label: "Strike ($)", type: "number", placeholder: "90000", default: "90000" },
       { key: "expiry", label: "Expiry Date", type: "text", placeholder: "30 May 2026", default: "30 May 2026" },
-      { key: "quantity", label: "Quantity (Contracts)", type: "number", placeholder: "100000", default: "100000" },
-      { key: "premium", label: "Premium (% — probability of event)", type: "number", placeholder: "40", default: "40" },
+      { key: "quantity", label: "Quantity (Units of Asset)", type: "number", placeholder: "10", default: "10" },
+      { key: "premium", label: "Premium (% of spot)", type: "number", placeholder: "40", default: "40" },
       { key: "executive_summary", label: "Executive Summary", type: "textarea", placeholder: "Provide market context, macro outlook, catalysts, and rationale for this trade..." },
     ]
   },
