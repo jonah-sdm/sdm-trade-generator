@@ -187,8 +187,71 @@ Select the best trade, populate all fields, and write the executive summary.`;
     }
 
     // ─── MODE: prompt pass-through (market brief / geopolitical) ─────────────
-    const { prompt } = req.body;
+    const { prompt, format } = req.body;
     if (prompt) {
+      // Structured outputs: when the client asks for the market-brief format, the
+      // API itself guarantees the response is valid JSON matching this schema —
+      // no prose preamble, no markdown fences, no client-side parse failures
+      // ("AI commentary failed: stop=end_turn"). Assistant prefill is NOT an
+      // option here: it returns 400 on claude-sonnet-4-6.
+      const section = {
+        type: 'object',
+        properties: { intro: { type: 'string' } },
+        required: ['intro'],
+        additionalProperties: false,
+      };
+      const BRIEF_SCHEMA = {
+        type: 'object',
+        properties: {
+          executive_summary: { type: 'array', items: { type: 'string' } },
+          market: section,
+          derivatives: section,
+          etf: section,
+          calendar: section,
+          news: section,
+          news_summaries: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                headline: { type: 'string' },
+                summary: { type: 'string' },
+                source: { type: 'string' },
+              },
+              required: ['headline', 'summary', 'source'],
+              additionalProperties: false,
+            },
+          },
+          geo_intro: { type: 'string' },
+          geo_bullets: { type: 'array', items: { type: 'string' } },
+          macro_tiles: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                label: { type: 'string' },
+                value: { type: 'string' },
+                sub: { type: 'string' },
+              },
+              required: ['label', 'value', 'sub'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['executive_summary', 'market', 'derivatives', 'etf', 'calendar', 'news',
+                   'news_summaries', 'geo_intro', 'geo_bullets', 'macro_tiles'],
+        additionalProperties: false,
+      };
+
+      const body = {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+      };
+      if (format === 'market_brief') {
+        body.output_config = { format: { type: 'json_schema', schema: BRIEF_SCHEMA } };
+      }
+
       // Retry once on transient Anthropic 5xx / 429 — large market-brief prompts
       // occasionally hit overloaded_error which is recoverable on the next attempt.
       const callClaude = () => fetch('https://api.anthropic.com/v1/messages', {
@@ -198,11 +261,7 @@ Select the best trade, populate all fields, and write the executive summary.`;
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
         },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+        body: JSON.stringify(body),
       });
       let response = await callClaude();
       if (!response.ok && (response.status >= 500 || response.status === 429)) {
