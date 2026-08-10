@@ -759,7 +759,7 @@ ${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]
       fetch("/api/generate", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ prompt }),
+        body:JSON.stringify({ prompt, format:"market_brief" }),
       }),
       mbTimeout(55000),
     ]);
