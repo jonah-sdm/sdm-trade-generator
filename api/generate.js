@@ -200,8 +200,14 @@ Select the best trade, populate all fields, and write the executive summary.`;
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 4000,
+          // Prefilling the assistant turn with "{" forces the reply to begin as raw
+          // JSON — no prose preamble, no markdown fences — so the client's
+          // JSON.parse can't trip on wrapper text ("AI commentary failed: stop=end_turn").
+          messages: [
+            { role: 'user', content: prompt },
+            { role: 'assistant', content: '{' },
+          ],
         }),
       });
       let response = await callClaude();
@@ -210,6 +216,8 @@ Select the best trade, populate all fields, and write the executive summary.`;
         response = await callClaude();
       }
       const data = await response.json();
+      // Re-attach the prefilled "{" so the client receives complete JSON text
+      if (data?.content?.[0]?.text != null) data.content[0].text = '{' + data.content[0].text;
       return res.status(response.status).json(data);
     }
 

@@ -777,9 +777,15 @@ ${news.map((n,i)=>`${i+1}. HEADLINE: ${n.title}\nCOVERAGE: ${(n.sources||[n.src]
     return { _err:"api_error", msg: `${errType}: ${errMsg}` };
   }
   const text = data?.content?.[0]?.text || "";
-  try { return JSON.parse(text.replace(/^```json\s*/,"").replace(/\s*```$/,"").trim()); }
+  const cleaned = text.replace(/^```json\s*/,"").replace(/\s*```$/,"").trim();
+  try { return JSON.parse(cleaned); }
   catch(e) {
-    return { _err:"parse_failed", msg:`stop=${data?.stop_reason}` };
+    // Model sometimes wraps the JSON in prose — extract the outermost {...} block
+    const start = cleaned.indexOf("{"), end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}
+    }
+    return { _err:"parse_failed", msg:`stop=${data?.stop_reason} — response started: "${cleaned.slice(0,120)}…"` };
   }
 }
 
